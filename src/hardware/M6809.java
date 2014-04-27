@@ -5,7 +5,14 @@ import java.io.FileOutputStream;
 public class M6809 {
 
     protected Memory mem;
-    private int cl=0;
+    
+// Sound emulation parameters
+    public byte []sound_buffer;
+    private int sound_addr=0;
+    public int sound_size = 1024;
+    private Sound play;
+    
+    private int cl=0;   
 
 // 8bits registers
 	private int A=0;
@@ -31,10 +38,17 @@ public class M6809 {
 	private int h2=0;
 	private int ccrest=0;
 	boolean wait=false;
+	
 
-    public M6809(Memory mem) {
-	this.mem = mem;
-	reset();
+    public M6809(Memory mem, Sound _play) {
+		this.mem = mem;
+		
+		// Sound emulation init
+		sound_buffer = new byte[sound_size];
+		sound_addr = 0;
+		play = _play;
+		
+		reset();
     }
     
     public int getPC() {
@@ -47,8 +61,6 @@ public class M6809 {
 	DP=0x00;
 	S=0x8000;
 	CC=0x00;
-
-    	
     }
 
 // recalculate A and B or D
@@ -1488,7 +1500,7 @@ private void LBVC() {
 
 private void SWI() {
   getcc();
-  CC|=0x80; /* bit E … 1 */
+  CC|=0x80; /* bit E ï¿½ 1 */
   setcc(CC);
   S--;mem.write(S,PC&0x00FF);S--;mem.write(S,PC>>8);
   S--;mem.write(S,U&0x00FF);S--;mem.write(S,U>>8);
@@ -1498,6 +1510,7 @@ private void SWI() {
   S--;mem.write(S,B);
   S--;mem.write(S,A);
   S--;mem.write(S,CC);
+
   PC=(mem.read(0xFFFA)<<8)|mem.read(0xFFFB);
   cl+=19;
 }
@@ -1521,7 +1534,7 @@ private void RTI()
 }
 
 public void IRQ() {
-	/* mise … 1 du bit E sur le CC */
+	/* mise ï¿½ 1 du bit E sur le CC */
     getcc();
 	CC|=0x80;
     setcc(CC);
@@ -1565,9 +1578,18 @@ public int FetchUntil(int clock) {
 
 public void Fetch() {
 	int opcode = mem.read(PC++);
-
+	
+	// 	Sound emulation process
+	this.sound_buffer[this.sound_addr] = (byte) mem.SoundMem;
+	this.sound_addr = (this.sound_addr + 1) % sound_size;
+	if(this.sound_addr == 0)
+		play.playSound(this);
+		
 	switch (opcode) {
-	case 0x02 : mem.periph(PC,S);break;
+	
+	// PER (instruction d'emulation de pÃ©riphÃ©rique)
+	case 0x02 : mem.periph(PC,S, A);break; 
+	
 	// LDA
 	case 0x86: A=LD8(IMMED8(),2); break;
 	case 0x96: A=LD8(DIREC(),4); break;

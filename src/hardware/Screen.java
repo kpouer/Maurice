@@ -2,37 +2,46 @@ package hardware;
 
 import java.awt.*;
 import java.net.URL;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.awt.image.*;
 
 public class Screen extends Canvas {
 
-    BufferedImage BuffImg;
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	BufferedImage BuffImg;
     WritableRaster raster;
+	public boolean mouse_clic = false ;
+    public int mouse_X = -1,mouse_Y = -1;	
     int[] pixels;
     protected Memory mem;
-    private int pixelSize;
+    public double pixelSize;
     private Graphics og;
     public boolean filter = false;
     private final int palette[] = {
         0x000000,
-        0xFF0000,
-        0x00FF00,
-        0xFFFF00,
+        0xF00000,
+        0x00F000,
+        0xF0F000,
 
-        0x0000FF,
-        0xFF00FF,
-        0x00FFFF,
-        0xFFFFFF,
+        0x0000F0,
+        0xF000F0,
+        0x00F0F0,
+        0xF0F0F0,
 
         0x636363,
-        0xFF6363,
-        0x63FF63,
-        0xFFFF63,
+        0xF06363,
+        0x63F063,
+        0xF0F063,
 
-        0x0063FF,
-        0xFF63FF,
-        0x63FFFF,
-        0xFF6300,
+        0x0063F0,
+        0xF063F0,
+        0x63F0F0,
+        0xF06300,
     };
 
     public static int led = 0;
@@ -49,18 +58,63 @@ public class Screen extends Canvas {
             pixels[i] = 0xff000000;
         }
         BuffImg.setData(raster);
+        
+        // Mouse Event use for Lightpen emulation
+        MouseListener _Click = new MouseListener() {
+            public void mouseClicked(MouseEvent e) {
+            }
+
+            public void mouseEntered(MouseEvent e) {
+            }
+
+            public void mouseExited(MouseEvent e) {
+            }
+
+            public void mousePressed(MouseEvent e) {
+                mouse_X = e.getX();
+                mouse_Y = e.getY();
+                mouse_X = (int)((mouse_X ) / pixelSize);
+                mouse_Y = (int)((mouse_Y ) / pixelSize);
+               
+                mouse_clic = true;
+                
+            }
+            
+            public void mouseReleased(MouseEvent e) {
+            	mouse_clic = false;
+            	
+              }
+        };
+            
+            MouseMotionListener _Motion = new MouseMotionListener() {
+                public void mouseDragged(MouseEvent e) {
+                  mouse_X = e.getX();
+                  mouse_Y = e.getY();
+                  mouse_X = (int)((mouse_X ) / pixelSize);
+                  mouse_Y = (int)((mouse_Y ) / pixelSize);
+                }
+
+                public void mouseMoved(MouseEvent e) {
+                	
+                }
+              };
+
+              
+        this.addMouseMotionListener(_Motion);
+        this.addMouseListener(_Click);
+
     }
 
     public void init(Memory memory) {
         this.mem = memory;
     }
 
-    public void setPixelSize(int ps) {
+    public void setPixelSize(double ps) {
         pixelSize = ps;
         mem.setAllDirty();
     }
 
-    public int getPixelSize() {
+    public double getPixelSize() {
         return pixelSize;
     }
 
@@ -86,9 +140,9 @@ public class Screen extends Canvas {
                 og.fillRect(320 - 16, 0, 16, 8);
             }
         dopaint(og);
-        if (filter)
-            og.drawImage(monitor, 0, 0, 320,200,this);
-        gc.drawImage(BuffImg, 0, 0, 320 * pixelSize, 200 * pixelSize, this);
+        //if (filter)
+        //    og.drawImage(monitor, 0, 0, 320,200,this);
+        gc.drawImage(BuffImg, 0, 0, (int)(320 * pixelSize), (int)(200 * pixelSize), this);
     }
     int i;
     int j;

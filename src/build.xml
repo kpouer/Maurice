@@ -7,15 +7,19 @@
   <property name="build" location="build"/>
   <property name="dist"  location="dist"/>
 
+  <manifest file="MANIFEST.MF">
+    <attribute name="Built-By" value="${user.name}"/>
+  <attribute name="Main-Class" value="marcel"/>
+  </manifest>
   <target name="init">
     <!-- Create the time stamp -->
     <tstamp/>
     <!-- Create the build directory structure used by compile -->
     <mkdir dir="${build}"/>
 
-    <mkdir dir="${build}/BIOS"/>
-    <copy todir="${build}/BIOS">
-      <fileset dir="${src}/BIOS"/>
+    <mkdir dir="${build}/bios"/>
+    <copy todir="${build}/bios">
+      <fileset dir="${src}/bios"/>
     </copy>
 
   </target>
@@ -39,7 +43,7 @@
     <mkdir dir="${dist}/lib"/>
 
     <!-- Put everything in ${build} into the MyProject-${DSTAMP}.jar file -->
-    <jar jarfile="${dist}/lib/jteo-${DSTAMP}.jar" basedir="${build}"/>
+    <jar jarfile="${dist}/lib/jteo-${DSTAMP}.jar" basedir="${build}" manifest="MANIFEST.MF" />
   </target>
 
   <target name="clean"

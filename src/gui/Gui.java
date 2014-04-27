@@ -5,13 +5,15 @@ import hardware.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
-
 import java.net.URL;
+
+import javax.swing.JOptionPane;
 
 public class Gui implements WindowListener, ActionListener {
 
     public Frame guiFrame;
     public String hadfile = null;
+ 
     private MenuBar guiMenuBar;
     private Menu guiMenuFile, guiMenuRun, guiMenuReset, guiMenuZoom, guiMenuDebug, guiMenuHelp;
     private MenuItem guiMenuFileSelectK7, guiMenuUrlSelectK7, guiMenuRewindK7, guiMenuFileExit;
@@ -24,13 +26,13 @@ public class Gui implements WindowListener, ActionListener {
     private Dialog guiDialog;
     private Dialog debugDialog;
     public Screen screen;
-    public Machine machine;
+    public Machine machine;    
     private boolean appletMode = false;
     private URL appletCodeBase;
 
     public Gui() {
         appletMode = false;
-        initMachine();
+        initMachine(); 
         initGui();
     }
 
@@ -87,7 +89,7 @@ public class Gui implements WindowListener, ActionListener {
         lastK7Dir=fd.getDirectory();
         }
         } */
-
+        
         // select an url for a K7
         if (guiMenuUrlSelectK7.equals(evt.getSource())) {
             Browser b = new Browser("http://perso.orange.fr/gilles.fetis/emu/java/k7/index.htm", this);
@@ -127,12 +129,16 @@ public class Gui implements WindowListener, ActionListener {
         // Menu Reset
         // Soft
         if (guiMenuResetSoft.equals(evt.getSource())) {
+        	machine.stop();
             machine.resetSoft();
+            machine.start();
             return;
         }
         // Hard
         if (guiMenuResetHard.equals(evt.getSource())) {
+        	machine.stop();
             machine.resetHard();
+            machine.start();
             return;
         }
 
@@ -152,24 +158,27 @@ public class Gui implements WindowListener, ActionListener {
         if (guiMenuZoomx1.equals(evt.getSource())) {
             screen.setPixelSize(1);
             Insets i = guiFrame.getInsets();
-            guiFrame.setSize(320 * screen.getPixelSize() + (i.left + i.right), 200 * screen.getPixelSize() + (i.top + i.bottom));
+            guiFrame.setSize((int)(320 * screen.getPixelSize() + (i.left + i.right)), (int)(200 * screen.getPixelSize() + (i.top + i.bottom)));
             screen.repaint();
+            
             return;
         }
         // X2
         if (guiMenuZoomx2.equals(evt.getSource())) {
             screen.setPixelSize(2);
             Insets i = guiFrame.getInsets();
-            guiFrame.setSize(320 * screen.getPixelSize() + (i.left + i.right), 200 * screen.getPixelSize() + (i.top + i.bottom));
+            guiFrame.setSize((int)(320 * screen.getPixelSize() + (i.left + i.right)), (int)(200 * screen.getPixelSize() + (i.top + i.bottom)));
             screen.repaint();
+           
             return;
         }
         // X3
         if (guiMenuZoomx3.equals(evt.getSource())) {
-            screen.setPixelSize(3);
+            screen.setPixelSize(4);
             Insets i = guiFrame.getInsets();
-            guiFrame.setSize(320 * screen.getPixelSize() + (i.left + i.right), 200 * screen.getPixelSize() + (i.top + i.bottom));
+            guiFrame.setSize((int)(320.0 * screen.getPixelSize() + (i.left + i.right)), (int)(200.0 * screen.getPixelSize() + (i.top + i.bottom)));
             screen.repaint();
+            
             return;
         }
 
@@ -182,8 +191,9 @@ public class Gui implements WindowListener, ActionListener {
             about();
             return;
         }
-
+    
     }
+
 
     public void windowClosing(WindowEvent e) {
         if (guiFrame.equals(e.getSource())) {
@@ -208,6 +218,7 @@ public class Gui implements WindowListener, ActionListener {
             if (debugDialog.equals(e.getSource())) {
                 debugDialog.toFront();
             }
+            
         } catch (Exception re) {
         }
     }
@@ -228,20 +239,29 @@ public class Gui implements WindowListener, ActionListener {
     }
 
     public void windowOpened(WindowEvent e) {
+    	if(e == null)
+    		return;
+    	if(guiFrame != null)   		
         if (guiFrame.equals(e.getSource())) {
             guiFrame.toFront();
         }
+    	if(guiDialog != null)
         if (guiDialog.equals(e.getSource())) {
             guiDialog.toFront();
         }
+    	if(debugDialog != null)
         if (debugDialog.equals(e.getSource())) {
             debugDialog.toFront();
         }
+    	
     }
 
     private void initGui() {
-        guiFrame = new Frame("Marcel O Cinq 3.0 (Java)");
+        guiFrame = new Frame("Marcel O Cinq 3.1 (Java)");
         guiFrame.setLayout(new BorderLayout());
+        
+        //setExtendedState(MAXIMIZED_BOTH);
+        //setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         guiMenuBar = new MenuBar();
 
@@ -318,22 +338,31 @@ public class Gui implements WindowListener, ActionListener {
         guiFrame.addWindowListener(this);
         guiFrame.setMenuBar(guiMenuBar);
         guiFrame.add(screen);
+        
 
         guiFrame.pack();
-        Insets i = guiFrame.getInsets();
-        guiFrame.setSize(320 * screen.getPixelSize() + (i.left + i.right), 200 * screen.getPixelSize() + (i.top + i.bottom));
-        if (usefram) {
-            guiFrame.setVisible(true);
-        }
-
+        
         guiDialog = new Dialog(guiFrame, true);
         guiDialog.addWindowListener(this);
 
         debugDialog = new Dialog(guiFrame, true);
         debugDialog.addWindowListener(this);
 
-
+        screen.requestFocusInWindow();
+           
         machine.start();
+        
+        screen.setPixelSize(1);      
+        Insets i = guiFrame.getInsets();
+        guiFrame.setSize((int)(320 * screen.getPixelSize() + (i.left + i.right)+10), (int)(200 * screen.getPixelSize() + (i.top + i.bottom)+15));
+        if (usefram) {
+            guiFrame.setVisible(true);
+        }
+        screen.repaint();
+        screen.setPixelSize(2);
+        i = guiFrame.getInsets();
+        guiFrame.setSize((int)(320 * screen.getPixelSize() + (i.left + i.right)), (int)(200 * screen.getPixelSize() + (i.top + i.bottom)));
+        screen.repaint();
     }
 
     private void initMachine() {
@@ -348,9 +377,11 @@ public class Gui implements WindowListener, ActionListener {
     private void about() {
 
 
-        String aboutText = " Marcel O Cinq 3.0 (java) \n"
+        String aboutText = "           Marcel O Cinq 3.1 (java) \n\n"
                 + "(C) G.Fetis 1997-1998-2006\n"
-                + "java conversion of my previously C/DOS\n"
+                + "(C) DevilMarkus http://cpc.devilmarkus.de 2006\n"
+                + "(C) M.Le Goff 2014\n\n"
+                + "Java conversion of my previously C/DOS\n"
                 + "based Thomson MO5 emulator \n"
                 + "(that was also ported to Unix and Macos)\n"
                 + "The basic java design is taken from Pom1\n"
@@ -362,17 +393,31 @@ public class Gui implements WindowListener, ActionListener {
                 + "under Basic interpreter type LOAD then type RUN\n"
                 + "or LOADM then EXEC\n"
                 + "\n"
-                + "Contact gilles.fetis@wanadoo.fr";
+                + "Full keyboard emulation with all symbols\n"
+                + "Sound emulation\n"
+                + "Reset bug solved\n"
+                + "Save K7 emulation\n"
+                + "Lightpen emulation\n"
+                + "AltGr+C = Ctrl+C = Break basic\n"
+                + "F11 = BASIC     F12 = SHIFT\n"
+                + "\n"
+                + "Contacts :\n"
+         		+ "gilles.fetis@wanadoo.fr\n"               
+        		+ "marc.le.goff@gmail.fr\n";
 
-        TextArea ta = new TextArea(aboutText, 15, 40, TextArea.SCROLLBARS_NONE);
+        TextArea ta = new TextArea(aboutText, 30, 40, TextArea.SCROLLBARS_VERTICAL_ONLY);
         ta.setEditable(false);
+        ta.setBackground(Color.WHITE );       
+        
         guiDialog.removeAll();
         guiDialog.setTitle("About Marcel O Cinq");
         guiDialog.setLayout(new FlowLayout());
-        guiDialog.add(ta);
-        guiDialog.setSize(375, 280);
-
-        guiDialog.show();
+        guiDialog.add(ta);      
+        guiDialog.setSize(400, 500);        
+        guiDialog.setVisible(true);
+        
+        
+        
     }
 
     private void debug() {
@@ -381,17 +426,17 @@ public class Gui implements WindowListener, ActionListener {
 
         TextArea t1 = new TextArea(this.machine.dumpRegisters(), 2, 40, TextArea.SCROLLBARS_NONE);
         t1.setEditable(false);
-
+        t1.setBackground(Color.WHITE );
         TextArea t2 = new TextArea(this.machine.unassembleFromPC(10), 10, 40, TextArea.SCROLLBARS_NONE);
         t2.setEditable(false);
-
+        t2.setBackground(Color.WHITE );
         debugDialog.removeAll();
         debugDialog.add(t1);
         debugDialog.add(t2);
         debugDialog.setLayout(new FlowLayout());
-        debugDialog.setSize(320, 400);
+        debugDialog.setSize(400, 400);
+        debugDialog.setVisible(true);
 
-        debugDialog.show();
     }
 } // of class
 

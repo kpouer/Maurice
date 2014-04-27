@@ -1,46 +1,53 @@
 package hardware;
 
 import java.net.URL;
-
-
 import java.awt.event.*;
 
-public class Machine implements Runnable {
+import javax.swing.JOptionPane;
+
+public class Machine implements Runnable  {
 
     private volatile Thread runner = null;
     // Emulation Objects
     private Memory mem;
     private M6809 micro;
     private Screen screen;
-    private Keyboard keyboard;
+    private Keyboard keyboard;  
+    private Sound sound;
     private boolean appletMode = false;
     private URL appletCodeBase;
-
+    
+   
+    
     // application mode constructor
     public Machine(Screen screen) {
         this.appletMode = false;
         this.mem = new Memory();
+        this.sound = new Sound();        
         this.screen = screen;
-        this.micro = new M6809(mem);
+        this.micro = new M6809(mem, this.sound);
         this.keyboard = new Keyboard(screen, mem);
-        this.screen.init(mem);
+        this.screen.init(mem);  
+        
     }
 
     // applet mode constructor
     public Machine(Screen screen, URL appletCodeBase) {
         this.appletMode = true;
         this.mem = new Memory(appletCodeBase);
+        this.sound = new Sound(); 
         this.screen = screen;
-        this.micro = new M6809(mem);
+        this.micro = new M6809(mem, this.sound);
         this.keyboard = new Keyboard(screen, mem);
         this.screen.init(mem);
+        
     }
 
     public void start() {
         if (runner == null) {
             runner = new Thread(this);
-            runner.setPriority(Thread.MAX_PRIORITY);
-            runner.start();
+            runner.setPriority(Thread.MAX_PRIORITY );
+            runner.start();            
         }
     }
 
@@ -63,11 +70,19 @@ public class Machine implements Runnable {
     private void fullSpeed() {
         int cl;
 
-        screen.repaint();
-
+        screen.repaint(); // Mise a jour de l'affichage
+        
+        // Mise a jour du crayon optique a partir des donnÃ©e de la souris souris
+        if(screen!=null)
+        {
+        	mem.LightPenClic = screen.mouse_clic ;
+        	mem.LightPenX = screen.mouse_X;
+        	mem.LightPenY = screen.mouse_Y;
+        }
+        
         mem.set(0xA7E7, 0x00);
         mem.GA3 = 0x00;
-        /* 3.9 ms haut ‚cran (+0.3 irq)*/
+        /* 3.9 ms haut ï¿½cran (+0.3 irq)*/
         if (IRQ) {
             IRQ = false;
             micro.FetchUntil(3800);
