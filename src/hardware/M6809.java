@@ -1587,6 +1587,12 @@ public void Fetch() {
 		
 	switch (opcode) {
 	
+	// the mystery undocumented opcode
+    case 0x01:
+        PC++;
+        cl += 2;
+        break;
+	
 	// PER (instruction d'emulation de périphérique)
 	case 0x02 : mem.periph(PC,S, A);break; 
 	
