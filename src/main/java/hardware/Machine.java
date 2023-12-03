@@ -1,9 +1,6 @@
 package hardware;
 
 import java.net.URL;
-import java.awt.event.*;
-
-import javax.swing.JOptionPane;
 
 public class Machine implements Runnable  {
 

@@ -1,7 +1,5 @@
 package hardware;
 
-import java.io.FileOutputStream;
-
 public class M6809 {
 
     protected Memory mem;
