@@ -1,53 +1,29 @@
-package hardware;
+package marcel.hardware;
 
-import java.net.URL;
-import java.awt.event.*;
+public class Machine implements Runnable {
 
-import javax.swing.JOptionPane;
-
-public class Machine implements Runnable  {
-
-    private volatile Thread runner = null;
+    private volatile Thread runner;
     // Emulation Objects
-    private Memory mem;
-    private M6809 micro;
-    private Screen screen;
-    private Keyboard keyboard;  
-    private Sound sound;
-    private boolean appletMode = false;
-    private URL appletCodeBase;
-    
-   
-    
+    private final Memory mem;
+    private final M6809 micro;
+    private final Screen screen;
+    private final Keyboard keyboard;
+
     // application mode constructor
     public Machine(Screen screen) {
-        this.appletMode = false;
-        this.mem = new Memory();
-        this.sound = new Sound();        
+        mem = new Memory();
+        Sound sound = new Sound();
         this.screen = screen;
-        this.micro = new M6809(mem, this.sound);
-        this.keyboard = new Keyboard(screen, mem);
-        this.screen.init(mem);  
-        
-    }
-
-    // applet mode constructor
-    public Machine(Screen screen, URL appletCodeBase) {
-        this.appletMode = true;
-        this.mem = new Memory(appletCodeBase);
-        this.sound = new Sound(); 
-        this.screen = screen;
-        this.micro = new M6809(mem, this.sound);
-        this.keyboard = new Keyboard(screen, mem);
+        micro = new M6809(mem, sound);
+        keyboard = new Keyboard(screen, mem);
         this.screen.init(mem);
-        
     }
 
     public void start() {
         if (runner == null) {
             runner = new Thread(this);
-            runner.setPriority(Thread.MAX_PRIORITY );
-            runner.start();            
+            runner.setPriority(Thread.MAX_PRIORITY);
+            runner.start();
         }
     }
 
@@ -57,6 +33,7 @@ public class Machine implements Runnable  {
         }
     }
 
+    @Override
     public void run() {
         Thread thisThread = Thread.currentThread();
         while (runner == thisThread) {
@@ -64,22 +41,20 @@ public class Machine implements Runnable  {
             synchronize();
         }
     }
-    private boolean IRQ = false;
+
+    private boolean IRQ;
 
     // the emulator main loop
     private void fullSpeed() {
         int cl;
 
         screen.repaint(); // Mise a jour de l'affichage
-        
+
         // Mise a jour du crayon optique a partir des donnée de la souris souris
-        if(screen!=null)
-        {
-        	mem.LightPenClic = screen.mouse_clic ;
-        	mem.LightPenX = screen.mouse_X;
-        	mem.LightPenY = screen.mouse_Y;
-        }
-        
+        mem.LightPenClic = screen.isMouse_clic();
+        mem.LightPenX = screen.getMouse_X();
+        mem.LightPenY = screen.getMouse_Y();
+
         mem.set(0xA7E7, 0x00);
         mem.GA3 = 0x00;
         /* 3.9 ms haut �cran (+0.3 irq)*/
@@ -100,12 +75,11 @@ public class Machine implements Runnable  {
         micro.FetchUntil(2800);
 
         if ((mem.CRB & 0x01) == 0x01) {
-            int CC;
             IRQ = true;
             /* Positionne le bit 7 de CRB */
             mem.CRB |= 0x80;
             mem.set(0xA7C3, mem.CRB);
-            CC = micro.readCC();
+            int CC = micro.readCC();
             if ((CC & 0x10) == 0) {
                 micro.IRQ();
             }
@@ -115,10 +89,11 @@ public class Machine implements Runnable  {
             mem.set(0xA7C3, mem.CRB);
         }
     }
-    private long lastTime = System.currentTimeMillis();
-    int[] keys;
 
-    public void AutoType(String input) {
+    private long lastTime = System.currentTimeMillis();
+    private int[] keys;
+
+    private void AutoType(String input) {
         input = input.replace("\"", "zxz");
         keys = new int[input.length()];
         for (int i = 0; i < keys.length; i++) {
@@ -127,9 +102,10 @@ public class Machine implements Runnable  {
         }
         keytimer = 1;
     }
-    int keytimer;
-    int keypos;
-    protected String typetext = null;
+
+    private int keytimer;
+    private int keypos;
+    private String typetext;
 
     public void setBoot(String input) {
         if (input != null) {
@@ -138,7 +114,12 @@ public class Machine implements Runnable  {
         }
         typetext = input;
     }
-    public static int testtimer = 0;
+
+    private static int testtimer;
+
+    public static void setTesttimer(int testtimer) {
+        Machine.testtimer = testtimer;
+    }
 
     private void synchronize() {
         if (testtimer != 0 && typetext != null) {
@@ -171,7 +152,7 @@ public class Machine implements Runnable  {
             return;
         }
         try {
-            runner.sleep(sleepMillis);
+            Thread.sleep(sleepMillis);
         } catch (Exception e) {
             System.out.println(e);
         }
@@ -188,25 +169,24 @@ public class Machine implements Runnable  {
 
     // soft reset method ("reinit prog" button on original MO5) 
     public void resetSoft() {
-        this.micro.reset();
+        micro.reset();
     }
 
     // hard reset (switch off and on)
     public void resetHard() {
-        int i;
-        for (i = 0x2000; i < 0x3000; i++) {
-            this.mem.set(i, 0);
+        for (int i = 0x2000; i < 0x3000; i++) {
+            mem.set(i, 0);
         }
-        this.micro.reset();
+        micro.reset();
     }
 
     // Debug Methods
     public String dumpRegisters() {
-        return this.micro.printState();
+        return micro.printState();
     }
 
     public String unassembleFromPC(int nblines) {
-        return this.micro.unassemble(this.micro.getPC(), nblines);
+        return micro.unassemble(micro.getPC(), nblines);
     }
 
     public String dumpSystemStack(int nblines) {
