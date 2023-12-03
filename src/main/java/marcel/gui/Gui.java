@@ -3,6 +3,7 @@ package marcel.gui;
 import marcel.hardware.Machine;
 import marcel.hardware.Screen;
 
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -11,24 +12,22 @@ import java.awt.event.WindowEvent;
 
 public class Gui extends WindowAdapter implements ActionListener {
 
-    private Frame guiFrame;
+    private JFrame guiFrame;
     private String hadfile;
 
-    private MenuItem guiMenuFileSelectK7;
-    private MenuItem guiMenuRewindK7;
-    private MenuItem guiMenuFileExit;
-    private MenuItem guiMenuRunStop;
-    private MenuItem guiMenuRunGo;
-    private MenuItem guiMenuResetSoft;
-    private MenuItem guiMenuResetHard;
-    private MenuItem guiMenuZoomx1;
-    private MenuItem guiMenuZoomx2;
-    private MenuItem guiMenuZoomx3;
-    private MenuItem guiFilter;
-    private MenuItem guiMenuDebugDebug;
-    private MenuItem guiMenuHelpAbout;
-    private Dialog guiDialog;
-    private Dialog debugDialog;
+    private JMenuItem guiMenuFileSelectK7;
+    private JMenuItem guiMenuRewindK7;
+    private JMenuItem guiMenuFileExit;
+    private JMenuItem guiMenuRunStop;
+    private JMenuItem guiMenuRunGo;
+    private JMenuItem guiMenuResetSoft;
+    private JMenuItem guiMenuResetHard;
+    private JMenuItem guiMenuZoomx1;
+    private JMenuItem guiMenuZoomx2;
+    private JMenuItem guiMenuZoomx3;
+    private JMenuItem guiFilter;
+    private JMenuItem guiMenuDebugDebug;
+    private JMenuItem guiMenuHelpAbout;
     private Screen screen;
     private Machine machine;
     private String lastK7Dir;
@@ -162,12 +161,6 @@ public class Gui extends WindowAdapter implements ActionListener {
         if (guiFrame.equals(e.getSource())) {
             System.exit(0);
         }
-        if (guiDialog.equals(e.getSource())) {
-            guiDialog.dispose();
-        }
-        if (debugDialog.equals(e.getSource())) {
-            debugDialog.dispose();
-        }
     }
 
     @Override
@@ -175,12 +168,6 @@ public class Gui extends WindowAdapter implements ActionListener {
         try {
             if (guiFrame.equals(e.getSource())) {
                 guiFrame.toFront();
-            }
-            if (guiDialog.equals(e.getSource())) {
-                guiDialog.toFront();
-            }
-            if (debugDialog.equals(e.getSource())) {
-                debugDialog.toFront();
             }
         } catch (Exception re) {
         }
@@ -203,100 +190,84 @@ public class Gui extends WindowAdapter implements ActionListener {
                 guiFrame.toFront();
             }
         }
-        if (guiDialog != null) {
-            if (guiDialog.equals(e.getSource())) {
-                guiDialog.toFront();
-            }
-        }
-        if (debugDialog != null) {
-            if (debugDialog.equals(e.getSource())) {
-                debugDialog.toFront();
-            }
-        }
     }
 
     private void initGui() {
-        guiFrame = new Frame("Marcel O Cinq 3.1 (Java)");
+        guiFrame = new JFrame("Marcel O Cinq 3.1 (Java)");
         guiFrame.setLayout(new BorderLayout());
 
-        var guiMenuBar = new MenuBar();
+        var guiMenuBar = new JMenuBar();
 
-        var guiMenuFile = new Menu("File");
+        var guiMenuFile = new JMenu("File");
 
-        guiMenuFileSelectK7 = new MenuItem("Select K7");
+        guiMenuFileSelectK7 = new JMenuItem("Select K7");
         guiMenuFileSelectK7.addActionListener(this);
         guiMenuFile.add(guiMenuFileSelectK7);
-        guiMenuRewindK7 = new MenuItem("Rewind tape");
+        guiMenuRewindK7 = new JMenuItem("Rewind tape");
         guiMenuRewindK7.addActionListener(this);
         guiMenuFile.add(guiMenuRewindK7);
-        guiMenuFileExit = new MenuItem("Exit");
+        guiMenuFileExit = new JMenuItem("Exit");
         guiMenuFileExit.addActionListener(this);
         guiMenuFile.add(guiMenuFileExit);
 
         guiMenuBar.add(guiMenuFile);
 
-        var guiMenuRun = new Menu("Run");
-        guiMenuRunStop = new MenuItem("Stop");
+        var guiMenuRun = new JMenu("Run");
+        guiMenuRunStop = new JMenuItem("Stop");
         guiMenuRunStop.addActionListener(this);
         guiMenuRun.add(guiMenuRunStop);
-        guiMenuRunGo = new MenuItem("Go");
+        guiMenuRunGo = new JMenuItem("Go");
         guiMenuRunGo.addActionListener(this);
         guiMenuRun.add(guiMenuRunGo);
 
         guiMenuBar.add(guiMenuRun);
 
-        var guiMenuReset = new Menu("Reset");
-        guiMenuResetSoft = new MenuItem("Soft Reset");
+        var guiMenuReset = new JMenu("Reset");
+        guiMenuResetSoft = new JMenuItem("Soft Reset");
         guiMenuResetSoft.addActionListener(this);
         guiMenuReset.add(guiMenuResetSoft);
-        guiMenuResetHard = new MenuItem("Hard Reset");
+        guiMenuResetHard = new JMenuItem("Hard Reset");
         guiMenuResetHard.addActionListener(this);
         guiMenuReset.add(guiMenuResetHard);
 
         guiMenuBar.add(guiMenuReset);
 
-        var guiMenuZoom = new Menu("Image");
-        guiMenuZoomx1 = new MenuItem("Zoom x 1");
+        var guiMenuZoom = new JMenu("Image");
+        guiMenuZoomx1 = new JMenuItem("Zoom x 1");
         guiMenuZoomx1.addActionListener(this);
         guiMenuZoom.add(guiMenuZoomx1);
-        guiMenuZoomx2 = new MenuItem("Zoom x 2");
+        guiMenuZoomx2 = new JMenuItem("Zoom x 2");
         guiMenuZoomx2.addActionListener(this);
         guiMenuZoom.add(guiMenuZoomx2);
-        guiMenuZoomx3 = new MenuItem("Zoom x 3");
+        guiMenuZoomx3 = new JMenuItem("Zoom x 3");
         guiMenuZoomx3.addActionListener(this);
         guiMenuZoom.add(guiMenuZoomx3);
-        guiFilter = new MenuItem("Filter");
+        guiFilter = new JMenuItem("Filter");
         guiFilter.addActionListener(this);
         guiMenuZoom.add(guiFilter);
 
         guiMenuBar.add(guiMenuZoom);
 
-        var guiMenuDebug = new Menu("Debug");
-        guiMenuDebugDebug = new MenuItem("Debug");
+        var guiMenuDebug = new JMenu("Debug");
+        guiMenuDebugDebug = new JMenuItem("Debug");
         guiMenuDebugDebug.addActionListener(this);
         guiMenuDebug.add(guiMenuDebugDebug);
 
         guiMenuBar.add(guiMenuDebug);
 
-        var guiMenuHelp = new Menu("Help");
-        guiMenuHelpAbout = new MenuItem("About");
+        var guiMenuHelp = new JMenu("Help");
+        guiMenuHelpAbout = new JMenuItem("About");
         guiMenuHelpAbout.addActionListener(this);
         guiMenuHelp.add(guiMenuHelpAbout);
 
         guiMenuBar.add(guiMenuHelp);
 
         guiFrame.addWindowListener(this);
-        guiFrame.setMenuBar(guiMenuBar);
+        guiFrame.setJMenuBar(guiMenuBar);
         guiFrame.add(screen);
 
 
         guiFrame.pack();
-
-        guiDialog = new Dialog(guiFrame, true);
-        guiDialog.addWindowListener(this);
-
-        debugDialog = new Dialog(guiFrame, true);
-        debugDialog.addWindowListener(this);
 
         screen.requestFocusInWindow();
 
@@ -351,26 +322,24 @@ public class Gui extends WindowAdapter implements ActionListener {
             marc.le.goff@gmail.fr
             """;
 
-        TextArea ta = new TextArea(aboutText, 30, 40, TextArea.SCROLLBARS_VERTICAL_ONLY);
+        var ta = new JTextArea(aboutText, 30, 40);
         ta.setEditable(false);
         ta.setBackground(Color.WHITE);
-
-        guiDialog.removeAll();
+        var guiDialog = new JDialog(guiFrame, true);
+        guiDialog.getContentPane().add(new JScrollPane(ta));
         guiDialog.setTitle("About Marcel O Cinq");
-        guiDialog.setLayout(new FlowLayout());
-        guiDialog.add(ta);
         guiDialog.setSize(400, 500);
         guiDialog.setVisible(true);
     }
 
     private void debug() {
-        TextArea t1 = new TextArea(machine.dumpRegisters(), 2, 40, TextArea.SCROLLBARS_NONE);
+        var t1 = new JTextArea(machine.dumpRegisters(), 2, 40);
         t1.setEditable(false);
         t1.setBackground(Color.WHITE);
-        TextArea t2 = new TextArea(machine.unassembleFromPC(10), 10, 40, TextArea.SCROLLBARS_NONE);
+        var t2 = new JTextArea(machine.unassembleFromPC(10), 10, 40);
         t2.setEditable(false);
         t2.setBackground(Color.WHITE);
-        debugDialog.removeAll();
+        var debugDialog = new JDialog(guiFrame, true);
         debugDialog.add(t1);
         debugDialog.add(t2);
         debugDialog.setLayout(new FlowLayout());
