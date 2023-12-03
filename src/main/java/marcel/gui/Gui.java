@@ -1,52 +1,55 @@
 package marcel.gui;
 
-import marcel.hardware.*;
+import marcel.hardware.Machine;
+import marcel.hardware.Screen;
 
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
-public class Gui implements WindowListener, ActionListener {
+public class Gui extends WindowAdapter implements ActionListener {
 
-    public Frame guiFrame;
-    public String hadfile = null;
- 
-    private MenuBar guiMenuBar;
-    private Menu guiMenuFile, guiMenuRun, guiMenuReset, guiMenuZoom, guiMenuDebug, guiMenuHelp;
-    private MenuItem guiMenuFileSelectK7, guiMenuRewindK7, guiMenuFileExit;
-    private MenuItem guiMenuRunStop, guiMenuRunGo;
-    private MenuItem guiMenuResetSoft, guiMenuResetHard;
-    private MenuItem guiMenuZoomx1, guiMenuZoomx2, guiMenuZoomx3;
+    private Frame guiFrame;
+    private String hadfile;
+
+    private MenuItem guiMenuFileSelectK7;
+    private MenuItem guiMenuRewindK7;
+    private MenuItem guiMenuFileExit;
+    private MenuItem guiMenuRunStop;
+    private MenuItem guiMenuRunGo;
+    private MenuItem guiMenuResetSoft;
+    private MenuItem guiMenuResetHard;
+    private MenuItem guiMenuZoomx1;
+    private MenuItem guiMenuZoomx2;
+    private MenuItem guiMenuZoomx3;
     private MenuItem guiFilter;
     private MenuItem guiMenuDebugDebug;
     private MenuItem guiMenuHelpAbout;
     private Dialog guiDialog;
     private Dialog debugDialog;
-    public Screen screen;
-    public Machine machine;    
+    private Screen screen;
+    private Machine machine;
+    private String lastK7Dir;
 
     public Gui() {
         initMachine();
         initGui();
     }
 
-    boolean usefram = true;
-
-    private String lastK7Dir = null;
-
-    public void setK7FromUrl(String url) {
+    private void setK7FromUrl(String url) {
         machine.setK7FileFromUrl(url);
         hadfile = url;
-        machine.testtimer = 1;
+        Machine.setTesttimer(1);
     }
 
-    public void setK7(String filename) {
+    private void setK7(String filename) {
         machine.setK7File(filename);
     }
 
-    public void setK7() {
-        Frame dummy = new Frame();
-        FileDialog filedia = new FileDialog((Frame) dummy,
-                "Load file", FileDialog.LOAD);
+    private void setK7() {
+        var filedia = new FileDialog(guiFrame, "Load file", FileDialog.LOAD);
         filedia.setVisible(true);
         String filename = filedia.getFile();
         if (filename != null) {
@@ -56,6 +59,7 @@ public class Gui implements WindowListener, ActionListener {
         }
     }
 
+    @Override
     public void actionPerformed(ActionEvent evt) {
         if (guiMenuFileSelectK7.equals(evt.getSource())) {
             setK7();
@@ -92,14 +96,14 @@ public class Gui implements WindowListener, ActionListener {
         // Menu Reset
         // Soft
         if (guiMenuResetSoft.equals(evt.getSource())) {
-        	machine.stop();
+            machine.stop();
             machine.resetSoft();
             machine.start();
             return;
         }
         // Hard
         if (guiMenuResetHard.equals(evt.getSource())) {
-        	machine.stop();
+            machine.stop();
             machine.resetHard();
             machine.start();
             return;
@@ -109,11 +113,7 @@ public class Gui implements WindowListener, ActionListener {
         //
 
         if (guiFilter.equals(evt.getSource())) {
-            if (screen.filter) {
-                screen.filter = false;
-            } else {
-                screen.filter = true;
-            }
+            screen.setFilter(!screen.isFilter());
             return;
         }
         // Menu Zoom
@@ -121,27 +121,27 @@ public class Gui implements WindowListener, ActionListener {
         if (guiMenuZoomx1.equals(evt.getSource())) {
             screen.setPixelSize(1);
             Insets i = guiFrame.getInsets();
-            guiFrame.setSize((int)(320 * screen.getPixelSize() + (i.left + i.right)), (int)(200 * screen.getPixelSize() + (i.top + i.bottom)));
+            guiFrame.setSize((int) (320 * screen.getPixelSize() + (i.left + i.right)), (int) (200 * screen.getPixelSize() + (i.top + i.bottom)));
             screen.repaint();
-            
+
             return;
         }
         // X2
         if (guiMenuZoomx2.equals(evt.getSource())) {
             screen.setPixelSize(2);
             Insets i = guiFrame.getInsets();
-            guiFrame.setSize((int)(320 * screen.getPixelSize() + (i.left + i.right)), (int)(200 * screen.getPixelSize() + (i.top + i.bottom)));
+            guiFrame.setSize((int) (320 * screen.getPixelSize() + (i.left + i.right)), (int) (200 * screen.getPixelSize() + (i.top + i.bottom)));
             screen.repaint();
-           
+
             return;
         }
         // X3
         if (guiMenuZoomx3.equals(evt.getSource())) {
             screen.setPixelSize(4);
             Insets i = guiFrame.getInsets();
-            guiFrame.setSize((int)(320.0 * screen.getPixelSize() + (i.left + i.right)), (int)(200.0 * screen.getPixelSize() + (i.top + i.bottom)));
+            guiFrame.setSize((int) (320.0 * screen.getPixelSize() + (i.left + i.right)), (int) (200.0 * screen.getPixelSize() + (i.top + i.bottom)));
             screen.repaint();
-            
+
             return;
         }
 
@@ -154,10 +154,10 @@ public class Gui implements WindowListener, ActionListener {
             about();
             return;
         }
-    
     }
 
 
+    @Override
     public void windowClosing(WindowEvent e) {
         if (guiFrame.equals(e.getSource())) {
             System.exit(0);
@@ -170,6 +170,7 @@ public class Gui implements WindowListener, ActionListener {
         }
     }
 
+    @Override
     public void windowActivated(WindowEvent e) {
         try {
             if (guiFrame.equals(e.getSource())) {
@@ -181,51 +182,46 @@ public class Gui implements WindowListener, ActionListener {
             if (debugDialog.equals(e.getSource())) {
                 debugDialog.toFront();
             }
-            
         } catch (Exception re) {
         }
     }
 
-    public void windowClosed(WindowEvent e) {
-    }
-
-    public void windowDeactivated(WindowEvent e) {
-    }
-
+    @Override
     public void windowDeiconified(WindowEvent e) {
         if (guiFrame.equals(e.getSource())) {
             guiFrame.toFront();
         }
     }
 
-    public void windowIconified(WindowEvent e) {
-    }
-
+    @Override
     public void windowOpened(WindowEvent e) {
-    	if(e == null)
-    		return;
-    	if(guiFrame != null)   		
-        if (guiFrame.equals(e.getSource())) {
-            guiFrame.toFront();
+        if (e == null) {
+            return;
         }
-    	if(guiDialog != null)
-        if (guiDialog.equals(e.getSource())) {
-            guiDialog.toFront();
+        if (guiFrame != null) {
+            if (guiFrame.equals(e.getSource())) {
+                guiFrame.toFront();
+            }
         }
-    	if(debugDialog != null)
-        if (debugDialog.equals(e.getSource())) {
-            debugDialog.toFront();
+        if (guiDialog != null) {
+            if (guiDialog.equals(e.getSource())) {
+                guiDialog.toFront();
+            }
         }
-    	
+        if (debugDialog != null) {
+            if (debugDialog.equals(e.getSource())) {
+                debugDialog.toFront();
+            }
+        }
     }
 
     private void initGui() {
         guiFrame = new Frame("Marcel O Cinq 3.1 (Java)");
         guiFrame.setLayout(new BorderLayout());
-        
-        guiMenuBar = new MenuBar();
 
-        guiMenuFile = new Menu("File");
+        var guiMenuBar = new MenuBar();
+
+        var guiMenuFile = new Menu("File");
 
         guiMenuFileSelectK7 = new MenuItem("Select K7");
         guiMenuFileSelectK7.addActionListener(this);
@@ -239,7 +235,7 @@ public class Gui implements WindowListener, ActionListener {
 
         guiMenuBar.add(guiMenuFile);
 
-        guiMenuRun = new Menu("Run");
+        var guiMenuRun = new Menu("Run");
         guiMenuRunStop = new MenuItem("Stop");
         guiMenuRunStop.addActionListener(this);
         guiMenuRun.add(guiMenuRunStop);
@@ -249,7 +245,7 @@ public class Gui implements WindowListener, ActionListener {
 
         guiMenuBar.add(guiMenuRun);
 
-        guiMenuReset = new Menu("Reset");
+        var guiMenuReset = new Menu("Reset");
         guiMenuResetSoft = new MenuItem("Soft Reset");
         guiMenuResetSoft.addActionListener(this);
         guiMenuReset.add(guiMenuResetSoft);
@@ -259,7 +255,7 @@ public class Gui implements WindowListener, ActionListener {
 
         guiMenuBar.add(guiMenuReset);
 
-        guiMenuZoom = new Menu("Image");
+        var guiMenuZoom = new Menu("Image");
         guiMenuZoomx1 = new MenuItem("Zoom x 1");
         guiMenuZoomx1.addActionListener(this);
         guiMenuZoom.add(guiMenuZoomx1);
@@ -275,14 +271,14 @@ public class Gui implements WindowListener, ActionListener {
 
         guiMenuBar.add(guiMenuZoom);
 
-        guiMenuDebug = new Menu("Debug");
+        var guiMenuDebug = new Menu("Debug");
         guiMenuDebugDebug = new MenuItem("Debug");
         guiMenuDebugDebug.addActionListener(this);
         guiMenuDebug.add(guiMenuDebugDebug);
 
         guiMenuBar.add(guiMenuDebug);
 
-        guiMenuHelp = new Menu("Help");
+        var guiMenuHelp = new Menu("Help");
         guiMenuHelpAbout = new MenuItem("About");
         guiMenuHelpAbout.addActionListener(this);
         guiMenuHelp.add(guiMenuHelpAbout);
@@ -292,10 +288,10 @@ public class Gui implements WindowListener, ActionListener {
         guiFrame.addWindowListener(this);
         guiFrame.setMenuBar(guiMenuBar);
         guiFrame.add(screen);
-        
+
 
         guiFrame.pack();
-        
+
         guiDialog = new Dialog(guiFrame, true);
         guiDialog.addWindowListener(this);
 
@@ -303,19 +299,17 @@ public class Gui implements WindowListener, ActionListener {
         debugDialog.addWindowListener(this);
 
         screen.requestFocusInWindow();
-           
+
         machine.start();
-        
-        screen.setPixelSize(1);      
+
+        screen.setPixelSize(1);
         Insets i = guiFrame.getInsets();
-        guiFrame.setSize((int)(320 * screen.getPixelSize() + (i.left + i.right)+10), (int)(200 * screen.getPixelSize() + (i.top + i.bottom)+15));
-        if (usefram) {
-            guiFrame.setVisible(true);
-        }
+        guiFrame.setSize((int) (320 * screen.getPixelSize() + (i.left + i.right) + 10), (int) (200 * screen.getPixelSize() + (i.top + i.bottom) + 15));
+        guiFrame.setVisible(true);
         screen.repaint();
         screen.setPixelSize(2);
         i = guiFrame.getInsets();
-        guiFrame.setSize((int)(320 * screen.getPixelSize() + (i.left + i.right)), (int)(200 * screen.getPixelSize() + (i.top + i.bottom)));
+        guiFrame.setSize((int) (320 * screen.getPixelSize() + (i.left + i.right)), (int) (200 * screen.getPixelSize() + (i.top + i.bottom)));
         screen.repaint();
     }
 
@@ -325,68 +319,62 @@ public class Gui implements WindowListener, ActionListener {
     }
 
     private void about() {
+        String aboutText = """
+                       Marcel O Cinq 3.1 (java)\s
 
+            (C) G.Fetis 1997-1998-2006
+            (C) DevilMarkus http://cpc.devilmarkus.de 2006
+            (C) M.Le Goff 2014
 
-        String aboutText = "           Marcel O Cinq 3.1 (java) \n\n"
-                + "(C) G.Fetis 1997-1998-2006\n"
-                + "(C) DevilMarkus http://cpc.devilmarkus.de 2006\n"
-                + "(C) M.Le Goff 2014\n\n"
-                + "Java conversion of my previously C/DOS\n"
-                + "based Thomson MO5 emulator \n"
-                + "(that was also ported to Unix and Macos)\n"
-                + "The basic java design is taken from Pom1\n"
-                + "(Apple1 java emulator (that derives from\n"
-                + "Microtan java (an obscure british Oric ancestor))\n"
-                + "this program is under GPL licence\n"
-                + "to load a K7 program:\n"
-                + "File->Load a K7 : to select the file (uncompressed)\n"
-                + "under Basic interpreter type LOAD then type RUN\n"
-                + "or LOADM then EXEC\n"
-                + "\n"
-                + "Full keyboard emulation with all symbols\n"
-                + "Sound emulation\n"
-                + "Reset bug solved\n"
-                + "Save K7 emulation\n"
-                + "Lightpen emulation\n"
-                + "AltGr+C = Ctrl+C = Break basic\n"
-                + "F11 = BASIC     F12 = SHIFT\n"
-                + "\n"
-                + "Contacts :\n"
-         		+ "gilles.fetis@wanadoo.fr\n"               
-        		+ "marc.le.goff@gmail.fr\n";
+            Java conversion of my previously C/DOS
+            based Thomson MO5 emulator\s
+            (that was also ported to Unix and Macos)
+            The basic java design is taken from Pom1
+            (Apple1 java emulator (that derives from
+            Microtan java (an obscure british Oric ancestor))
+            this program is under GPL licence
+            to load a K7 program:
+            File->Load a K7 : to select the file (uncompressed)
+            under Basic interpreter type LOAD then type RUN
+            or LOADM then EXEC
+
+            Full keyboard emulation with all symbols
+            Sound emulation
+            Reset bug solved
+            Save K7 emulation
+            Lightpen emulation
+            AltGr+C = Ctrl+C = Break basic
+            F11 = BASIC     F12 = SHIFT
+
+            Contacts :
+            gilles.fetis@wanadoo.fr
+            marc.le.goff@gmail.fr
+            """;
 
         TextArea ta = new TextArea(aboutText, 30, 40, TextArea.SCROLLBARS_VERTICAL_ONLY);
         ta.setEditable(false);
-        ta.setBackground(Color.WHITE );       
-        
+        ta.setBackground(Color.WHITE);
+
         guiDialog.removeAll();
         guiDialog.setTitle("About Marcel O Cinq");
         guiDialog.setLayout(new FlowLayout());
-        guiDialog.add(ta);      
-        guiDialog.setSize(400, 500);        
+        guiDialog.add(ta);
+        guiDialog.setSize(400, 500);
         guiDialog.setVisible(true);
-        
-        
-        
     }
 
     private void debug() {
-
-
-
-        TextArea t1 = new TextArea(this.machine.dumpRegisters(), 2, 40, TextArea.SCROLLBARS_NONE);
+        TextArea t1 = new TextArea(machine.dumpRegisters(), 2, 40, TextArea.SCROLLBARS_NONE);
         t1.setEditable(false);
-        t1.setBackground(Color.WHITE );
-        TextArea t2 = new TextArea(this.machine.unassembleFromPC(10), 10, 40, TextArea.SCROLLBARS_NONE);
+        t1.setBackground(Color.WHITE);
+        TextArea t2 = new TextArea(machine.unassembleFromPC(10), 10, 40, TextArea.SCROLLBARS_NONE);
         t2.setEditable(false);
-        t2.setBackground(Color.WHITE );
+        t2.setBackground(Color.WHITE);
         debugDialog.removeAll();
         debugDialog.add(t1);
         debugDialog.add(t2);
         debugDialog.setLayout(new FlowLayout());
         debugDialog.setSize(400, 400);
         debugDialog.setVisible(true);
-
     }
-} // of class
-
+}
