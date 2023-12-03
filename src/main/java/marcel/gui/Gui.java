@@ -1,6 +1,6 @@
-package gui;
+package marcel.gui;
 
-import hardware.*;
+import marcel.hardware.*;
 
 import java.awt.*;
 import java.awt.event.*;

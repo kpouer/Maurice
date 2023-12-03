@@ -1,4 +1,4 @@
-package hardware;
+package marcel.hardware;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioFormat.Encoding;

@@ -1,4 +1,4 @@
-package hardware;
+package marcel.hardware;
 
 public class M6809 {
 

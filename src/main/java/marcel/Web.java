@@ -1,7 +1,4 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
+package marcel;
 
 /**
  *
@@ -9,7 +6,9 @@
  */
 
 import java.applet.Applet;
-import gui.Gui;
+import marcel.gui.Gui;
+import marcel.Selector;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.event.*;

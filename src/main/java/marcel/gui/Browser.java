@@ -1,4 +1,4 @@
-package gui;
+package marcel.gui;
 
 import javax.swing.event.*;
 import javax.swing.*;

@@ -1,4 +1,4 @@
-package hardware;
+package marcel.hardware;
 
 import java.awt.*;
 import java.net.URL;

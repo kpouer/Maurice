@@ -1,4 +1,6 @@
-import gui.Gui;
+package marcel;
+
+import marcel.gui.Gui;
 
 import java.applet.*;
 
