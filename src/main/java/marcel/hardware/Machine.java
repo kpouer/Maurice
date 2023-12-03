@@ -1,7 +1,5 @@
 package marcel.hardware;
 
-import java.net.URL;
-
 public class Machine implements Runnable  {
 
     private volatile Thread runner = null;
@@ -11,33 +9,15 @@ public class Machine implements Runnable  {
     private Screen screen;
     private Keyboard keyboard;  
     private Sound sound;
-    private boolean appletMode = false;
-    private URL appletCodeBase;
-    
-   
-    
+
     // application mode constructor
     public Machine(Screen screen) {
-        this.appletMode = false;
         this.mem = new Memory();
         this.sound = new Sound();        
         this.screen = screen;
         this.micro = new M6809(mem, this.sound);
         this.keyboard = new Keyboard(screen, mem);
         this.screen.init(mem);  
-        
-    }
-
-    // applet mode constructor
-    public Machine(Screen screen, URL appletCodeBase) {
-        this.appletMode = true;
-        this.mem = new Memory(appletCodeBase);
-        this.sound = new Sound(); 
-        this.screen = screen;
-        this.micro = new M6809(mem, this.sound);
-        this.keyboard = new Keyboard(screen, mem);
-        this.screen.init(mem);
-        
     }
 
     public void start() {

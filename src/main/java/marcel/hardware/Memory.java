@@ -7,7 +7,6 @@ import java.io.*;
 
 import javax.swing.JOptionPane;
 
-
 public class Memory {
 	
 // Lightpen parameters	
@@ -43,18 +42,7 @@ public class Memory {
 	int GA2;
 	public int GA3;
 
-	private boolean appletMode=false;
-    private URL appletCodeBase; 
-
-
-	public Memory(URL appletCodeBase) {
-    	this.appletMode=true;
-		this.appletCodeBase=appletCodeBase;
-		this.init();
-	}
-	
     public Memory() {
-    	this.appletMode=false;
 		this.init();
 	}
 
@@ -175,41 +163,21 @@ public class Memory {
     public void loadRom() {
 
     	int startingAddress = 0xC000;
-
-    	
-    	if (!appletMode)
-   		{
-     		DataInputStream fis = null;
-	    	try{
-				URL u = getClass().getResource("/bios/mo5.rom");
-				fis = new DataInputStream (u.openStream());
-				int i;
-				for (i = startingAddress; i < 0x10000; i++) {
-		    		this.writeP(i,fis.read());
-				}
-			fis.close();
-	    	}
-	    	catch (Exception e) {
-	    	JOptionPane.showMessageDialog(null,"Error : mo5.rom file is missing inside jar archive "+e);			
-    		return;
-	    	}
-     	}
-     	else {
-     		DataInputStream fis = null;
-	    	try{
-				URL u = new URL(this.appletCodeBase,"bios/mo5.rom");
-				fis = new DataInputStream (u.openStream());
-				int i;
-				for (i = startingAddress; i < 0x10000; i++) {
-		    		this.writeP(i,fis.read());
-				}
-				fis.close();
-	    	} catch (Exception e) {
-		    	JOptionPane.showMessageDialog(null,"Error : mo5.rom file is missing inside jar archive "+e);			
-				return;
-     		}
-     }
-}
+        DataInputStream fis = null;
+        try{
+            URL u = getClass().getResource("/bios/mo5.rom");
+            fis = new DataInputStream (u.openStream());
+            int i;
+            for (i = startingAddress; i < 0x10000; i++) {
+                this.writeP(i,fis.read());
+            }
+        fis.close();
+        }
+        catch (Exception e) {
+        JOptionPane.showMessageDialog(null,"Error : mo5.rom file is missing inside jar archive "+e);
+        return;
+        }
+    }
 
 private void hardware(int ADR,int OP) {
 	/* 6821 syst�me */

@@ -8,10 +8,6 @@ import java.awt.event.MouseMotionListener;
 import java.awt.image.*;
 
 public class Screen extends Canvas {
-
-    /**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
 	BufferedImage BuffImg;
     WritableRaster raster;

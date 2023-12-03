@@ -4,7 +4,6 @@ import marcel.hardware.*;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.net.URL;
 
 public class Gui implements WindowListener, ActionListener {
 
@@ -13,7 +12,7 @@ public class Gui implements WindowListener, ActionListener {
  
     private MenuBar guiMenuBar;
     private Menu guiMenuFile, guiMenuRun, guiMenuReset, guiMenuZoom, guiMenuDebug, guiMenuHelp;
-    private MenuItem guiMenuFileSelectK7, guiMenuUrlSelectK7, guiMenuRewindK7, guiMenuFileExit;
+    private MenuItem guiMenuFileSelectK7, guiMenuRewindK7, guiMenuFileExit;
     private MenuItem guiMenuRunStop, guiMenuRunGo;
     private MenuItem guiMenuResetSoft, guiMenuResetHard;
     private MenuItem guiMenuZoomx1, guiMenuZoomx2, guiMenuZoomx3;
@@ -24,30 +23,14 @@ public class Gui implements WindowListener, ActionListener {
     private Dialog debugDialog;
     public Screen screen;
     public Machine machine;    
-    private boolean appletMode = false;
-    private URL appletCodeBase;
 
     public Gui() {
-        appletMode = false;
-        initMachine(); 
-        initGui();
-    }
-
-    public Gui(URL appletCodeBase) {
-        appletMode = true;
-        this.appletCodeBase = appletCodeBase;
         initMachine();
         initGui();
     }
+
     boolean usefram = true;
 
-    public Gui(URL appletCodeBase, boolean useframe) {
-        usefram = useframe;
-        appletMode = true;
-        this.appletCodeBase = appletCodeBase;
-        initMachine();
-        initGui();
-    }
     private String lastK7Dir = null;
 
     public void setK7FromUrl(String url) {
@@ -74,23 +57,6 @@ public class Gui implements WindowListener, ActionListener {
     }
 
     public void actionPerformed(ActionEvent evt) {
-
-        // Menu File
-        // select K7 (file mode)
-/*	    if (guiMenuFileSelectK7.equals(evt.getSource())) {
-        FileDialog fd=new FileDialog(guiFrame,"Select a K7 File for read",FileDialog.LOAD);
-        if (lastK7Dir!=null) fd.setDirectory(lastK7Dir);
-        fd.show();
-        if (fd.getFile()!=null) {
-        machine.setK7File(fd.getDirectory()+"/"+fd.getFile());
-        lastK7Dir=fd.getDirectory();
-        }
-        } */
-        
-        // select an url for a K7
-        if (guiMenuUrlSelectK7.equals(evt.getSource())) {
-            Browser b = new Browser("http://perso.orange.fr/gilles.fetis/emu/java/k7/index.htm", this);
-        }
         if (guiMenuFileSelectK7.equals(evt.getSource())) {
             setK7();
         }
@@ -257,22 +223,13 @@ public class Gui implements WindowListener, ActionListener {
         guiFrame = new Frame("Marcel O Cinq 3.1 (Java)");
         guiFrame.setLayout(new BorderLayout());
         
-        //setExtendedState(MAXIMIZED_BOTH);
-        //setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
         guiMenuBar = new MenuBar();
 
         guiMenuFile = new Menu("File");
 
-        guiMenuFileSelectK7 = new MenuItem("Select K7 (application mode)");
+        guiMenuFileSelectK7 = new MenuItem("Select K7");
         guiMenuFileSelectK7.addActionListener(this);
-        if (!appletMode) {
-            guiMenuFile.add(guiMenuFileSelectK7);
-        }
-        guiMenuUrlSelectK7 = new MenuItem("Select K7 via URL (applet mode)");
-        guiMenuUrlSelectK7.addActionListener(this);
-        //if(!appletMode)
-        guiMenuFile.add(guiMenuUrlSelectK7);
+        guiMenuFile.add(guiMenuFileSelectK7);
         guiMenuRewindK7 = new MenuItem("Rewind tape");
         guiMenuRewindK7.addActionListener(this);
         guiMenuFile.add(guiMenuRewindK7);
@@ -364,11 +321,7 @@ public class Gui implements WindowListener, ActionListener {
 
     private void initMachine() {
         screen = new Screen();
-        if (appletMode) {
-            machine = new Machine(screen, appletCodeBase);
-        } else {
-            machine = new Machine(screen);
-        }
+        machine = new Machine(screen);
     }
 
     private void about() {
