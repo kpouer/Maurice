@@ -5,29 +5,14 @@ import marcel.hardware.Screen;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
-public class Gui extends WindowAdapter implements ActionListener {
+public class Gui extends WindowAdapter {
 
     private JFrame guiFrame;
     private String hadfile;
 
-    private JMenuItem guiMenuFileSelectK7;
-    private JMenuItem guiMenuRewindK7;
-    private JMenuItem guiMenuFileExit;
-    private JMenuItem guiMenuRunStop;
-    private JMenuItem guiMenuRunGo;
-    private JMenuItem guiMenuResetSoft;
-    private JMenuItem guiMenuResetHard;
-    private JMenuItem guiMenuZoomx1;
-    private JMenuItem guiMenuZoomx2;
-    private JMenuItem guiMenuZoomx3;
-    private JMenuItem guiFilter;
-    private JMenuItem guiMenuDebugDebug;
-    private JMenuItem guiMenuHelpAbout;
     private Screen screen;
     private Machine machine;
     private String lastK7Dir;
@@ -58,101 +43,11 @@ public class Gui extends WindowAdapter implements ActionListener {
         }
     }
 
-    @Override
-    public void actionPerformed(ActionEvent evt) {
-        if (guiMenuFileSelectK7.equals(evt.getSource())) {
-            setK7();
-        }
-        // Rewind the tape (Reload it)
-        if (guiMenuRewindK7.equals(evt.getSource())) {
-            if (hadfile != null) {
-                if (hadfile.startsWith("http:")) {
-                    setK7FromUrl(hadfile);
-                } else {
-                    setK7(hadfile);
-                }
-            } else {
-                System.err.println("No file!");
-            }
-        }
-        // Exit
-        if (guiMenuFileExit.equals(evt.getSource())) {
-            System.exit(0);
-        }
-
-        // Menu Run
-        // Stop
-        if (guiMenuRunStop.equals(evt.getSource())) {
-            machine.stop();
-            return;
-        }
-        // Go
-        if (guiMenuRunGo.equals(evt.getSource())) {
-            machine.start();
-            return;
-        }
-
-        // Menu Reset
-        // Soft
-        if (guiMenuResetSoft.equals(evt.getSource())) {
-            machine.stop();
-            machine.resetSoft();
-            machine.start();
-            return;
-        }
-        // Hard
-        if (guiMenuResetHard.equals(evt.getSource())) {
-            machine.stop();
-            machine.resetHard();
-            machine.start();
-            return;
-        }
-
-        // Screen filter
-        //
-
-        if (guiFilter.equals(evt.getSource())) {
-            screen.setFilter(!screen.isFilter());
-            return;
-        }
-        // Menu Zoom
-        // X1
-        if (guiMenuZoomx1.equals(evt.getSource())) {
-            screen.setPixelSize(1);
-            Insets i = guiFrame.getInsets();
-            guiFrame.setSize((int) (320 * screen.getPixelSize() + (i.left + i.right)), (int) (200 * screen.getPixelSize() + (i.top + i.bottom)));
-            screen.repaint();
-
-            return;
-        }
-        // X2
-        if (guiMenuZoomx2.equals(evt.getSource())) {
-            screen.setPixelSize(2);
-            Insets i = guiFrame.getInsets();
-            guiFrame.setSize((int) (320 * screen.getPixelSize() + (i.left + i.right)), (int) (200 * screen.getPixelSize() + (i.top + i.bottom)));
-            screen.repaint();
-
-            return;
-        }
-        // X3
-        if (guiMenuZoomx3.equals(evt.getSource())) {
-            screen.setPixelSize(4);
-            Insets i = guiFrame.getInsets();
-            guiFrame.setSize((int) (320.0 * screen.getPixelSize() + (i.left + i.right)), (int) (200.0 * screen.getPixelSize() + (i.top + i.bottom)));
-            screen.repaint();
-
-            return;
-        }
-
-        if (guiMenuDebugDebug.equals(evt.getSource())) {
-            debug();
-            return;
-        }
-
-        if (guiMenuHelpAbout.equals(evt.getSource())) {
-            about();
-            return;
-        }
+    private void zoom(int ps) {
+        screen.setPixelSize(ps);
+        var insets = guiFrame.getInsets();
+        guiFrame.setSize((int) (320 * ps + (insets.left + insets.right)), (int) (200 * ps + (insets.top + insets.bottom)));
+        screen.repaint();
     }
 
 
@@ -200,64 +95,82 @@ public class Gui extends WindowAdapter implements ActionListener {
 
         var guiMenuFile = new JMenu("File");
 
-        guiMenuFileSelectK7 = new JMenuItem("Select K7");
-        guiMenuFileSelectK7.addActionListener(this);
+        var guiMenuFileSelectK7 = new JMenuItem("Select K7");
+        guiMenuFileSelectK7.addActionListener(e -> setK7());
         guiMenuFile.add(guiMenuFileSelectK7);
-        guiMenuRewindK7 = new JMenuItem("Rewind tape");
-        guiMenuRewindK7.addActionListener(this);
+        var guiMenuRewindK7 = new JMenuItem("Rewind tape");
+        guiMenuRewindK7.addActionListener(e -> {
+            if (hadfile != null) {
+                if (hadfile.startsWith("http:")) {
+                    setK7FromUrl(hadfile);
+                } else {
+                    setK7(hadfile);
+                }
+            } else {
+                System.err.println("No file!");
+            }
+        });
         guiMenuFile.add(guiMenuRewindK7);
-        guiMenuFileExit = new JMenuItem("Exit");
-        guiMenuFileExit.addActionListener(this);
+        var guiMenuFileExit = new JMenuItem("Exit");
+        guiMenuFileExit.addActionListener(e -> System.exit(0));
         guiMenuFile.add(guiMenuFileExit);
 
         guiMenuBar.add(guiMenuFile);
 
         var guiMenuRun = new JMenu("Run");
-        guiMenuRunStop = new JMenuItem("Stop");
-        guiMenuRunStop.addActionListener(this);
+        var guiMenuRunStop = new JMenuItem("Stop");
+        guiMenuRunStop.addActionListener(e ->  machine.stop());
         guiMenuRun.add(guiMenuRunStop);
-        guiMenuRunGo = new JMenuItem("Go");
-        guiMenuRunGo.addActionListener(this);
+        var guiMenuRunGo = new JMenuItem("Go");
+        guiMenuRunGo.addActionListener(e -> machine.start());
         guiMenuRun.add(guiMenuRunGo);
 
         guiMenuBar.add(guiMenuRun);
 
         var guiMenuReset = new JMenu("Reset");
-        guiMenuResetSoft = new JMenuItem("Soft Reset");
-        guiMenuResetSoft.addActionListener(this);
+        var guiMenuResetSoft = new JMenuItem("Soft Reset");
+        guiMenuResetSoft.addActionListener(e -> {
+            machine.stop();
+            machine.resetSoft();
+            machine.start();
+        });
         guiMenuReset.add(guiMenuResetSoft);
-        guiMenuResetHard = new JMenuItem("Hard Reset");
-        guiMenuResetHard.addActionListener(this);
+        var guiMenuResetHard = new JMenuItem("Hard Reset");
+        guiMenuResetHard.addActionListener(e -> {
+            machine.stop();
+            machine.resetHard();
+            machine.start();
+        });
         guiMenuReset.add(guiMenuResetHard);
 
         guiMenuBar.add(guiMenuReset);
 
         var guiMenuZoom = new JMenu("Image");
-        guiMenuZoomx1 = new JMenuItem("Zoom x 1");
-        guiMenuZoomx1.addActionListener(this);
+        var guiMenuZoomx1 = new JMenuItem("Zoom x 1");
+        guiMenuZoomx1.addActionListener(e -> zoom(1));
         guiMenuZoom.add(guiMenuZoomx1);
-        guiMenuZoomx2 = new JMenuItem("Zoom x 2");
-        guiMenuZoomx2.addActionListener(this);
+        var guiMenuZoomx2 = new JMenuItem("Zoom x 2");
+        guiMenuZoomx2.addActionListener(e -> zoom(2));
         guiMenuZoom.add(guiMenuZoomx2);
-        guiMenuZoomx3 = new JMenuItem("Zoom x 3");
-        guiMenuZoomx3.addActionListener(this);
+        var guiMenuZoomx3 = new JMenuItem("Zoom x 3");
+        guiMenuZoomx3.addActionListener(e -> zoom(4));
         guiMenuZoom.add(guiMenuZoomx3);
-        guiFilter = new JMenuItem("Filter");
-        guiFilter.addActionListener(this);
+        var guiFilter = new JMenuItem("Filter");
+        guiFilter.addActionListener(e -> screen.setFilter(!screen.isFilter()));
         guiMenuZoom.add(guiFilter);
 
         guiMenuBar.add(guiMenuZoom);
 
         var guiMenuDebug = new JMenu("Debug");
-        guiMenuDebugDebug = new JMenuItem("Debug");
-        guiMenuDebugDebug.addActionListener(this);
+        var guiMenuDebugDebug = new JMenuItem("Debug");
+        guiMenuDebugDebug.addActionListener(e -> debug());
         guiMenuDebug.add(guiMenuDebugDebug);
 
         guiMenuBar.add(guiMenuDebug);
 
         var guiMenuHelp = new JMenu("Help");
-        guiMenuHelpAbout = new JMenuItem("About");
-        guiMenuHelpAbout.addActionListener(this);
+        var guiMenuHelpAbout = new JMenuItem("About");
+        guiMenuHelpAbout.addActionListener(e -> about());
         guiMenuHelp.add(guiMenuHelpAbout);
 
         guiMenuBar.add(guiMenuHelp);
