@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use speedy2d::window::{KeyScancode, VirtualKeyCode};
+use speedy2d::window::VirtualKeyCode;
 use crate::hardware::keyboard::vkey::CustomVirtualKeyCode;
 use crate::hardware::keyboard::vkey::CustomVirtualKeyCode::Base;
 
