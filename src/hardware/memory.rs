@@ -1,7 +1,7 @@
 use std::fs;
 use std::fs::File;
 use std::io::{BufWriter, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use chrono::Local;
 use crate::data_input_stream::DataInputStream;
 use crate::hardware::screen::Screen;
@@ -289,14 +289,26 @@ impl Memory {
         return self.isFileOpened;
     }
 
-    pub(crate) fn setK7File(&mut self, K7: &String) -> bool {
-        println!("opening:{}", K7);
+    pub(crate) fn setK7File(&mut self, name: &Path) -> bool {
+        println!("opening:{}", name.to_str().unwrap());
         if self.K7fis.is_none() {
             self.isFileOpened = false;
         }
 
-        if Path::new(K7).exists() {
-            self.K7fis = Some(DataInputStream::new(K7));
+        if Path::new(name).exists() {
+            let metadata = fs::metadata(name).unwrap();
+            if metadata.len() == 0 {
+                eprintln!("Error : file is empty");
+                return false;
+            }
+            if metadata.len() > 1000000 {
+                eprintln!("Error : file is too big {}", metadata.len());
+                return false;
+            }
+
+            let data =  DataInputStream::new(name);
+            println!("Opened K7 {} of length {}", name.file_name().unwrap().to_str().unwrap(), data.len());
+            self.K7fis = Some(data);
             self.isFileOpened = true;
         } else {
             // todo : dialog

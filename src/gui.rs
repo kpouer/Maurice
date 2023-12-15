@@ -1,3 +1,6 @@
+use std::fs;
+use std::path::{Path, PathBuf};
+use rfd::FileDialog;
 use speedy2d::dimen::Vec2;
 use speedy2d::Graphics2D;
 use speedy2d::image::ImageHandle;
@@ -27,6 +30,20 @@ impl Default for Gui {
     }
 }
 
+impl Gui {
+    fn open_file(&mut self) {
+        let files = FileDialog::new()
+            .add_filter("k7", &["k7"])
+            .set_directory("./")
+            .pick_file();
+        if let Some(filename) = files {
+            let name = filename.as_path();
+            self.setK7(name);
+            self.hadfile = Some(fs::canonicalize(name).unwrap().to_string_lossy().into_owned());
+        }
+    }
+}
+
 impl WindowHandler for Gui {
     fn on_draw(&mut self, helper: &mut WindowHelper<()>, graphics: &mut Graphics2D) {
         self.machine.run();
@@ -45,7 +62,14 @@ impl WindowHandler for Gui {
     }
 
     fn on_key_down(&mut self, _: &mut WindowHelper<()>, virtual_key_code: Option<VirtualKeyCode>, scancode: KeyScancode) {
-        self.machine.keyboard.keyPressed(map_virtual_key_code(virtual_key_code, scancode), &mut self.machine.mem);
+        match virtual_key_code {
+            Some(VirtualKeyCode::F2) => {
+                self.open_file();
+            }
+            _ => {
+                self.machine.keyboard.keyPressed(map_virtual_key_code(virtual_key_code, scancode), &mut self.machine.mem);
+            }
+        }
     }
 
     fn on_key_up(&mut self, _: &mut WindowHelper<()>, virtual_key_code: Option<VirtualKeyCode>, scancode: KeyScancode) {
@@ -62,7 +86,7 @@ impl WindowHandler for Gui {
 }
 
 impl Gui {
-    fn setK7(&mut self, filename: &String) {
+    fn setK7(&mut self, filename: &Path) {
         self.machine.setK7File(filename);
     }
 

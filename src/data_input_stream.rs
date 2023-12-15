@@ -1,4 +1,5 @@
 use std::fs;
+use std::path::Path;
 use crate::int;
 
 #[derive(Debug)]
@@ -8,7 +9,7 @@ pub(crate) struct DataInputStream {
 }
 
 impl DataInputStream {
-    pub(crate) fn new(file: &String) -> DataInputStream {
+    pub(crate) fn new(file: &Path) -> DataInputStream {
         let bytes = fs::read(file).unwrap();
         DataInputStream {
             bytes,
@@ -20,5 +21,10 @@ impl DataInputStream {
         let b = self.bytes[self.pos];
         self.pos += 1;
         b as int
+    }
+
+
+    pub fn len(&self) -> usize {
+        self.bytes.len()
     }
 }
