@@ -1,3 +1,4 @@
+use std::path::{Path, PathBuf};
 use std::thread::sleep;
 use std::time::Duration;
 use chrono::{DateTime, Local};
@@ -169,7 +170,7 @@ impl Machine {
         return self.mem.setK7FileFromUrl(k7);
     }
 
-    pub(crate) fn setK7File(&mut self, k7: &String) -> bool {
+    pub(crate) fn setK7File(&mut self, k7: &Path) -> bool {
         return self.mem.setK7File(k7);
     }
 
