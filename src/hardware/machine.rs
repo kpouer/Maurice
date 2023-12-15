@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::thread::sleep;
 use std::time::Duration;
 use chrono::{DateTime, Local};
@@ -18,7 +18,6 @@ pub(crate) struct Machine {
     pub(crate) keyboard: Keyboard,
     pub(crate) testtimer:int,
     pub(crate) IRQ: bool,
-    pub(crate) running: bool,
     pub(crate) lastTime: DateTime<Local>,
     pub(crate) keys: Vec<int>,
     pub(crate) keytimer:int,
@@ -47,26 +46,11 @@ impl Default for Machine {
             keypos: 0,
             typetext: None,
             IRQ: false,
-            running: false,
         }
     }
 }
 
 impl Machine {
-    // todo :activate
-    // fn start(&mut self, mem: &mut Memory, screen: &mut Screen) {
-    //     if !self.running {
-    //         self.running = true;
-    //         thread::spawn(move || {
-    //             self.run(mem, screen);
-    //         });
-    //     }
-    // }
-
-    fn stop(&mut self) {
-        self.running = false;
-    }
-
     pub(crate) fn run(&mut self) {
         self.full_speed();
         self.synchronize();
@@ -79,9 +63,9 @@ impl Machine {
         self.screen.repaint(); // Mise a jour de l'affichage
 
         // Mise a jour du crayon optique a partir des donnée de la souris souris
-        self.mem.LightPenClic = self.screen.mouse_clic;
-        self.mem.LightPenX = self.screen.mouse_X;
-        self.mem.LightPenY = self.screen.mouse_Y;
+        self.mem.light_pen_clic = self.screen.mouse_clic;
+        self.mem.light_pen_x = self.screen.mouse_x;
+        self.mem.light_pen_y = self.screen.mouse_y;
 
         self.mem.set(0xA7E7, 0x00);
         self.mem.GA3 = 0x00;
@@ -118,7 +102,7 @@ impl Machine {
         }
     }
 
-    fn AutoType(&mut self, input: &String) {
+    fn auto_type(&mut self, input: &String) {
         let input = input.replace("\"", "zxz");
 
         self.keys = Vec::new();
@@ -134,7 +118,7 @@ impl Machine {
             self.testtimer += 1;
             if self.testtimer == 100 {
                 let typetext = self.typetext.clone().unwrap();
-                self.AutoType(&typetext);
+                self.auto_type(&typetext);
                 self.testtimer = 0;
             }
         }
@@ -166,21 +150,21 @@ impl Machine {
         self.lastTime = Local::now();
     }
 
-    fn setK7FileFromUrl(&mut self, k7: &String) -> bool {
-        return self.mem.setK7FileFromUrl(k7);
+    fn set_k7_file_from_url(&mut self, k7: &String) -> bool {
+        return self.mem.set_k7_file_from_url(k7);
     }
 
-    pub(crate) fn setK7File(&mut self, k7: &Path) -> bool {
+    pub(crate) fn set_k7_file(&mut self, k7: &Path) -> bool {
         return self.mem.setK7File(k7);
     }
 
     // soft reset method ("reinit prog" button on original MO5)
-    fn resetSoft(&mut self, mem: &Memory) {
+    fn reset_soft(&mut self, mem: &Memory) {
         self.micro.reset(mem);
     }
 
     // hard reset (match off and on)
-    fn resetHard(&mut self, mem: &Memory) {
+    fn reset_hard(&mut self, mem: &Memory) {
         for i in 0x2000..0x3000 {
             self.mem.set(i, 0);
         }
@@ -188,15 +172,15 @@ impl Machine {
     }
 
     // Debug Methods
-    fn dumpRegisters(&mut self, mem: &mut Memory) -> String {
-        return self.micro.printState(mem);
+    fn dump_registers(&mut self, mem: &mut Memory) -> String {
+        return self.micro.print_state();
     }
 
-    fn unassembleFromPC(&self, nblines: int, mem: &mut Memory) -> String {
+    fn unassemble_from_pc(&self, nblines: int, mem: &mut Memory) -> String {
         return unassemble(self.micro.PC, nblines, mem);
     }
 
-    fn dumpSystemStack(&self, nblines: int) -> String {
+    fn dump_system_stack(&self, nblines: int) -> String {
         return "00".to_string();
     }
 } // of class

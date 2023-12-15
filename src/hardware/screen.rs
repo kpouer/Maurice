@@ -34,14 +34,14 @@ pub(crate) const HEIGHT: usize = 200;
 #[derive(Debug)]
 pub(crate) struct Screen {
     pub(crate) mouse_clic: bool,
-    pub(crate) mouse_X: int,
-    pub(crate) mouse_Y: int,
+    pub(crate) mouse_x: int,
+    pub(crate) mouse_y: int,
     pixels: Vec<u32>,
-    pixelSize: f64,
+    pixel_size: f64,
     filter: bool,
     j: int,
-    xPosition: int,
-    yPosition: int,
+    x_position: int,
+    y_position: int,
     w: int,
     pub(crate) led: int,
     pub(crate) show_led: int,
@@ -52,14 +52,14 @@ impl Screen {
     pub(crate) fn new() -> Self {
         Screen {
             mouse_clic: false,
-            mouse_X: -1,
-            mouse_Y: -1,
+            mouse_x: -1,
+            mouse_y: -1,
             pixels: vec![0xff000000;320*200],
-            pixelSize: 2.0,
+            pixel_size: 2.0,
             filter: false,
             j: 0,
-            xPosition: 0,
-            yPosition: 0,
+            x_position: 0,
+            y_position: 0,
             w: 0,
             led: 0,
             show_led: 0,
@@ -67,9 +67,9 @@ impl Screen {
         }
     }
 
-    pub(crate) fn setPixelSize(&mut self, ps: f64, mem: &mut Memory) {
-        self.pixelSize = ps;
-        mem.setAllDirty();
+    pub(crate) fn set_pixel_size(&mut self, ps: f64, mem: &mut Memory) {
+        self.pixel_size = ps;
+        mem.set_all_dirty();
     }
 
     pub(crate) fn repaint(&mut self) {
@@ -111,7 +111,6 @@ impl Screen {
     }
 
     pub(crate) fn dopaint(&mut self, mem: &mut Memory) {
-        let p = 0;
         let mut i = 0;
 
         for y in 0..HEIGHT {
@@ -120,7 +119,7 @@ impl Screen {
                 i += 40;
             } else {
                 let mut x: usize = 0;
-                for xx in 0..40 {
+                for _ in 0..40 {
                     let col = mem.COLOR(i);
                     let c2 = col & 0x0F;
                     let c1 = col >> 4;

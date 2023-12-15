@@ -1,1 +1,0 @@
-pub(crate) const SCANCODE_SHIFT: u32 = 0x2a;

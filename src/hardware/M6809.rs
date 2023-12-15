@@ -938,7 +938,7 @@ impl M6809 {
     }
 
     fn PSHS(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
+        let m = mem.read(self.PC);
         self.PC += 1;
         if (m & 0x80) != 0 {
             self.S -= 1;
@@ -1048,7 +1048,7 @@ impl M6809 {
     }
 
     fn PULS(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
+        let m = mem.read(self.PC);
         self.PC += 1;
         if (m & 0x01) != 0 {
             self.CC = mem.read(self.S);
@@ -1095,7 +1095,7 @@ impl M6809 {
     }
 
     fn PULU(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
+        let m = mem.read(self.PC);
         self.PC += 1;
         if (m & 0x01) != 0 {
             self.CC = mem.read(self.U);
@@ -1694,7 +1694,7 @@ impl M6809 {
     }
 
     fn BRA(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
+        let m = mem.read(self.PC);
         self.PC += 1;
         self.PC += signedChar(m);
         self.cl += 3;
@@ -1712,7 +1712,7 @@ impl M6809 {
     }
 
     fn JMPd(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
+        let m = mem.read(self.PC);
         self.PC += 1;
         self.PC = (self.DP << 8) | m;
         self.cl += 3;
@@ -1729,7 +1729,7 @@ impl M6809 {
     }
 
     fn BSR(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
+        let m = mem.read(self.PC);
         self.PC += 1;
         self.S -= 1;
         mem.write(self.S, self.PC & 0x00FF);
@@ -1755,7 +1755,7 @@ impl M6809 {
     }
 
     fn JSRd(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
+        let m = mem.read(self.PC);
         self.PC += 1;
         self.S -= 1;
         mem.write(self.S, self.PC & 0x00FF);
@@ -1799,7 +1799,7 @@ impl M6809 {
         self.cl += 5;
     }
 
-    fn NOP(&mut self, mem: &mut Memory) {
+    fn NOP(&mut self) {
         self.cl += 2;
     }
 
@@ -1812,7 +1812,7 @@ impl M6809 {
     /* Branchements conditionnels */
 
     fn BCC(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
+        let m = mem.read(self.PC);
         self.PC += 1;
         if (self.res & 0x100) != 0x100 {
             self.PC += signedChar(m);
@@ -1836,7 +1836,7 @@ impl M6809 {
     }
 
     fn BCS(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
+        let m = mem.read(self.PC);
         self.PC += 1;
         if (self.res & 0x100) == 0x100 {
             self.PC += signedChar(m);
@@ -1860,7 +1860,7 @@ impl M6809 {
     }
 
     fn BEQ(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
+        let m = mem.read(self.PC);
         self.PC += 1;
         if (self.res & 0xff) == 0x00 {
             self.PC += signedChar(m);
@@ -1882,7 +1882,7 @@ impl M6809 {
     }
 
     fn BNE(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
+        let m = mem.read(self.PC);
         self.PC += 1;
         if (self.res & 0xff) != 0 {
             self.PC += signedChar(m);
@@ -1906,7 +1906,7 @@ impl M6809 {
     }
 
     fn BGE(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
+        let m = mem.read(self.PC);
         self.PC += 1;
         if ((self.sign ^ ((!(self.m1 ^ self.m2)) & (self.m1 ^ self.ovfl))) & 0x80) == 0 {
             self.PC += signedChar(m);
@@ -1930,7 +1930,7 @@ impl M6809 {
     }
 
     fn BLE(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
+        let m = mem.read(self.PC);
         self.PC += 1;
         if ((self.res & 0xff) == 0)
             || (((self.sign ^ ((!(self.m1 ^ self.m2)) & (self.m1 ^ self.ovfl))) & 0x80) != 0) {
@@ -1956,7 +1956,7 @@ impl M6809 {
     }
 
     fn BLS(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
+        let m = mem.read(self.PC);
         self.PC += 1;
         if ((self.res & 0x100) != 0) || ((self.res & 0xff) == 0) {
             self.PC += signedChar(m);
@@ -1980,7 +1980,7 @@ impl M6809 {
     }
 
     fn BGT(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
+        let m = mem.read(self.PC);
         self.PC += 1;
         if ((self.res & 0xff) != 0)
             && (((self.sign ^ ((!(self.m1 ^ self.m2)) & (self.m1 ^ self.ovfl))) & 0x80) == 0) {
@@ -2006,7 +2006,7 @@ impl M6809 {
     }
 
     fn BLT(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
+        let m = mem.read(self.PC);
         self.PC += 1;
         if ((self.sign ^ ((!(self.m1 ^ self.m2)) & (self.m1 ^ self.ovfl))) & 0x80) != 0 {
             self.PC += signedChar(m);
@@ -2030,7 +2030,7 @@ impl M6809 {
     }
 
     fn BHI(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
+        let m = mem.read(self.PC);
         self.PC += 1;
         if ((self.res & 0x100) == 0) && ((self.res & 0xff) != 0) {
             self.PC += signedChar(m);
@@ -2053,7 +2053,7 @@ impl M6809 {
     }
 
     fn BMI(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
+        let m = mem.read(self.PC);
         self.PC += 1;
         if (self.sign & 0x80) != 0 {
             self.PC += signedChar(m);
@@ -2077,7 +2077,7 @@ impl M6809 {
     }
 
     fn BPL(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
+        let m = mem.read(self.PC);
         self.PC += 1;
         if (self.sign & 0x80) == 0 {
             self.PC += signedChar(m);
@@ -2101,7 +2101,7 @@ impl M6809 {
     }
 
     fn BVS(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
+        let m = mem.read(self.PC);
         self.PC += 1;
         if (((self.m1 ^ self.m2) & 0x80) == 0) && (((self.m1 ^ self.ovfl) & 0x80) != 0) {
             self.PC += signedChar(m);
@@ -2125,7 +2125,7 @@ impl M6809 {
     }
 
     fn BVC(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
+        let m = mem.read(self.PC);
         self.PC += 1;
         if (((self.m1 ^ self.m2) & 0x80) != 0) || (((self.m1 ^ self.ovfl) & 0x80) == 0) {
             self.PC += signedChar(m);
@@ -2242,7 +2242,7 @@ impl M6809 {
         self.cl += 19;
     }
 
-    fn DAA(&mut self, mem: &mut Memory) {
+    fn DAA(&mut self) {
         let mut i = self.A + (self.res & 0x100);
         if ((self.A & 15) > 9) || ((self.h1 & 15) + (self.h2 & 15) > 15) {
             i += 6;
@@ -2262,7 +2262,6 @@ impl M6809 {
         self.setcc(self.CC);
         self.PC += 1;
         self.cl += 20;
-        let wait = true;
     }
 
     pub(crate) fn FetchUntil(&mut self, clock: int, mem: &mut Memory, screen: &mut Screen) -> int {
@@ -3164,7 +3163,7 @@ impl M6809 {
                 self.JSRx(mem);
             }
             0x12 => {
-                self.NOP(mem);
+                self.NOP();
             }
             0x39 => {
                 self.RTS(mem);
@@ -3230,7 +3229,7 @@ impl M6809 {
 
             }
             0x19 => {
-                self.DAA(mem);
+                self.DAA();
 
             }
             0x3C => {
@@ -3401,7 +3400,7 @@ impl M6809 {
                     }
                     _ => {
                         eprintln!("opcode 10 {} not implemented", hex(opcode0x10, 2));
-                        eprintln!("{}", self.printState(mem));
+                        eprintln!("{}", self.print_state());
                     }
                 } // of case opcode0x10
             }
@@ -3446,20 +3445,20 @@ impl M6809 {
                     }
                     _ => {
                         eprintln!("opcode 11{} not implemented", hex(opcode0x11, 2));
-                        eprintln!("{}", self.printState(mem));
+                        eprintln!("{}", self.print_state());
                     }
                 } // of case opcode 0x11
             }
             _ => {
                 eprintln!("opcode {} not implemented", hex(opcode, 2));
-                eprintln!("{}", self.printState(mem));
+                eprintln!("{}", self.print_state());
             }
         } // of case  opcode
     } // of method fetch()
 
 
     // UNASSEMBLE/DEBUG PART
-    pub(crate) fn printState(&mut self, mem: &mut Memory) -> String {
+    pub(crate) fn print_state(&mut self) -> String {
         self.CC = self.getcc();
         let s = format!("A={} B={} X={} Y={}\nPC={} DP={} U={} S={} CC={}",
                         hex(self.A, 2),
@@ -4000,7 +3999,7 @@ pub(crate) fn unassemble(start: int, maxLines: int, mem: &mut Memory) -> String 
     let mut _where = start;
 
     let mut output = String::new();
-    for line in 0..maxLines {
+    for _ in 0..maxLines {
         let mut mm = mem.read(_where);
         _where += 1;
 
@@ -4293,7 +4292,7 @@ pub(crate) fn unassemble(start: int, maxLines: int, mem: &mut Memory) -> String 
         }
 
         let lll = output1.len();
-        for ll in 0..32 - lll {
+        for _ in 0..32 - lll {
             output1.push(' ');
         }
         output.push_str(output1.as_str());

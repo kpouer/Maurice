@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use rfd::FileDialog;
 use speedy2d::dimen::Vec2;
 use speedy2d::Graphics2D;
@@ -21,7 +21,7 @@ pub(crate) struct Gui {
 impl Default for Gui {
     fn default() -> Self {
         let mut machine = Machine::default();
-        machine.screen.setPixelSize(1., &mut machine.mem);
+        machine.screen.set_pixel_size(1., &mut machine.mem);
         Gui {
             machine,
             hadfile: None,
@@ -38,7 +38,7 @@ impl Gui {
             .pick_file();
         if let Some(filename) = files {
             let name = filename.as_path();
-            self.setK7(name);
+            self.set_k7(name);
             self.hadfile = Some(fs::canonicalize(name).unwrap().to_string_lossy().into_owned());
         }
     }
@@ -49,7 +49,7 @@ impl WindowHandler for Gui {
         self.machine.run();
         if self.machine.screen.must_redraw {
             self.machine.screen.must_redraw = false;
-            match (self.machine.screen.paint(graphics, &mut self.machine.mem)) {
+            match self.machine.screen.paint(graphics, &mut self.machine.mem) {
                 Ok(image) => {self.image = Some(image);}
                 Err(err) => {println!("Error: {}", err);}
             }
@@ -67,13 +67,13 @@ impl WindowHandler for Gui {
                 self.open_file();
             }
             _ => {
-                self.machine.keyboard.keyPressed(map_virtual_key_code(virtual_key_code, scancode), &mut self.machine.mem);
+                self.machine.keyboard.key_pressed(map_virtual_key_code(virtual_key_code, scancode), &mut self.machine.mem);
             }
         }
     }
 
     fn on_key_up(&mut self, _: &mut WindowHelper<()>, virtual_key_code: Option<VirtualKeyCode>, scancode: KeyScancode) {
-        self.machine.keyboard.keyReleased(map_virtual_key_code(virtual_key_code, scancode), &mut self.machine.mem);
+        self.machine.keyboard.key_released(map_virtual_key_code(virtual_key_code, scancode), &mut self.machine.mem);
     }
 
     fn on_keyboard_modifiers_changed(&mut self, _: &mut WindowHelper<()>, state: ModifiersState) {
@@ -86,8 +86,8 @@ impl WindowHandler for Gui {
 }
 
 impl Gui {
-    fn setK7(&mut self, filename: &Path) {
-        self.machine.setK7File(filename);
+    fn set_k7(&mut self, filename: &Path) {
+        self.machine.set_k7_file(filename);
     }
 
     // fn setK7(&mut self, mem: &Memory) {
@@ -145,7 +145,7 @@ impl Gui {
     //     }
     // }
 
-    fn initGui(&mut self) {
+    fn init_gui(&mut self) {
         // guiFrame = new JFrame("Marcel O Cinq 3.1 (Java)");
         // guiFrame.setLayout(new BorderLayout(&mut self, mem: &Memory));
         //
@@ -274,7 +274,7 @@ impl Gui {
             File->Load a K7 : to select the file (uncompressed)\
             under Basic interpreter type LOAD then type RUN\
             or LOADM then EXEC\
-
+\
             Full keyboard emulation with all symbols\
             Sound emulation\
             Reset bug solved\
@@ -282,7 +282,7 @@ impl Gui {
             Lightpen emulation\
             AltGr+C = Ctrl+C = Break basic\
             F11 = BASIC     F12 = SHIFT\
-
+\
             Contacts :\
             gilles.fetis@wanadoo.fr\
             marc.le.goff@gmail.fr\
