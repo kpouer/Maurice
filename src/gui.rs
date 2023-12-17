@@ -63,9 +63,9 @@ impl WindowHandler for Gui {
 
     fn on_key_down(&mut self, _: &mut WindowHelper<()>, virtual_key_code: Option<VirtualKeyCode>, scancode: KeyScancode) {
         match virtual_key_code {
-            Some(VirtualKeyCode::F2) => {
-                self.open_file();
-            }
+            Some(VirtualKeyCode::F2) => { self.open_file(); }
+            Some(VirtualKeyCode::F7) => { self.machine.reset_soft(); }
+            Some(VirtualKeyCode::F8) => { self.machine.reset_hard(); }
             _ => {
                 self.machine.keyboard.key_pressed(map_virtual_key_code(virtual_key_code, scancode), &mut self.machine.mem);
             }

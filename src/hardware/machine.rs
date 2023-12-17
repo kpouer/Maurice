@@ -155,16 +155,16 @@ impl Machine {
     }
 
     // soft reset method ("reinit prog" button on original MO5)
-    fn reset_soft(&mut self, mem: &Memory) {
-        self.micro.reset(mem);
+    pub(crate) fn reset_soft(&mut self) {
+        self.micro.reset(&self.mem);
     }
 
     // hard reset (match off and on)
-    fn reset_hard(&mut self, mem: &Memory) {
+    pub(crate) fn reset_hard(&mut self) {
         for i in 0x2000..0x3000 {
             self.mem.set(i, 0);
         }
-        self.micro.reset(mem);
+        self.micro.reset(&self.mem);
     }
 
     // Debug Methods
