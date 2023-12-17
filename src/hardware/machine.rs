@@ -151,7 +151,7 @@ impl Machine {
     }
 
     pub(crate) fn set_k7_file(&mut self, k7: &Path) -> bool {
-        return self.mem.setK7File(k7);
+        return self.mem.set_k7file(k7);
     }
 
     // soft reset method ("reinit prog" button on original MO5)

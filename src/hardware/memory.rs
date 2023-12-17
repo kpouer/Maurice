@@ -274,7 +274,7 @@ impl Memory {
         }
     }
 
-    pub(crate) fn setK7File(&mut self, name: &Path) -> bool {
+    pub(crate) fn set_k7file(&mut self, name: &Path) -> bool {
         println!("opening:{}", name.to_str().unwrap());
         if self.K7_fis.is_none() {
             self.is_file_opened = false;
@@ -307,7 +307,7 @@ impl Memory {
         return self.is_file_opened;
     }
 
-    fn createK7File(&mut self) -> bool {
+    fn create_k7file(&mut self) -> bool {
 
         if self.k7_out_name.is_some() {
             return self.is_file_opened_out;
@@ -315,9 +315,9 @@ impl Memory {
 
         let aujourdhui = Local::now();
 
-        let KoutName = aujourdhui.format("%Y-%m-%d-%H_%M_%S.k7").to_string();
-        println!("Creating:{}", &KoutName);
-        self.k7_out_name = Some(KoutName);
+        let kout_name = aujourdhui.format("%Y-%m-%d-%H_%M_%S.k7").to_string();
+        println!("Creating:{}", &kout_name);
+        self.k7_out_name = Some(kout_name);
         if self.K7_fos.is_none() {
             self.is_file_opened_out = false;
         }
@@ -326,8 +326,8 @@ impl Memory {
             // self.K7fos.close(&mut self);
         }
 
-        let k7outName = &self.k7_out_name.clone().unwrap();
-        if let Ok(k7fos) = File::open(k7outName) {
+        let k7out_name = &self.k7_out_name.clone().unwrap();
+        if let Ok(k7fos) = File::open(k7out_name) {
             let buf = BufWriter::new(k7fos);
             self.K7_fos = Some(buf);
             self.is_file_opened_out = true;
@@ -394,7 +394,7 @@ impl Memory {
         /* Write K7 byte */
         /* Merci  Olivier Tardieu pour le dsassemblage de la routine en ROM */
         if PC == 0xF1B0 {
-            self.createK7File(); // To do if necessary
+            self.create_k7file(); // To do if necessary
 
             if !self.is_file_opened_out {
                 return;

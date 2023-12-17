@@ -96,7 +96,7 @@ impl Gui {
     //     String filename = filedia.getFile(&mut self, mem: &Memory);
     //     if (filename != null) {
     //         filename = filedia.getDirectory(&mut self, mem: &Memory) + filedia.getFile(&mut self, mem: &Memory);
-    //         machine.setK7File(filename);
+    //         machine.set_k7file(filename);
     //         hadfile = filename;
     //     }
     // }
