@@ -95,6 +95,12 @@ impl Memory {
         return self.mem[self.mapper[page as usize] as usize][(address & 0xFFF) as usize];
     }
 
+    pub(crate) fn read_16(&self, address: int) -> int {
+        let b1 = self.read(address);
+        let b2 = self.read(address + 1);
+        (b1 << 8) + b2
+    }
+
     // write with io
     pub(crate) fn write(&mut self, address: int, value: int) {
         let page = (address & 0xF000) >> 12;
