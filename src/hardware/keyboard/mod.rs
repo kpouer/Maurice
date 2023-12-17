@@ -16,8 +16,6 @@ pub(crate) struct Keyboard {
     // translation table from scancode to java keycodes VK_
     ftable: HashMap<char, Key>,
     shiftpressed: int,
-    presstwice: bool,
-    releasetwice: bool,
     modifiers: int,
 }
 
@@ -26,8 +24,6 @@ impl Default for Keyboard {
         Keyboard {
             ftable: build_ftable(),
             shiftpressed: 0,
-            presstwice: false,
-            releasetwice: false,
             modifiers: 0,
         }
     }

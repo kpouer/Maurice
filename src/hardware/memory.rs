@@ -42,11 +42,11 @@ pub(crate) struct Memory {
     GA2:int,
     pub(crate) GA3:int,
 
-    K7bit:int,
-    K7char:int,
+    K7_bit:int,
+    K7_char:int,
 
-    K7fis:Option<DataInputStream>,
-    K7fos:Option<BufWriter<File>>,
+    K7_fis:Option<DataInputStream>,
+    K7_fos:Option<BufWriter<File>>,
     is_file_opened:bool,
     is_file_opened_out:bool,
     k7_in:Option<DataInputStream>,
@@ -75,10 +75,10 @@ impl Default for Memory {
             GA1: 0,
             GA2: 0,
             GA3: 0,
-            K7bit: 0,
-            K7char: 0,
-            K7fis: None,
-            K7fos: None,
+            K7_bit: 0,
+            K7_char: 0,
+            K7_fis: None,
+            K7_fos: None,
             is_file_opened: false,
             is_file_opened_out: false,
             k7_in: None,
@@ -274,28 +274,9 @@ impl Memory {
         }
     }
 
-    pub(crate) fn set_k7_file_from_url(&mut self, K7: &String) -> bool {
-        println!("opening from url:{}", K7);
-
-        //todo implement
-        // try {
-        //     let site = new URL(K7);
-        //     self.K7in = new DataInputStream(site.openStream(&mut self));
-        //     self.isFileOpened = true;
-        // } catch (Exception e) {
-        //     JOptionPane.showMessageDialog(null, "Error : file is missing " + e);
-        //     return isFileOpened;
-        // }
-
-        self.K7bit = 0;
-        self.K7char = 0;
-
-        return self.is_file_opened;
-    }
-
     pub(crate) fn setK7File(&mut self, name: &Path) -> bool {
         println!("opening:{}", name.to_str().unwrap());
-        if self.K7fis.is_none() {
+        if self.K7_fis.is_none() {
             self.is_file_opened = false;
         }
 
@@ -312,7 +293,7 @@ impl Memory {
 
             let data =  DataInputStream::new(name);
             println!("Opened K7 {} of length {}", name.file_name().unwrap().to_str().unwrap(), data.len());
-            self.K7fis = Some(data);
+            self.K7_fis = Some(data);
             self.is_file_opened = true;
         } else {
             // todo : dialog
@@ -320,8 +301,8 @@ impl Memory {
             return self.is_file_opened;
         }
 
-        self.K7bit = 0;
-        self.K7char = 0;
+        self.K7_bit = 0;
+        self.K7_char = 0;
 
         return self.is_file_opened;
     }
@@ -337,7 +318,7 @@ impl Memory {
         let KoutName = aujourdhui.format("%Y-%m-%d-%H_%M_%S.k7").to_string();
         println!("Creating:{}", &KoutName);
         self.k7_out_name = Some(KoutName);
-        if self.K7fos.is_none() {
+        if self.K7_fos.is_none() {
             self.is_file_opened_out = false;
         }
         if self.is_file_opened_out {
@@ -348,7 +329,7 @@ impl Memory {
         let k7outName = &self.k7_out_name.clone().unwrap();
         if let Ok(k7fos) = File::open(k7outName) {
             let buf = BufWriter::new(k7fos);
-            self.K7fos = Some(buf);
+            self.K7_fos = Some(buf);
             self.is_file_opened_out = true;
             // todo : dialog
             // JOptionPane.showMessageDialog(null, "Information : new file " + k7out_name);
@@ -358,8 +339,8 @@ impl Memory {
             return self.is_file_opened_out;
         }
 
-        self.K7bit = 0;
-        self.K7char = 0;
+        self.K7_bit = 0;
+        self.K7_char = 0;
 
         return self.is_file_opened_out;
     }
@@ -371,22 +352,22 @@ impl Memory {
         }
 
         /* doit_on lire un caractere ? */
-        if self.K7bit == 0x00 {
+        if self.K7_bit == 0x00 {
             if self.k7_in.is_some() {
-                self.K7char = self.k7_in.as_mut().unwrap().read();
+                self.K7_char = self.k7_in.as_mut().unwrap().read();
             } else {
-                if self.K7fis.is_some() {
-                    self.K7char = self.K7fis.as_mut().unwrap().read();
+                if self.K7_fis.is_some() {
+                    self.K7_char = self.K7_fis.as_mut().unwrap().read();
                 } else {
                     return 0;
                 }
             }
 
-            self.K7bit = 0x80;
+            self.K7_bit = 0x80;
         }
         let mut octet = self.get(0x2045);
 
-        if (self.K7char & self.K7bit) == 0 {
+        if (self.K7_char & self.K7_bit) == 0 {
             octet = octet << 1;
             // A=0x00;
             self.set(0xF16A, 0x00);
@@ -399,7 +380,7 @@ impl Memory {
         self.set(0x2045, octet & 0xFF);
         screen.led = octet & 0xff;
         screen.show_led = 10;
-        self.K7bit >>= 1;
+        self.K7_bit >>= 1;
         return 0;
     }
 
@@ -420,7 +401,7 @@ impl Memory {
             }
 
             let data_out = [A as u8];
-            if let Some(k7fos) = &mut self.K7fos {
+            if let Some(k7fos) = &mut self.K7_fos {
                 if let Err(result) = k7fos.write(&data_out) {
                     eprintln!("Error writing to file: {}", result);
                 }

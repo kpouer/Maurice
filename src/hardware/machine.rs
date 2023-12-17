@@ -17,8 +17,8 @@ pub(crate) struct Machine {
     pub(crate) screen: Screen,
     pub(crate) keyboard: Keyboard,
     pub(crate) testtimer:int,
-    pub(crate) IRQ: bool,
-    pub(crate) lastTime: DateTime<Local>,
+    pub(crate) irq: bool,
+    pub(crate) last_time: DateTime<Local>,
     pub(crate) keys: Vec<int>,
     pub(crate) keytimer:int,
     pub(crate) keypos:int,
@@ -40,12 +40,12 @@ impl Default for Machine {
             screen,
             keyboard: Keyboard::default(),
             testtimer: 0,
-            lastTime: Local::now(),
+            last_time: Local::now(),
             keys: Vec::new(),
             keytimer: 0,
             keypos: 0,
             typetext: None,
-            IRQ: false,
+            irq: false,
         }
     }
 }
@@ -70,8 +70,8 @@ impl Machine {
         self.mem.set(0xA7E7, 0x00);
         self.mem.GA3 = 0x00;
         /* 3.9 ms haut �cran (+0.3 irq)*/
-        if self.IRQ {
-            self.IRQ = false;
+        if self.irq {
+            self.irq = false;
             self.micro.FetchUntil(3800, &mut self.mem, &mut self.screen);
         } else {
             self.micro.FetchUntil(4100, &mut self.mem, &mut self.screen);
@@ -87,12 +87,12 @@ impl Machine {
         self.micro.FetchUntil(2800, &mut self.mem, &mut self.screen);
 
         if (self.mem.CRB & 0x01) == 0x01 {
-            self.IRQ = true;
+            self.irq = true;
             /* Positionne le bit 7 de CRB */
             self.mem.CRB |= 0x80;
             self.mem.set(0xA7C3, self.mem.CRB);
-            let CC = self.micro.readCC();
-            if (CC & 0x10) == 0 {
+            let cc = self.micro.readCC();
+            if (cc & 0x10) == 0 {
                 self.micro.IRQ(&mut self.mem);
             }
             /* 300 cycles sous interrupt */
@@ -138,20 +138,16 @@ impl Machine {
                 }
             }
         }
-        let real_time_millis:i64 = Local::now().timestamp_millis() - self.lastTime.timestamp_millis();
+        let real_time_millis:i64 = Local::now().timestamp_millis() - self.last_time.timestamp_millis();
 
         let sleep_millis:i64 = 20i64 - real_time_millis - 1;
         if sleep_millis < 0 {
-            self.lastTime = Local::now();
+            self.last_time = Local::now();
             return;
         }
 
         sleep(Duration::from_millis(sleep_millis as u64));
-        self.lastTime = Local::now();
-    }
-
-    fn set_k7_file_from_url(&mut self, k7: &String) -> bool {
-        return self.mem.set_k7_file_from_url(k7);
+        self.last_time = Local::now();
     }
 
     pub(crate) fn set_k7_file(&mut self, k7: &Path) -> bool {
@@ -172,16 +168,12 @@ impl Machine {
     }
 
     // Debug Methods
-    fn dump_registers(&mut self, mem: &mut Memory) -> String {
-        return self.micro.print_state();
+    fn dump_registers(&mut self) -> String {
+        self.micro.print_state()
     }
 
     fn unassemble_from_pc(&self, nblines: int, mem: &mut Memory) -> String {
-        return unassemble(self.micro.PC, nblines, mem);
+        unassemble(self.micro.PC, nblines, mem)
     }
-
-    fn dump_system_stack(&self, nblines: int) -> String {
-        return "00".to_string();
-    }
-} // of class
+}
 
