@@ -21,3 +21,21 @@ F8 : Hard Reset
 
 It is possible to load tapes by pressing F2 and selecting a .k7 file.
 Then usually you have to type "load" and press enter. Then "run" and press enter.
+
+## Showcase
+
+### Boot
+![Boot](media/boot.png)
+
+### Arkanoid
+![Boot](media/arkanoidanimated.png)
+![Boot](media/arkanoid.png)
+
+### Aigle d'or
+![Boot](media/aigledor.png)
+![Boot](media/aigledoranimated.png)
+
+## Note
+
+Sound is not supported and it is probable that many limitations are still present.
+
