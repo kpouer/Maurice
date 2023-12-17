@@ -34,15 +34,11 @@ pub(crate) const HEIGHT: usize = 200;
 #[derive(Debug)]
 pub(crate) struct Screen {
     pub(crate) mouse_clic: bool,
-    pub(crate) mouse_X: int,
-    pub(crate) mouse_Y: int,
+    pub(crate) mouse_x: int,
+    pub(crate) mouse_y: int,
     pixels: Vec<u32>,
-    pixelSize: f64,
+    pixel_size: f64,
     filter: bool,
-    j: int,
-    xPosition: int,
-    yPosition: int,
-    w: int,
     pub(crate) led: int,
     pub(crate) show_led: int,
     pub(crate) must_redraw: bool,
@@ -52,24 +48,20 @@ impl Screen {
     pub(crate) fn new() -> Self {
         Screen {
             mouse_clic: false,
-            mouse_X: -1,
-            mouse_Y: -1,
-            pixels: vec![0xff000000;320*200],
-            pixelSize: 2.0,
+            mouse_x: -1,
+            mouse_y: -1,
+            pixels: vec![0xff000000; WIDTH * HEIGHT],
+            pixel_size: 2.0,
             filter: false,
-            j: 0,
-            xPosition: 0,
-            yPosition: 0,
-            w: 0,
             led: 0,
             show_led: 0,
             must_redraw: false,
         }
     }
 
-    pub(crate) fn setPixelSize(&mut self, ps: f64, mem: &mut Memory) {
-        self.pixelSize = ps;
-        mem.setAllDirty();
+    pub(crate) fn set_pixel_size(&mut self, ps: f64, mem: &mut Memory) {
+        self.pixel_size = ps;
+        mem.set_all_dirty();
     }
 
     pub(crate) fn repaint(&mut self) {
@@ -85,7 +77,7 @@ impl Screen {
             } else {
                 Color::from_rgb(0., 0., 0.)
             };
-            let rectangle:Rectangle<f32> = Rectangle::new(Vector2::new(320. - 16., 0.), Vector2::new(16., 8.));
+            let rectangle:Rectangle<f32> = Rectangle::new(Vector2::new(WIDTH as f32 - 16., 0.), Vector2::new(16., 8.));
             graphics.draw_rectangle(rectangle, color);
         }
         self.dopaint(mem);
@@ -96,9 +88,9 @@ impl Screen {
                 let r = (p & 0xFF) as u8;
                 let g = ((p >> 8) & 0xFF) as u8;
                 let b = ((p >> 16) & 0xFF) as u8;
-                buffer.push(r);
-                buffer.push(g);
                 buffer.push(b);
+                buffer.push(g);
+                buffer.push(r);
             });
         let raw = buffer.as_slice();
         let size = UVec2::new(WIDTH as u32, HEIGHT as u32);
@@ -111,21 +103,20 @@ impl Screen {
     }
 
     pub(crate) fn dopaint(&mut self, mem: &mut Memory) {
-        let p = 0;
         let mut i = 0;
 
         for y in 0..HEIGHT {
             let offset: usize = y * WIDTH;
-            if !mem.is_dirty(y as int) {
+            if !mem.is_dirty(y) {
                 i += 40;
             } else {
                 let mut x: usize = 0;
-                for xx in 0..40 {
+                for _ in 0..40 {
                     let col = mem.COLOR(i);
-                    let c2 = col & 0x0F;
-                    let c1 = col >> 4;
-                    let cc2 = PALETTE[c1 as usize];
-                    let cc1 = PALETTE[c2 as usize];
+                    let c2: usize = (col & 0x0F) as usize;
+                    let c1: usize = (col >> 4) as usize;
+                    let cc2 = PALETTE[c1];
+                    let cc1 = PALETTE[c2];
 
                     let pt = mem.POINT(i);
                     if (0x80 & pt) != 0 {

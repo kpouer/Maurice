@@ -22,14 +22,14 @@ const n_bytes: usize = 1024; // Buffer size
 
 #[derive(Debug)]
 pub(crate) struct Sound {
-    nSamples:int,
+    n_samples:int,
     data:Vec<u8>,
 }
 
 impl Sound {
     pub(crate) fn new() -> Self {
         Sound {
-            nSamples: nFrames * channels,
+            n_samples: nFrames * channels,
             data: vec![0; n_bytes],
         }
         // Réservation de la sortie audio, début de la restitution, envoi du tableau

@@ -9,7 +9,33 @@ of the original repository which is available at https://sourceforge.net/project
 Of course the licence remains BSD Licence and all the credit goes to the original author.
 My goal was to learn Rust and I thought that porting this emulator would be a good way to do so.
 
+## Commands
+
+### Keyboard
+
+F2: Load a tape
+F7 : Soft Reset
+F8 : Hard Reset
 
 ## Loading tapes
 
 It is possible to load tapes by pressing F2 and selecting a .k7 file.
+Then usually you have to type "load" and press enter. Then "run" and press enter.
+
+## Showcase
+
+### Boot
+![Boot](media/boot.png)
+
+### Arkanoid
+![Boot](media/arkanoidanimated.png)
+![Boot](media/arkanoid.png)
+
+### Aigle d'or
+![Boot](media/aigledor.png)
+![Boot](media/aigledoranimated.png)
+
+## Note
+
+Sound is not supported and it is probable that many limitations are still present.
+

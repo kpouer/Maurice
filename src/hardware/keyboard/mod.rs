@@ -1,16 +1,13 @@
 use std::collections::HashMap;
 
-use speedy2d::window::{KeyScancode, VirtualKeyCode};
+use speedy2d::window::VirtualKeyCode;
 use crate::hardware::keyboard::vkey::CustomVirtualKeyCode;
 use crate::hardware::keyboard::vkey::CustomVirtualKeyCode::Base;
 
 use crate::hardware::memory::Memory;
 use crate::int;
 
-mod scancodes;
 pub(crate) mod vkey;
-
-const EVENT: u32 = 0x8000;
 
 pub(crate) const SHIFT_DOWN_MASK: int = 1 << 6;
 
@@ -19,8 +16,6 @@ pub(crate) struct Keyboard {
     // translation table from scancode to java keycodes VK_
     ftable: HashMap<char, Key>,
     shiftpressed: int,
-    presstwice: bool,
-    releasetwice: bool,
     modifiers: int,
 }
 
@@ -29,15 +24,13 @@ impl Default for Keyboard {
         Keyboard {
             ftable: build_ftable(),
             shiftpressed: 0,
-            presstwice: false,
-            releasetwice: false,
             modifiers: 0,
         }
     }
 }
 
 impl Keyboard {
-    fn keyTranslator(&mut self, virtual_key_code: Option<CustomVirtualKeyCode>, press: bool, mem: &mut Memory) {
+    fn key_translator(&mut self, virtual_key_code: Option<CustomVirtualKeyCode>, press: bool, mem: &mut Memory) {
         if let Some(vk) = virtual_key_code {
             match vk {
                 Base(VirtualKeyCode::Backspace) => { key_memory(0x6c, press, mem); }
@@ -103,8 +96,6 @@ impl Keyboard {
 
                 Base(VirtualKeyCode::Space) => { key_memory(0x40, press, mem); }
 
-                Base(VirtualKeyCode::Backspace) => { key_memory(0x6c, press, mem); }
-
                 _ => {
                     println!("Unknown virtual key code: {:?}", vk);
                 }
@@ -116,15 +107,15 @@ impl Keyboard {
         self.modifiers & modifier != 0
     }
 
-    pub(crate) fn keyPressed(&mut self, virtual_key_code: Option<CustomVirtualKeyCode>, mem: &mut Memory) {
+    pub(crate) fn key_pressed(&mut self, virtual_key_code: Option<CustomVirtualKeyCode>, mem: &mut Memory) {
         for i in 0..127 {
-            mem.remKey(i);
+            mem.rem_key(i);
         }
-        self.keyTranslator(virtual_key_code, true, mem);
+        self.key_translator(virtual_key_code, true, mem);
     }
 
-    pub(crate) fn keyReleased(&mut self, virtual_key_code: Option<CustomVirtualKeyCode>, mem: &mut Memory) {
-        self.keyTranslator(virtual_key_code, false, mem);
+    pub(crate) fn key_released(&mut self, virtual_key_code: Option<CustomVirtualKeyCode>, mem: &mut Memory) {
+        self.key_translator(virtual_key_code, false, mem);
     }
 
     pub(crate) fn on_keyboard_modifiers_changed(&mut self, modifiers_state: int) {
@@ -147,9 +138,9 @@ impl Keyboard {
         }
 
         if let Some(index) = self.ftable.get(&(tmp as u8 as char)) {
-            mem.setKey(index.key);
+            mem.set_key(index.key);
             if let Some(key2) = index.key2 {
-                mem.setKey(key2);
+                mem.set_key(key2);
             }
         }
     }
@@ -167,9 +158,9 @@ impl Keyboard {
             tmp = 50;
         }
         if let Some(index) = self.ftable.get(&(tmp as u8 as char)) {
-            mem.remKey(index.key);
+            mem.rem_key(index.key);
             if let Some(key2) = index.key2 {
-                mem.remKey(key2);
+                mem.rem_key(key2);
             }
         }
     }
@@ -178,27 +169,9 @@ impl Keyboard {
 fn key_memory(key: int, press: bool, mem: &mut Memory) {
     if press {
         println!("key_memory: {}", key);
-        mem.setKey(key);
+        mem.set_key(key);
     } else {
-        mem.remKey(key);
-    }
-}
-
-/**
- * KeyStroke typed on your keyboard
- */
-#[derive(Debug, Hash, Eq, PartialEq)]
-struct KeyStroke {
-    key: KeyScancode,
-    modifiers: int,
-}
-
-impl KeyStroke {
-    fn new(key: KeyScancode) -> Self {
-        KeyStroke {
-            key,
-            modifiers: 0,
-        }
+        mem.rem_key(key);
     }
 }
 

@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::thread::sleep;
 use std::time::Duration;
 use chrono::{DateTime, Local};
@@ -17,9 +17,8 @@ pub(crate) struct Machine {
     pub(crate) screen: Screen,
     pub(crate) keyboard: Keyboard,
     pub(crate) testtimer:int,
-    pub(crate) IRQ: bool,
-    pub(crate) running: bool,
-    pub(crate) lastTime: DateTime<Local>,
+    pub(crate) irq: bool,
+    pub(crate) last_time: DateTime<Local>,
     pub(crate) keys: Vec<int>,
     pub(crate) keytimer:int,
     pub(crate) keypos:int,
@@ -41,32 +40,17 @@ impl Default for Machine {
             screen,
             keyboard: Keyboard::default(),
             testtimer: 0,
-            lastTime: Local::now(),
+            last_time: Local::now(),
             keys: Vec::new(),
             keytimer: 0,
             keypos: 0,
             typetext: None,
-            IRQ: false,
-            running: false,
+            irq: false,
         }
     }
 }
 
 impl Machine {
-    // todo :activate
-    // fn start(&mut self, mem: &mut Memory, screen: &mut Screen) {
-    //     if !self.running {
-    //         self.running = true;
-    //         thread::spawn(move || {
-    //             self.run(mem, screen);
-    //         });
-    //     }
-    // }
-
-    fn stop(&mut self) {
-        self.running = false;
-    }
-
     pub(crate) fn run(&mut self) {
         self.full_speed();
         self.synchronize();
@@ -79,15 +63,15 @@ impl Machine {
         self.screen.repaint(); // Mise a jour de l'affichage
 
         // Mise a jour du crayon optique a partir des donnée de la souris souris
-        self.mem.LightPenClic = self.screen.mouse_clic;
-        self.mem.LightPenX = self.screen.mouse_X;
-        self.mem.LightPenY = self.screen.mouse_Y;
+        self.mem.light_pen_clic = self.screen.mouse_clic;
+        self.mem.light_pen_x = self.screen.mouse_x;
+        self.mem.light_pen_y = self.screen.mouse_y;
 
         self.mem.set(0xA7E7, 0x00);
         self.mem.GA3 = 0x00;
         /* 3.9 ms haut �cran (+0.3 irq)*/
-        if self.IRQ {
-            self.IRQ = false;
+        if self.irq {
+            self.irq = false;
             self.micro.FetchUntil(3800, &mut self.mem, &mut self.screen);
         } else {
             self.micro.FetchUntil(4100, &mut self.mem, &mut self.screen);
@@ -103,12 +87,12 @@ impl Machine {
         self.micro.FetchUntil(2800, &mut self.mem, &mut self.screen);
 
         if (self.mem.CRB & 0x01) == 0x01 {
-            self.IRQ = true;
+            self.irq = true;
             /* Positionne le bit 7 de CRB */
             self.mem.CRB |= 0x80;
             self.mem.set(0xA7C3, self.mem.CRB);
-            let CC = self.micro.readCC();
-            if (CC & 0x10) == 0 {
+            let cc = self.micro.readCC();
+            if (cc & 0x10) == 0 {
                 self.micro.IRQ(&mut self.mem);
             }
             /* 300 cycles sous interrupt */
@@ -118,7 +102,7 @@ impl Machine {
         }
     }
 
-    fn AutoType(&mut self, input: &String) {
+    fn auto_type(&mut self, input: &String) {
         let input = input.replace("\"", "zxz");
 
         self.keys = Vec::new();
@@ -134,7 +118,7 @@ impl Machine {
             self.testtimer += 1;
             if self.testtimer == 100 {
                 let typetext = self.typetext.clone().unwrap();
-                self.AutoType(&typetext);
+                self.auto_type(&typetext);
                 self.testtimer = 0;
             }
         }
@@ -154,50 +138,42 @@ impl Machine {
                 }
             }
         }
-        let real_time_millis:i64 = Local::now().timestamp_millis() - self.lastTime.timestamp_millis();
+        let real_time_millis:i64 = Local::now().timestamp_millis() - self.last_time.timestamp_millis();
 
         let sleep_millis:i64 = 20i64 - real_time_millis - 1;
         if sleep_millis < 0 {
-            self.lastTime = Local::now();
+            self.last_time = Local::now();
             return;
         }
 
         sleep(Duration::from_millis(sleep_millis as u64));
-        self.lastTime = Local::now();
+        self.last_time = Local::now();
     }
 
-    fn setK7FileFromUrl(&mut self, k7: &String) -> bool {
-        return self.mem.setK7FileFromUrl(k7);
-    }
-
-    pub(crate) fn setK7File(&mut self, k7: &Path) -> bool {
-        return self.mem.setK7File(k7);
+    pub(crate) fn set_k7_file(&mut self, k7: &Path) -> bool {
+        return self.mem.set_k7file(k7);
     }
 
     // soft reset method ("reinit prog" button on original MO5)
-    fn resetSoft(&mut self, mem: &Memory) {
-        self.micro.reset(mem);
+    pub(crate) fn reset_soft(&mut self) {
+        self.micro.reset(&self.mem);
     }
 
     // hard reset (match off and on)
-    fn resetHard(&mut self, mem: &Memory) {
+    pub(crate) fn reset_hard(&mut self) {
         for i in 0x2000..0x3000 {
             self.mem.set(i, 0);
         }
-        self.micro.reset(mem);
+        self.micro.reset(&self.mem);
     }
 
     // Debug Methods
-    fn dumpRegisters(&mut self, mem: &mut Memory) -> String {
-        return self.micro.printState(mem);
+    fn dump_registers(&mut self) -> String {
+        self.micro.print_state()
     }
 
-    fn unassembleFromPC(&self, nblines: int, mem: &mut Memory) -> String {
-        return unassemble(self.micro.PC, nblines, mem);
+    fn unassemble_from_pc(&self, nblines: int, mem: &mut Memory) -> String {
+        unassemble(self.micro.PC, nblines, mem)
     }
-
-    fn dumpSystemStack(&self, nblines: int) -> String {
-        return "00".to_string();
-    }
-} // of class
+}
 
