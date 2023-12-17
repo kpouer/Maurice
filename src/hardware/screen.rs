@@ -50,7 +50,7 @@ impl Screen {
             mouse_clic: false,
             mouse_x: -1,
             mouse_y: -1,
-            pixels: vec![0xff000000;320*200],
+            pixels: vec![0xff000000; WIDTH * HEIGHT],
             pixel_size: 2.0,
             filter: false,
             led: 0,
@@ -77,7 +77,7 @@ impl Screen {
             } else {
                 Color::from_rgb(0., 0., 0.)
             };
-            let rectangle:Rectangle<f32> = Rectangle::new(Vector2::new(320. - 16., 0.), Vector2::new(16., 8.));
+            let rectangle:Rectangle<f32> = Rectangle::new(Vector2::new(WIDTH - 16., 0.), Vector2::new(16., 8.));
             graphics.draw_rectangle(rectangle, color);
         }
         self.dopaint(mem);
@@ -113,10 +113,10 @@ impl Screen {
                 let mut x: usize = 0;
                 for _ in 0..40 {
                     let col = mem.COLOR(i);
-                    let c2 = col & 0x0F;
-                    let c1 = col >> 4;
-                    let cc2 = PALETTE[c1 as usize];
-                    let cc1 = PALETTE[c2 as usize];
+                    let c2: usize = (col & 0x0F) as usize;
+                    let c1: usize = (col >> 4) as usize;
+                    let cc2 = PALETTE[c1];
+                    let cc1 = PALETTE[c2];
 
                     let pt = mem.POINT(i);
                     if (0x80 & pt) != 0 {
