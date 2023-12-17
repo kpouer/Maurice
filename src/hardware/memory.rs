@@ -153,9 +153,9 @@ impl Memory {
         return self.mem[(page + 2) as usize][(address & 0xFFF) as usize];
     }
 
-    pub(crate) fn is_dirty(&mut self, line: int) -> bool {
-        let ret = self.dirty[line as usize];
-        self.dirty[line as usize] = false;
+    pub(crate) fn is_dirty(&mut self, line: usize) -> bool {
+        let ret = self.dirty[line];
+        self.dirty[line] = false;
         return ret;
     }
 

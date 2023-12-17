@@ -115,7 +115,7 @@ impl Screen {
 
         for y in 0..HEIGHT {
             let offset: usize = y * WIDTH;
-            if !mem.is_dirty(y as int) {
+            if !mem.is_dirty(y) {
                 i += 40;
             } else {
                 let mut x: usize = 0;
