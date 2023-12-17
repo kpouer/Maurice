@@ -77,7 +77,7 @@ impl Screen {
             } else {
                 Color::from_rgb(0., 0., 0.)
             };
-            let rectangle:Rectangle<f32> = Rectangle::new(Vector2::new(WIDTH - 16., 0.), Vector2::new(16., 8.));
+            let rectangle:Rectangle<f32> = Rectangle::new(Vector2::new(WIDTH as f32 - 16., 0.), Vector2::new(16., 8.));
             graphics.draw_rectangle(rectangle, color);
         }
         self.dopaint(mem);
@@ -88,9 +88,9 @@ impl Screen {
                 let r = (p & 0xFF) as u8;
                 let g = ((p >> 8) & 0xFF) as u8;
                 let b = ((p >> 16) & 0xFF) as u8;
-                buffer.push(r);
-                buffer.push(g);
                 buffer.push(b);
+                buffer.push(g);
+                buffer.push(r);
             });
         let raw = buffer.as_slice();
         let size = UVec2::new(WIDTH as u32, HEIGHT as u32);
