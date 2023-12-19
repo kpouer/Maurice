@@ -39,3 +39,9 @@ Then usually you have to type "load" and press enter. Then "run" and press enter
 
 Sound is not supported and it is probable that many limitations are still present.
 
+## Dependencies
+
+This project depends on
+- speedy2d (https://crates.io/crates/speedy2d)
+- chrono (https://crates.io/crates/chrono)
+- rfd (https://crates.io/crates/rfd)

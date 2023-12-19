@@ -7,8 +7,5 @@ edition = "2021"
 
 [dependencies]
 speedy2d = "2.0.0"
-env_logger = "0.10.1"
-cc = "1.0.83"
 chrono = "0.4.31"
-log = "0.4.20"
 rfd = "0.12.1"
