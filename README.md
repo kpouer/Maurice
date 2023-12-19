@@ -43,5 +43,6 @@ Sound is not supported and it is probable that many limitations are still presen
 
 This project depends on
 - speedy2d (https://crates.io/crates/speedy2d)
+- env_logger (https://crates.io/crates/env_logger)
 - chrono (https://crates.io/crates/chrono)
 - rfd (https://crates.io/crates/rfd)
