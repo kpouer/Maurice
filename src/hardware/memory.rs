@@ -42,11 +42,11 @@ pub(crate) struct Memory {
     GA2:int,
     pub(crate) GA3:int,
 
-    K7_bit:int,
-    K7_char:int,
+    k7_bit:int,
+    k7_char:int,
 
-    K7_fis:Option<DataInputStream>,
-    K7_fos:Option<BufWriter<File>>,
+    k7_fis:Option<DataInputStream>,
+    k7_fos:Option<BufWriter<File>>,
     is_file_opened:bool,
     is_file_opened_out:bool,
     k7_in:Option<DataInputStream>,
@@ -75,10 +75,10 @@ impl Default for Memory {
             GA1: 0,
             GA2: 0,
             GA3: 0,
-            K7_bit: 0,
-            K7_char: 0,
-            K7_fis: None,
-            K7_fos: None,
+            k7_bit: 0,
+            k7_char: 0,
+            k7_fis: None,
+            k7_fos: None,
             is_file_opened: false,
             is_file_opened_out: false,
             k7_in: None,
@@ -201,12 +201,11 @@ impl Memory {
     }
 
     fn hardware(&mut self, ADR: int, mut OP: int) {
-        /* 6821 syst�me */
-        /* acces � ORA ou DDRA */
+        /* 6821 système */
+        /* acces à ORA ou DDRA */
         if ADR == 0xA7C0 {
 
-            if (self.CRA & 0x04) == 0x04
-            /* Acc�s � ORA */ {
+            if (self.CRA & 0x04) == 0x04 /* Accès à ORA */ {
                 if (OP & 0x01) == 0x01 {
                     self.mapper[0] = 0;
                     self.mapper[1] = 1;
@@ -214,7 +213,7 @@ impl Memory {
                     self.mapper[0] = 2;
                     self.mapper[1] = 3;
                 }
-                /* Mise � jour de ORA selon le masque DDRA */
+                /* Mise à jour de ORA selon le masque DDRA */
                 OP |= 0x80 + 0x20; // gestion de ,l'inter optique
                 self.ORA = (self.ORA & (self.DDRA ^ 0xFF)) | (OP & self.DDRA);
                 if self.light_pen_clic {
@@ -226,9 +225,7 @@ impl Memory {
                 self.DDRA = OP;
                 self.mem[0xA + 2][0x7C0] = OP;
             }
-        } else
-        /* acc�s � ORB ou DDRB */
-        if ADR == 0xA7C1//
+        } else if ADR == 0xA7C1/* accès à ORB ou DDRB */
         {
             if (self.CRB & 0x04) == 0x04
             /* Acc�s � ORB */ {
@@ -248,14 +245,10 @@ impl Memory {
                 self.DDRB = OP;
                 self.mem[0xA + 2][0x7C1] = OP;
             }
-        } else
-        /* acc�s � CRA */
-        if ADR == 0xA7C2 {
+        } else if ADR == 0xA7C2 {/* accès à CRA */
             self.CRA = (self.CRA & 0xD0) | (OP & 0x3F);
             self.mem[0xA + 2][0x7C2] = self.CRA;
-        } else
-        /* acc�s � CRB */
-        if ADR == 0xA7C3 {
+        } else if ADR == 0xA7C3 {/* accès à CRB */
             self.CRB = (self.CRB & 0xD0) | (OP & 0x3F);
             self.mem[0xA + 2][0x7C3] = self.CRB;
         }
@@ -276,11 +269,11 @@ impl Memory {
 
     pub(crate) fn set_k7file(&mut self, name: &Path) -> bool {
         println!("opening:{}", name.to_str().unwrap());
-        if self.K7_fis.is_none() {
+        if self.k7_fis.is_none() {
             self.is_file_opened = false;
         }
 
-        if Path::new(name).exists() {
+        return if Path::new(name).exists() {
             let metadata = fs::metadata(name).unwrap();
             if metadata.len() == 0 {
                 eprintln!("Error : file is empty");
@@ -291,20 +284,26 @@ impl Memory {
                 return false;
             }
 
-            let data =  DataInputStream::new(name);
-            println!("Opened K7 {} of length {}", name.file_name().unwrap().to_str().unwrap(), data.len());
-            self.K7_fis = Some(data);
-            self.is_file_opened = true;
+            match DataInputStream::new(name) {
+                Ok(data) => {
+                    println!("Opened K7 {} of length {}", name.file_name().unwrap().to_str().unwrap(), data.len());
+                    self.k7_fis = Some(data);
+                    self.is_file_opened = true;
+                    self.k7_bit = 0;
+                    self.k7_char = 0;
+
+                    self.is_file_opened
+                }
+                Err(error) => {
+                    eprintln!("Error : file is missing {}", error);
+                    false
+                }
+            }
         } else {
             // todo : dialog
             // JOptionPane.showMessageDialog(null, "Error : file is missing " + e);
-            return self.is_file_opened;
+            self.is_file_opened
         }
-
-        self.K7_bit = 0;
-        self.K7_char = 0;
-
-        return self.is_file_opened;
     }
 
     fn create_k7file(&mut self) -> bool {
@@ -318,7 +317,7 @@ impl Memory {
         let kout_name = aujourdhui.format("%Y-%m-%d-%H_%M_%S.k7").to_string();
         println!("Creating:{}", &kout_name);
         self.k7_out_name = Some(kout_name);
-        if self.K7_fos.is_none() {
+        if self.k7_fos.is_none() {
             self.is_file_opened_out = false;
         }
         if self.is_file_opened_out {
@@ -329,7 +328,7 @@ impl Memory {
         let k7out_name = &self.k7_out_name.clone().unwrap();
         if let Ok(k7fos) = File::open(k7out_name) {
             let buf = BufWriter::new(k7fos);
-            self.K7_fos = Some(buf);
+            self.k7_fos = Some(buf);
             self.is_file_opened_out = true;
             // todo : dialog
             // JOptionPane.showMessageDialog(null, "Information : new file " + k7out_name);
@@ -339,8 +338,8 @@ impl Memory {
             return self.is_file_opened_out;
         }
 
-        self.K7_bit = 0;
-        self.K7_char = 0;
+        self.k7_bit = 0;
+        self.k7_char = 0;
 
         return self.is_file_opened_out;
     }
@@ -352,22 +351,22 @@ impl Memory {
         }
 
         /* doit_on lire un caractere ? */
-        if self.K7_bit == 0x00 {
+        if self.k7_bit == 0x00 {
             if self.k7_in.is_some() {
-                self.K7_char = self.k7_in.as_mut().unwrap().read();
+                self.k7_char = self.k7_in.as_mut().unwrap().read();
             } else {
-                if self.K7_fis.is_some() {
-                    self.K7_char = self.K7_fis.as_mut().unwrap().read();
+                if self.k7_fis.is_some() {
+                    self.k7_char = self.k7_fis.as_mut().unwrap().read();
                 } else {
                     return 0;
                 }
             }
 
-            self.K7_bit = 0x80;
+            self.k7_bit = 0x80;
         }
         let mut octet = self.get(0x2045);
 
-        if (self.K7_char & self.K7_bit) == 0 {
+        if (self.k7_char & self.k7_bit) == 0 {
             octet = octet << 1;
             // A=0x00;
             self.set(0xF16A, 0x00);
@@ -380,7 +379,7 @@ impl Memory {
         self.set(0x2045, octet & 0xFF);
         screen.led = octet & 0xff;
         screen.show_led = 10;
-        self.K7_bit >>= 1;
+        self.k7_bit >>= 1;
         return 0;
     }
 
@@ -401,7 +400,7 @@ impl Memory {
             }
 
             let data_out = [A as u8];
-            if let Some(k7fos) = &mut self.K7_fos {
+            if let Some(k7fos) = &mut self.k7_fos {
                 if let Err(result) = k7fos.write(&data_out) {
                     eprintln!("Error writing to file: {}", result);
                 }
