@@ -5,7 +5,6 @@ use speedy2d::dimen::Vec2;
 use speedy2d::Graphics2D;
 use speedy2d::image::ImageHandle;
 use speedy2d::window::{KeyScancode, ModifiersState, VirtualKeyCode, WindowHandler, WindowHelper};
-use crate::hardware::keyboard::SHIFT_DOWN_MASK;
 use crate::hardware::keyboard::vkey::map_virtual_key_code;
 
 use crate::hardware::machine::Machine;
@@ -77,11 +76,7 @@ impl WindowHandler for Gui {
     }
 
     fn on_keyboard_modifiers_changed(&mut self, _: &mut WindowHelper<()>, state: ModifiersState) {
-        let mut modifier = 0;
-        if state.shift() {
-            modifier |= SHIFT_DOWN_MASK;
-        }
-        self.machine.keyboard.on_keyboard_modifiers_changed(modifier);
+        self.machine.keyboard.modifiers = state.clone();
     }
 }
 

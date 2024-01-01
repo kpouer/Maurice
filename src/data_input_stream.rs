@@ -18,7 +18,7 @@ impl DataInputStream {
                 })
             }
             Err(e) => {
-                e
+                Err(e)
             }
         }
     }
