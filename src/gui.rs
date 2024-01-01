@@ -9,7 +9,6 @@ use crate::hardware::keyboard::vkey::map_virtual_key_code;
 
 use crate::hardware::machine::Machine;
 use crate::hardware::screen::DEFAULT_PIXEL_SIZE;
-use crate::int;
 
 #[derive(Debug)]
 pub(crate) struct Gui {
@@ -97,12 +96,12 @@ impl Gui {
     //     }
     // }
 
-    fn zoom(&self, ps: int) {
+    // fn zoom(&self, ps: int) {
         // self.screen.setPixelSize(ps);
         // var insets = guiFrame.getInsets(&mut self, mem: &Memory);
         // guiFrame.setSize((int) (320 * ps + (insets.left + insets.right)), (int) (200 * ps + (insets.top + insets.bottom)));
         // screen.repaint(&mut self, mem: &Memory);
-    }
+    // }
 
 
     // @Override
@@ -141,7 +140,7 @@ impl Gui {
     //     }
     // }
 
-    fn init_gui(&mut self) {
+    // fn init_gui(&mut self) {
         // guiFrame = new JFrame("Marcel O Cinq 3.1 (Java)");
         // guiFrame.setLayout(new BorderLayout(&mut self, mem: &Memory));
         //
@@ -249,63 +248,63 @@ impl Gui {
         // i = guiFrame.getInsets(&mut self, mem: &Memory);
         // guiFrame.setSize((int) (320 * screen.getPixelSize(&mut self, mem: &Memory) + (i.left + i.right)), (int) (200 * screen.getPixelSize(&mut self, mem: &Memory) + (i.top + i.bottom)));
         // screen.repaint(&mut self, mem: &Memory);
-    }
+    // }
 
-    fn about(&mut self) {
-        let about_text =
-            "Marcel O Cinq 3.1 (java)\
-\
-            (C) G.Fetis 1997-1998-2006\
-            (C) DevilMarkus http://cpc.devilmarkus.de 2006\
-            (C) M.Le Goff 2014\
-\
-            Java conversion of my previously C/DOS\
-            based Thomson MO5 emulator\
-            (that was also ported to Unix and Macos)\
-            The basic java design is taken from Pom1\
-            (self.Apple1 java emulator (that derives from\
-            Microtan java (an obscure british Oric ancestor))\
-            this program is under GPL licence\
-            to load a K7 program:\
-            File->Load a K7 : to select the file (uncompressed)\
-            under Basic interpreter type LOAD then type RUN\
-            or LOADM then EXEC\
-\
-            Full keyboard emulation with all symbols\
-            Sound emulation\
-            Reset bug solved\
-            Save K7 emulation\
-            Lightpen emulation\
-            AltGr+C = Ctrl+C = Break basic\
-            F11 = BASIC     F12 = SHIFT\
-\
-            Contacts :\
-            gilles.fetis@wanadoo.fr\
-            marc.le.goff@gmail.fr\
-            ";
+//     fn about(&mut self) {
+//         let about_text =
+//             "Marcel O Cinq 3.1 (java)\
+// \
+//             (C) G.Fetis 1997-1998-2006\
+//             (C) DevilMarkus http://cpc.devilmarkus.de 2006\
+//             (C) M.Le Goff 2014\
+// \
+//             Java conversion of my previously C/DOS\
+//             based Thomson MO5 emulator\
+//             (that was also ported to Unix and Macos)\
+//             The basic java design is taken from Pom1\
+//             (self.Apple1 java emulator (that derives from\
+//             Microtan java (an obscure british Oric ancestor))\
+//             this program is under GPL licence\
+//             to load a K7 program:\
+//             File->Load a K7 : to select the file (uncompressed)\
+//             under Basic interpreter type LOAD then type RUN\
+//             or LOADM then EXEC\
+// \
+//             Full keyboard emulation with all symbols\
+//             Sound emulation\
+//             Reset bug solved\
+//             Save K7 emulation\
+//             Lightpen emulation\
+//             AltGr+C = Ctrl+C = Break basic\
+//             F11 = BASIC     F12 = SHIFT\
+// \
+//             Contacts :\
+//             gilles.fetis@wanadoo.fr\
+//             marc.le.goff@gmail.fr\
+//             ";
+//
+//         // var ta = new JTextArea(aboutText, 30, 40);
+//         // ta.setEditable(false);
+//         // ta.setBackground(Color.WHITE);
+//         // var guiDialog = new JDialog(guiFrame, true);
+//         // guiDialog.getContentPane(&mut self, mem: &Memory).add(new JScrollPane(ta));
+//         // guiDialog.setTitle("About Marcel O Cinq");
+//         // guiDialog.setSize(400, 500);
+//         // guiDialog.setVisible(true);
+//     }
 
-        // var ta = new JTextArea(aboutText, 30, 40);
-        // ta.setEditable(false);
-        // ta.setBackground(Color.WHITE);
-        // var guiDialog = new JDialog(guiFrame, true);
-        // guiDialog.getContentPane(&mut self, mem: &Memory).add(new JScrollPane(ta));
-        // guiDialog.setTitle("About Marcel O Cinq");
-        // guiDialog.setSize(400, 500);
-        // guiDialog.setVisible(true);
-    }
-
-    fn debug(&mut self) {
-        // var t1 = new JTextArea(machine.dumpRegisters(&mut self, mem: &Memory), 2, 40);
-        // t1.setEditable(false);
-        // t1.setBackground(Color.WHITE);
-        // var t2 = new JTextArea(machine.unassembleFromPC(10), 10, 40);
-        // t2.setEditable(false);
-        // t2.setBackground(Color.WHITE);
-        // var debugDialog = new JDialog(guiFrame, true);
-        // debugDialog.add(t1);
-        // debugDialog.add(t2);
-        // debugDialog.setLayout(new FlowLayout(&mut self, mem: &Memory));
-        // debugDialog.setSize(400, 400);
-        // debugDialog.setVisible(true);
-    }
+    // fn debug(&mut self) {
+    //     // var t1 = new JTextArea(machine.dumpRegisters(&mut self, mem: &Memory), 2, 40);
+    //     // t1.setEditable(false);
+    //     // t1.setBackground(Color.WHITE);
+    //     // var t2 = new JTextArea(machine.unassembleFromPC(10), 10, 40);
+    //     // t2.setEditable(false);
+    //     // t2.setBackground(Color.WHITE);
+    //     // var debugDialog = new JDialog(guiFrame, true);
+    //     // debugDialog.add(t1);
+    //     // debugDialog.add(t2);
+    //     // debugDialog.setLayout(new FlowLayout(&mut self, mem: &Memory));
+    //     // debugDialog.setSize(400, 400);
+    //     // debugDialog.setVisible(true);
+    // }
 }
