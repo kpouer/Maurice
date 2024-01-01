@@ -77,7 +77,7 @@ impl WindowHandler for Gui {
     }
 
     fn on_keyboard_modifiers_changed(&mut self, _: &mut WindowHelper<()>, state: ModifiersState) {
-        self.machine.keyboard.modifiers = state.clone();
+        self.machine.keyboard.modifiers = state;
     }
 }
 
