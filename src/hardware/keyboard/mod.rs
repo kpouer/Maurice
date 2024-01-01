@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use speedy2d::window::VirtualKeyCode;
+use speedy2d::window::{ModifiersState, VirtualKeyCode};
 use crate::hardware::keyboard::vkey::CustomVirtualKeyCode;
 use crate::hardware::keyboard::vkey::CustomVirtualKeyCode::Base;
 
@@ -10,13 +10,14 @@ use crate::int;
 pub(crate) mod vkey;
 
 pub(crate) const SHIFT_DOWN_MASK: int = 1 << 6;
+pub(crate) const CTRL_DOWN_MASK: int = 1 << 7;
 
 #[derive(Debug)]
 pub(crate) struct Keyboard {
     // translation table from scancode to java keycodes VK_
     ftable: HashMap<char, Key>,
     shiftpressed: int,
-    modifiers: int,
+    pub(crate) modifiers: ModifiersState,
 }
 
 impl Default for Keyboard {
@@ -24,7 +25,7 @@ impl Default for Keyboard {
         Keyboard {
             ftable: build_ftable(),
             shiftpressed: 0,
-            modifiers: 0,
+            modifiers: ModifiersState::default(),
         }
     }
 }
@@ -46,17 +47,17 @@ impl Keyboard {
                 Base(VirtualKeyCode::LShift) => { key_memory(0x70, press, mem); }//Shift
                 Base(VirtualKeyCode::F11) => { key_memory(0x72, press, mem); }// Basic
 
-                Base(VirtualKeyCode::Key1) => { if self.has_modifier(SHIFT_DOWN_MASK) {key_memory(0x70, press, mem);} key_memory(0x5e, press, mem); }
-                Base(VirtualKeyCode::Key2) => { if self.has_modifier(SHIFT_DOWN_MASK) {key_memory(0x70, press, mem);} key_memory(0x4e, press, mem); }
-                Base(VirtualKeyCode::Key3) => { if self.has_modifier(SHIFT_DOWN_MASK) {key_memory(0x70, press, mem);} key_memory(0x3e, press, mem); }
-                Base(VirtualKeyCode::Key4) => { if self.has_modifier(SHIFT_DOWN_MASK) {key_memory(0x70, press, mem);} key_memory(0x2e, press, mem); }
-                Base(VirtualKeyCode::Key5) => { if self.has_modifier(SHIFT_DOWN_MASK) {key_memory(0x70, press, mem);} key_memory(0x1e, press, mem); }
-                Base(VirtualKeyCode::Key6) => { if self.has_modifier(SHIFT_DOWN_MASK) {key_memory(0x70, press, mem);} key_memory(0x0e, press, mem); }
-                Base(VirtualKeyCode::Key7) => { if self.has_modifier(SHIFT_DOWN_MASK) {key_memory(0x70, press, mem);} key_memory(0x0c, press, mem); }
-                Base(VirtualKeyCode::Key8) => { if self.has_modifier(SHIFT_DOWN_MASK) {key_memory(0x70, press, mem);} key_memory(0x1c, press, mem); }
-                Base(VirtualKeyCode::Key9) => { if self.has_modifier(SHIFT_DOWN_MASK) {key_memory(0x70, press, mem);} key_memory(0x2c, press, mem); }
-                Base(VirtualKeyCode::Key0) => { if self.has_modifier(SHIFT_DOWN_MASK) {key_memory(0x70, press, mem);} key_memory(0x3c, press, mem); }
-                Base(VirtualKeyCode::Minus) => {if self.has_modifier(SHIFT_DOWN_MASK) {key_memory(0x70, press, mem);}  key_memory(0x4c, press, mem); }
+                Base(VirtualKeyCode::Key1) => { if self.modifiers.shift() {key_memory(0x70, press, mem);} key_memory(0x5e, press, mem); }
+                Base(VirtualKeyCode::Key2) => { if self.modifiers.shift() {key_memory(0x70, press, mem);} key_memory(0x4e, press, mem); }
+                Base(VirtualKeyCode::Key3) => { if self.modifiers.shift() {key_memory(0x70, press, mem);} key_memory(0x3e, press, mem); }
+                Base(VirtualKeyCode::Key4) => { if self.modifiers.shift() {key_memory(0x70, press, mem);} key_memory(0x2e, press, mem); }
+                Base(VirtualKeyCode::Key5) => { if self.modifiers.shift() {key_memory(0x70, press, mem);} key_memory(0x1e, press, mem); }
+                Base(VirtualKeyCode::Key6) => { if self.modifiers.shift() {key_memory(0x70, press, mem);} key_memory(0x0e, press, mem); }
+                Base(VirtualKeyCode::Key7) => { if self.modifiers.shift() {key_memory(0x70, press, mem);} key_memory(0x0c, press, mem); }
+                Base(VirtualKeyCode::Key8) => { if self.modifiers.shift() {key_memory(0x70, press, mem);} key_memory(0x1c, press, mem); }
+                Base(VirtualKeyCode::Key9) => { if self.modifiers.shift() {key_memory(0x70, press, mem);} key_memory(0x2c, press, mem); }
+                Base(VirtualKeyCode::Key0) => { if self.modifiers.shift() {key_memory(0x70, press, mem);} key_memory(0x3c, press, mem); }
+                Base(VirtualKeyCode::Minus) => {if self.modifiers.shift() {key_memory(0x70, press, mem);}  key_memory(0x4c, press, mem); }
 
                 Base(VirtualKeyCode::A) => { key_memory(0x5a, press, mem); }
                 Base(VirtualKeyCode::Z) => { key_memory(0x4a, press, mem); }
@@ -103,10 +104,6 @@ impl Keyboard {
         }
     }
 
-    fn has_modifier(&self, modifier: int) -> bool {
-        self.modifiers & modifier != 0
-    }
-
     pub(crate) fn key_pressed(&mut self, virtual_key_code: Option<CustomVirtualKeyCode>, mem: &mut Memory) {
         for i in 0..127 {
             mem.rem_key(i);
@@ -116,10 +113,6 @@ impl Keyboard {
 
     pub(crate) fn key_released(&mut self, virtual_key_code: Option<CustomVirtualKeyCode>, mem: &mut Memory) {
         self.key_translator(virtual_key_code, false, mem);
-    }
-
-    pub(crate) fn on_keyboard_modifiers_changed(&mut self, modifiers_state: int) {
-        self.modifiers = modifiers_state;
     }
 
     pub(crate) fn press(&mut self, tmp: int, mem: &mut Memory) {

@@ -5,10 +5,10 @@ use speedy2d::dimen::Vec2;
 use speedy2d::Graphics2D;
 use speedy2d::image::ImageHandle;
 use speedy2d::window::{KeyScancode, ModifiersState, VirtualKeyCode, WindowHandler, WindowHelper};
-use crate::hardware::keyboard::SHIFT_DOWN_MASK;
 use crate::hardware::keyboard::vkey::map_virtual_key_code;
 
 use crate::hardware::machine::Machine;
+use crate::hardware::screen::DEFAULT_PIXEL_SIZE;
 use crate::int;
 
 #[derive(Debug)]
@@ -21,7 +21,7 @@ pub(crate) struct Gui {
 impl Default for Gui {
     fn default() -> Self {
         let mut machine = Machine::default();
-        machine.screen.set_pixel_size(1., &mut machine.mem);
+        machine.screen.set_pixel_size(DEFAULT_PIXEL_SIZE, &mut machine.mem);
         Gui {
             machine,
             hadfile: None,
@@ -77,11 +77,7 @@ impl WindowHandler for Gui {
     }
 
     fn on_keyboard_modifiers_changed(&mut self, _: &mut WindowHelper<()>, state: ModifiersState) {
-        let mut modifier = 0;
-        if state.shift() {
-            modifier |= SHIFT_DOWN_MASK;
-        }
-        self.machine.keyboard.on_keyboard_modifiers_changed(modifier);
+        self.machine.keyboard.modifiers = state;
     }
 }
 

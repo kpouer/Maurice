@@ -30,6 +30,7 @@ const PALETTE: [u32; 16] = [
 
 pub(crate) const WIDTH: usize = 320;
 pub(crate) const HEIGHT: usize = 200;
+pub(crate) const DEFAULT_PIXEL_SIZE: u8 = 4;
 
 #[derive(Debug)]
 pub(crate) struct Screen {
@@ -37,7 +38,7 @@ pub(crate) struct Screen {
     pub(crate) mouse_x: int,
     pub(crate) mouse_y: int,
     pixels: Vec<u32>,
-    pixel_size: f64,
+    pixel_size: u8,
     filter: bool,
     pub(crate) led: int,
     pub(crate) show_led: int,
@@ -51,7 +52,7 @@ impl Screen {
             mouse_x: -1,
             mouse_y: -1,
             pixels: vec![0xff000000; WIDTH * HEIGHT],
-            pixel_size: 2.0,
+            pixel_size: DEFAULT_PIXEL_SIZE,
             filter: false,
             led: 0,
             show_led: 0,
@@ -59,7 +60,7 @@ impl Screen {
         }
     }
 
-    pub(crate) fn set_pixel_size(&mut self, ps: f64, mem: &mut Memory) {
+    pub(crate) fn set_pixel_size(&mut self, ps: u8, mem: &mut Memory) {
         self.pixel_size = ps;
         mem.set_all_dirty();
     }
@@ -69,7 +70,6 @@ impl Screen {
     }
 
     pub(crate) fn paint(&mut self, graphics: &mut Graphics2D, mem: &mut Memory) -> Result<ImageHandle, BacktraceError<ErrorMessage>> {
-        // let og = BuffImg.getGraphics(mem);
         if self.show_led > 0 {
             self.show_led -= 1;
             let color = if self.led != 0 {
@@ -82,24 +82,32 @@ impl Screen {
         }
         self.dopaint(mem);
         let mut buffer: Vec<u8> = Vec::new();
-        self.pixels
-            .iter()
-            .for_each(|p| {
-                let r = (p & 0xFF) as u8;
-                let g = ((p >> 8) & 0xFF) as u8;
-                let b = ((p >> 16) & 0xFF) as u8;
-                buffer.push(b);
-                buffer.push(g);
-                buffer.push(r);
-            });
+        for y in 0..HEIGHT {
+            for _ in 0..self.pixel_size {
+                for x in 0..WIDTH {
+                    for _ in 0..self.pixel_size {
+                        let p = self.pixels[x + y * WIDTH];
+                        let r = (p & 0xFF) as u8;
+                        let g = ((p >> 8) & 0xFF) as u8;
+                        let b = ((p >> 16) & 0xFF) as u8;
+                        buffer.push(b);
+                        buffer.push(g);
+                        buffer.push(r);
+                    }
+                }
+            }
+        }
         let raw = buffer.as_slice();
-        let size = UVec2::new(WIDTH as u32, HEIGHT as u32);
         let image = graphics.create_image_from_raw_pixels(
             RGB,
             NearestNeighbor,
-            size,
+            self.dimension(),
             raw);
         image
+    }
+
+    fn dimension(&self) -> UVec2 {
+        UVec2::new(self.pixel_size as u32 * WIDTH as u32, self.pixel_size as u32 * HEIGHT as u32)
     }
 
     pub(crate) fn dopaint(&mut self, mem: &mut Memory) {

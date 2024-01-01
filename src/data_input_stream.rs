@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, io};
 use std::path::Path;
 use crate::int;
 
@@ -9,11 +9,17 @@ pub(crate) struct DataInputStream {
 }
 
 impl DataInputStream {
-    pub(crate) fn new(file: &Path) -> DataInputStream {
-        let bytes = fs::read(file).unwrap();
-        DataInputStream {
-            bytes,
-            pos: 0,
+    pub(crate) fn new(file: &Path) -> io::Result<DataInputStream> {
+        match fs::read(file) {
+            Ok(bytes) => {
+                Ok(DataInputStream {
+                    bytes,
+                    pos: 0,
+                })
+            }
+            Err(e) => {
+                Err(e)
+            }
         }
     }
 
