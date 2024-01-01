@@ -30,6 +30,7 @@ const PALETTE: [u32; 16] = [
 
 pub(crate) const WIDTH: usize = 320;
 pub(crate) const HEIGHT: usize = 200;
+pub(crate) const DEFAULT_PIXEL_SIZE: u8 = 4;
 
 #[derive(Debug)]
 pub(crate) struct Screen {
@@ -37,7 +38,7 @@ pub(crate) struct Screen {
     pub(crate) mouse_x: int,
     pub(crate) mouse_y: int,
     pixels: Vec<u32>,
-    pixel_size: f64,
+    pixel_size: u8,
     filter: bool,
     pub(crate) led: int,
     pub(crate) show_led: int,
@@ -51,7 +52,7 @@ impl Screen {
             mouse_x: -1,
             mouse_y: -1,
             pixels: vec![0xff000000; WIDTH * HEIGHT],
-            pixel_size: 2.0,
+            pixel_size: DEFAULT_PIXEL_SIZE,
             filter: false,
             led: 0,
             show_led: 0,
@@ -69,7 +70,6 @@ impl Screen {
     }
 
     pub(crate) fn paint(&mut self, graphics: &mut Graphics2D, mem: &mut Memory) -> Result<ImageHandle, BacktraceError<ErrorMessage>> {
-        // let og = BuffImg.getGraphics(mem);
         if self.show_led > 0 {
             self.show_led -= 1;
             let color = if self.led != 0 {
