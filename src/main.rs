@@ -2,7 +2,7 @@
 
 use speedy2d::Window;
 use crate::gui::Gui;
-use crate::hardware::screen::{HEIGHT, WIDTH};
+use crate::hardware::screen::{DEFAULT_PIXEL_SIZE, HEIGHT, WIDTH};
 
 mod gui;
 mod hardware;
@@ -12,7 +12,7 @@ pub(crate) type int = i32;
 
 fn main() {//-> Result<(), eframe::Error> {
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
-    let window = Window::new_centered("Marcel", (WIDTH as u32, HEIGHT as u32)).unwrap();
+    let window = Window::new_centered("Marcel", (DEFAULT_PIXEL_SIZE as u32 * WIDTH as u32, DEFAULT_PIXEL_SIZE as u32 * HEIGHT as u32)).unwrap();
     window.run_loop(Gui::default());
 }
 

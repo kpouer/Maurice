@@ -8,6 +8,7 @@ use speedy2d::window::{KeyScancode, ModifiersState, VirtualKeyCode, WindowHandle
 use crate::hardware::keyboard::vkey::map_virtual_key_code;
 
 use crate::hardware::machine::Machine;
+use crate::hardware::screen::DEFAULT_PIXEL_SIZE;
 use crate::int;
 
 #[derive(Debug)]
@@ -20,7 +21,7 @@ pub(crate) struct Gui {
 impl Default for Gui {
     fn default() -> Self {
         let mut machine = Machine::default();
-        machine.screen.set_pixel_size(1., &mut machine.mem);
+        machine.screen.set_pixel_size(DEFAULT_PIXEL_SIZE, &mut machine.mem);
         Gui {
             machine,
             hadfile: None,

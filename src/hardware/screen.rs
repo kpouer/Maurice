@@ -60,7 +60,7 @@ impl Screen {
         }
     }
 
-    pub(crate) fn set_pixel_size(&mut self, ps: f64, mem: &mut Memory) {
+    pub(crate) fn set_pixel_size(&mut self, ps: u8, mem: &mut Memory) {
         self.pixel_size = ps;
         mem.set_all_dirty();
     }
@@ -82,24 +82,32 @@ impl Screen {
         }
         self.dopaint(mem);
         let mut buffer: Vec<u8> = Vec::new();
-        self.pixels
-            .iter()
-            .for_each(|p| {
-                let r = (p & 0xFF) as u8;
-                let g = ((p >> 8) & 0xFF) as u8;
-                let b = ((p >> 16) & 0xFF) as u8;
-                buffer.push(b);
-                buffer.push(g);
-                buffer.push(r);
-            });
+        for y in 0..HEIGHT {
+            for _ in 0..self.pixel_size {
+                for x in 0..WIDTH {
+                    for _ in 0..self.pixel_size {
+                        let p = self.pixels[x + y * WIDTH];
+                        let r = (p & 0xFF) as u8;
+                        let g = ((p >> 8) & 0xFF) as u8;
+                        let b = ((p >> 16) & 0xFF) as u8;
+                        buffer.push(b);
+                        buffer.push(g);
+                        buffer.push(r);
+                    }
+                }
+            }
+        }
         let raw = buffer.as_slice();
-        let size = UVec2::new(WIDTH as u32, HEIGHT as u32);
         let image = graphics.create_image_from_raw_pixels(
             RGB,
             NearestNeighbor,
-            size,
+            self.dimension(),
             raw);
         image
+    }
+
+    fn dimension(&self) -> UVec2 {
+        UVec2::new(self.pixel_size as u32 * WIDTH as u32, self.pixel_size as u32 * HEIGHT as u32)
     }
 
     pub(crate) fn dopaint(&mut self, mem: &mut Memory) {
