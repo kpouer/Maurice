@@ -9,9 +9,6 @@ use crate::int;
 
 pub(crate) mod vkey;
 
-pub(crate) const SHIFT_DOWN_MASK: int = 1 << 6;
-pub(crate) const CTRL_DOWN_MASK: int = 1 << 7;
-
 #[derive(Debug)]
 pub(crate) struct Keyboard {
     // translation table from scancode to java keycodes VK_

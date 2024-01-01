@@ -3,7 +3,7 @@ use std::thread::sleep;
 use std::time::Duration;
 use chrono::{DateTime, Local};
 use crate::hardware::keyboard::Keyboard;
-use crate::hardware::M6809::{M6809, unassemble};
+use crate::hardware::M6809::M6809;
 use crate::hardware::memory::Memory;
 use crate::hardware::screen::Screen;
 use crate::hardware::sound::Sound;
@@ -168,12 +168,12 @@ impl Machine {
     }
 
     // Debug Methods
-    fn dump_registers(&mut self) -> String {
-        self.micro.print_state()
-    }
-
-    fn unassemble_from_pc(&self, nblines: int, mem: &mut Memory) -> String {
-        unassemble(self.micro.PC, nblines, mem)
-    }
+    // fn dump_registers(&mut self) -> String {
+    //     self.micro.print_state()
+    // }
+    //
+    // fn unassemble_from_pc(&self, nblines: int, mem: &mut Memory) -> String {
+    //     unassemble(self.micro.PC, nblines, mem)
+    // }
 }
 
