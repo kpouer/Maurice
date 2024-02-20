@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
-use speedy2d::window::{ModifiersState, VirtualKeyCode};
 use crate::hardware::keyboard::vkey::CustomVirtualKeyCode;
-use crate::hardware::keyboard::vkey::CustomVirtualKeyCode::Base;
+//use crate::hardware::keyboard::vkey::CustomVirtualKeyCode::Base;
 
 use crate::hardware::memory::Memory;
 use crate::int;
@@ -14,7 +13,7 @@ pub(crate) struct Keyboard {
     // translation table from scancode to java keycodes VK_
     ftable: HashMap<char, Key>,
     shiftpressed: int,
-    pub(crate) modifiers: ModifiersState,
+   // pub(crate) modifiers: ModifiersState,
 }
 
 impl Default for Keyboard {
@@ -22,14 +21,14 @@ impl Default for Keyboard {
         Keyboard {
             ftable: build_ftable(),
             shiftpressed: 0,
-            modifiers: ModifiersState::default(),
+       //     modifiers: ModifiersState::default(),
         }
     }
 }
 
 impl Keyboard {
     fn key_translator(&mut self, virtual_key_code: Option<CustomVirtualKeyCode>, press: bool, mem: &mut Memory) {
-        if let Some(vk) = virtual_key_code {
+     /*   if let Some(vk) = virtual_key_code {
             match vk {
                 Base(VirtualKeyCode::Backspace) => { key_memory(0x6c, press, mem); }
                 Base(VirtualKeyCode::Delete) => { key_memory(0x12, press, mem); }
@@ -98,7 +97,7 @@ impl Keyboard {
                     println!("Unknown virtual key code: {:?}", vk);
                 }
             }
-        }
+        }*/
     }
 
     pub(crate) fn key_pressed(&mut self, virtual_key_code: Option<CustomVirtualKeyCode>, mem: &mut Memory) {

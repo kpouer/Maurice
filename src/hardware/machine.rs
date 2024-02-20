@@ -1,7 +1,8 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::thread::sleep;
 use std::time::Duration;
 use chrono::{DateTime, Local};
+use log::info;
 use crate::hardware::keyboard::Keyboard;
 use crate::hardware::M6809::M6809;
 use crate::hardware::memory::Memory;
@@ -22,7 +23,8 @@ pub(crate) struct Machine {
     pub(crate) keys: Vec<int>,
     pub(crate) keytimer:int,
     pub(crate) keypos:int,
-    pub(crate) typetext: Option<String>
+    pub(crate) typetext: Option<String>,
+    pub(crate) running: bool,
 }
 
 impl Default for Machine {
@@ -46,6 +48,7 @@ impl Default for Machine {
             keypos: 0,
             typetext: None,
             irq: false,
+            running: true
         }
     }
 }
@@ -150,21 +153,27 @@ impl Machine {
         self.last_time = Local::now();
     }
 
-    pub(crate) fn set_k7_file(&mut self, k7: &Path) -> bool {
+    pub(crate) fn set_k7_file(&mut self, k7: &PathBuf) -> bool {
         return self.mem.set_k7file(k7);
     }
 
     // soft reset method ("reinit prog" button on original MO5)
     pub(crate) fn reset_soft(&mut self) {
+        info!("Machine::reset_soft()");
+        self.running = false;
         self.micro.reset(&self.mem);
+        self.running = true;
     }
 
     // hard reset (match off and on)
     pub(crate) fn reset_hard(&mut self) {
+        info!("Machine::reset_hard()");
+        self.running = false;
         for i in 0x2000..0x3000 {
             self.mem.set(i, 0);
         }
         self.micro.reset(&self.mem);
+        self.running = true;
     }
 
     // Debug Methods
