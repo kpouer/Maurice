@@ -1,3 +1,5 @@
+use std::io::{BufReader, Cursor};
+use rodio::{Decoder, OutputStream, OutputStreamHandle};
 use crate::hardware::M6809::M6809;
 use crate::int;
 
@@ -20,21 +22,19 @@ const N_BYTES: usize = 1024; // Buffer size
 
 // fn SourceDataLine line;
 
-#[derive(Debug)]
+// #[derive(Debug)]
 pub(crate) struct Sound {
     n_samples:int,
     data:Vec<u8>,
+    line: OutputStreamHandle,
 }
 
 impl Sound {
     pub(crate) fn new() -> Self {
-        Sound {
-            n_samples: N_FRAMES * CHANNELS,
-            data: vec![0; N_BYTES],
-        }
         // Réservation de la sortie audio, début de la restitution, envoi du tableau
-        // Info info = new Info(self.SourceDataLine.class, format);
-        //
+        // let info = new Info(self.SourceDataLine.class, format);
+
+        let (_stream, line) = OutputStream::try_default().unwrap();
         // try {
         //     line = (self.SourceDataLine) AudioSystem.getLine(info);
         //     line.open(format);
@@ -42,6 +42,11 @@ impl Sound {
         //     e.printStackTrace(&mut self, mem: &Memory);
         // }
         // line.start(&mut self, mem: &Memory);
+        Sound {
+            n_samples: N_FRAMES * CHANNELS,
+            data: vec![0; N_BYTES],
+            line
+        }
     }
 
     // Copie du buffer de son provenant du 6809 vers le buffer de la carte son
@@ -50,6 +55,9 @@ impl Sound {
         for i in 0..N_BYTES {
             self.data[i / 4] = cpu.sound_buffer[i];
         }
+        let cursor = Cursor::new(&self.data);
+        let decoder = Decoder::new(&cursor).unwrap();
+        self.line.play_once(&decoder).unwrap();
         // line.write(data, 0, nBytes / 4);
     }
 }
