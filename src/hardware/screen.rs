@@ -1,11 +1,3 @@
-use speedy2d::color::Color;
-use speedy2d::dimen::{UVec2, Vector2};
-use speedy2d::error::{BacktraceError, ErrorMessage};
-use speedy2d::Graphics2D;
-use speedy2d::image::ImageDataType::RGB;
-use speedy2d::image::ImageHandle;
-use speedy2d::image::ImageSmoothingMode::NearestNeighbor;
-use speedy2d::shape::Rectangle;
 use crate::hardware::memory::Memory;
 use crate::int;
 
@@ -30,19 +22,18 @@ const PALETTE: [u32; 16] = [
 
 pub(crate) const WIDTH: usize = 320;
 pub(crate) const HEIGHT: usize = 200;
-pub(crate) const DEFAULT_PIXEL_SIZE: u8 = 4;
+pub(crate) const DEFAULT_PIXEL_SIZE: usize = 1;
 
 #[derive(Debug)]
 pub(crate) struct Screen {
     pub(crate) mouse_clic: bool,
     pub(crate) mouse_x: int,
     pub(crate) mouse_y: int,
-    pixels: Vec<u32>,
-    pixel_size: u8,
+    pub(crate) pixels: Vec<u32>,
+    pub(crate) rgb_pixels: Vec<u8>,
     filter: bool,
     pub(crate) led: int,
     pub(crate) show_led: int,
-    pub(crate) must_redraw: bool,
 }
 
 impl Screen {
@@ -52,40 +43,38 @@ impl Screen {
             mouse_x: -1,
             mouse_y: -1,
             pixels: vec![0xff000000; WIDTH * HEIGHT],
-            pixel_size: DEFAULT_PIXEL_SIZE,
+            rgb_pixels: Vec::new(),
             filter: false,
             led: 0,
             show_led: 0,
-            must_redraw: false,
         }
     }
 
-    pub(crate) fn set_pixel_size(&mut self, ps: u8, mem: &mut Memory) {
-        self.pixel_size = ps;
-        mem.set_all_dirty();
-    }
+    // pub(crate) fn set_pixel_size(&mut self, ps: usize, mem: &mut Memory) {
+    //     mem.set_all_dirty();
+    // }
 
-    pub(crate) fn repaint(&mut self) {
-        self.must_redraw = true;
-    }
-
-    pub(crate) fn paint(&mut self, graphics: &mut Graphics2D, mem: &mut Memory) -> Result<ImageHandle, BacktraceError<ErrorMessage>> {
+    pub(crate) fn paint(&mut self, mem: &mut Memory) {
         if self.show_led > 0 {
-            self.show_led -= 1;
-            let color = if self.led != 0 {
-                Color::from_rgb(255., 0., 0.)
-            } else {
-                Color::from_rgb(0., 0., 0.)
-            };
-            let rectangle:Rectangle<f32> = Rectangle::new(Vector2::new(WIDTH as f32 - 16., 0.), Vector2::new(16., 8.));
-            graphics.draw_rectangle(rectangle, color);
+            //todo : restore this
+            // self.show_led -= 1;
+            // let color = if self.led != 0 {
+            //     Color::from_rgb(255., 0., 0.)
+            // } else {
+            //     Color::from_rgb(0., 0., 0.)
+            // };
+            // let rectangle: Rectangle<f32> = Rectangle::new(Vector2::new(WIDTH as f32 - 16., 0.), Vector2::new(16., 8.));
+            //  graphics.draw_rectangle(rectangle, color);
         }
         self.dopaint(mem);
+    }
+
+    pub(crate) fn get_pixels(&self, pixel_size: usize) -> Vec<u8> {
         let mut buffer: Vec<u8> = Vec::new();
         for y in 0..HEIGHT {
-            for _ in 0..self.pixel_size {
+            for _ in 0..pixel_size {
                 for x in 0..WIDTH {
-                    for _ in 0..self.pixel_size {
+                    for _ in 0..pixel_size {
                         let p = self.pixels[x + y * WIDTH];
                         let r = (p & 0xFF) as u8;
                         let g = ((p >> 8) & 0xFF) as u8;
@@ -97,17 +86,7 @@ impl Screen {
                 }
             }
         }
-        let raw = buffer.as_slice();
-        let image = graphics.create_image_from_raw_pixels(
-            RGB,
-            NearestNeighbor,
-            self.dimension(),
-            raw);
-        image
-    }
-
-    fn dimension(&self) -> UVec2 {
-        UVec2::new(self.pixel_size as u32 * WIDTH as u32, self.pixel_size as u32 * HEIGHT as u32)
+        buffer
     }
 
     pub(crate) fn dopaint(&mut self, mem: &mut Memory) {

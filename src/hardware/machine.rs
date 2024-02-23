@@ -1,13 +1,19 @@
 use std::path::Path;
-use std::thread::sleep;
+use std::sync::mpsc::{Receiver, Sender};
+use std::thread;
 use std::time::Duration;
+
 use chrono::{DateTime, Local};
+use log::info;
+
 use crate::hardware::keyboard::Keyboard;
+use crate::hardware::keyboard::vkey::map_virtual_key_code;
 use crate::hardware::M6809::M6809;
 use crate::hardware::memory::Memory;
-use crate::hardware::screen::Screen;
+use crate::hardware::screen::{DEFAULT_PIXEL_SIZE, Screen};
 use crate::hardware::sound::Sound;
 use crate::int;
+use crate::user_input::UserInput;
 
 #[derive(Debug)]
 pub(crate) struct Machine {
@@ -22,11 +28,14 @@ pub(crate) struct Machine {
     pub(crate) keys: Vec<int>,
     pub(crate) keytimer:int,
     pub(crate) keypos:int,
-    pub(crate) typetext: Option<String>
+    pub(crate) typetext: Option<String>,
+    pub(crate) running: bool,
+    image_data_sender: Sender<Vec<u8>>,
+    pub(crate) user_input_receiver: Receiver<UserInput>,
 }
 
-impl Default for Machine {
-    fn default() -> Self {
+impl Machine {
+    pub(crate) fn new(image_data_sender: Sender<Vec<u8>>, user_input_receiver: Receiver<UserInput>) -> Self {
         println!("Machine::new()");
         let screen = Screen::new();
         println!("Machine::screen()");
@@ -34,7 +43,7 @@ impl Default for Machine {
         mem.reset();
         let sound = Sound::new();
         let micro = M6809::new(&mem);
-        Machine {
+        Self {
             mem,
             micro,
             screen,
@@ -46,21 +55,49 @@ impl Default for Machine {
             keypos: 0,
             typetext: None,
             irq: false,
+            running: true,
+            image_data_sender,
+            user_input_receiver,
         }
     }
-}
 
-impl Machine {
+    pub(crate) fn run_loop(&mut self) {
+        loop {
+            self.eventually_process_user_input();
+            if !self.running {
+                thread::sleep(std::time::Duration::from_millis(1000 / 60));
+                continue;
+            }
+            self.run();
+            self.screen.paint(&mut self.mem);
+            let pixels = self.screen.get_pixels(DEFAULT_PIXEL_SIZE);
+            self.image_data_sender.send(pixels).unwrap();
+        }
+    }
+
     pub(crate) fn run(&mut self) {
         self.full_speed();
         self.synchronize();
     }
 
+    fn eventually_process_user_input(&mut self) {
+        if let Ok(user_input) = self.user_input_receiver.try_recv() {
+            match user_input {
+                UserInput::SetK7(k7) => self.set_k7_file(&k7),
+                UserInput::Stop => self.running = false,
+                UserInput::Start => self.running = true,
+                UserInput::SoftReset => self.reset_soft(),
+                UserInput::HardReset => self.reset_hard(),
+                UserInput::KeyDown(vk) => self.keyboard.key_pressed(vk, &mut self.mem),
+                UserInput::KeyUp(vk) => self.keyboard.key_released(vk, &mut self.mem),
+                UserInput::KeyboardModifierChanged(state) => self.keyboard.modifiers = state,
+            }
+        }
+    }
+
     // the emulator main loop
     fn full_speed(&mut self) {
         // let cl;
-
-        self.screen.repaint(); // Mise a jour de l'affichage
 
         // Mise a jour du crayon optique a partir des donnée de la souris souris
         self.mem.light_pen_clic = self.screen.mouse_clic;
@@ -108,7 +145,6 @@ impl Machine {
         self.keys = Vec::new();
         for (i, c) in input.char_indices() {
             self.keys.push(c as int);
-            println!("{}", self.keys[i]);
         }
         self.keytimer = 1;
     }
@@ -146,25 +182,32 @@ impl Machine {
             return;
         }
 
-        sleep(Duration::from_millis(sleep_millis as u64));
+        thread::sleep(Duration::from_millis(sleep_millis as u64));
         self.last_time = Local::now();
     }
 
-    pub(crate) fn set_k7_file(&mut self, k7: &Path) -> bool {
-        return self.mem.set_k7file(k7);
+    pub(crate) fn set_k7_file(&mut self, k7: &Path) {
+        info!("Machine::set_k7_file({:?})", k7);
+        self.mem.set_k7file(k7);
     }
 
     // soft reset method ("reinit prog" button on original MO5)
     pub(crate) fn reset_soft(&mut self) {
+        info!("Machine::reset_soft()");
+        self.running = false;
         self.micro.reset(&self.mem);
+        self.running = true;
     }
 
     // hard reset (match off and on)
     pub(crate) fn reset_hard(&mut self) {
+        info!("Machine::reset_hard()");
+        self.running = false;
         for i in 0x2000..0x3000 {
             self.mem.set(i, 0);
         }
         self.micro.reset(&self.mem);
+        self.running = true;
     }
 
     // Debug Methods
