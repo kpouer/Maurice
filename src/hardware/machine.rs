@@ -27,7 +27,7 @@ pub(crate) struct Machine {
     pub(crate) last_time: DateTime<Local>,
     pub(crate) keys: Vec<int>,
     pub(crate) keytimer:int,
-    pub(crate) keypos:int,
+    pub(crate) keypos: usize,
     pub(crate) typetext: Option<String>,
     pub(crate) running: bool,
     image_data_sender: Sender<Vec<u8>>,
@@ -161,13 +161,13 @@ impl Machine {
         if self.keytimer != 0 {
             self.keytimer += 1;
             if self.keytimer == 2 {
-                self.keyboard.press(self.keys[self.keypos as usize], &mut self.mem);
+                self.keyboard.press(self.keys[self.keypos], &mut self.mem);
             }
             if self.keytimer == 3 {
-                self.keyboard.release(self.keys[self.keypos as usize], &mut self.mem);
+                self.keyboard.release(self.keys[self.keypos], &mut self.mem);
                 self.keypos += 1;
                 self.keytimer = 1;
-                if self.keypos >= self.keys.len() as i32 {
+                if self.keypos >= self.keys.len() {
                     self.keypos = 0;
                     self.keytimer = 0;
                     self.keys = Vec::new();
