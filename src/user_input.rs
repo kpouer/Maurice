@@ -1,9 +1,8 @@
-use std::path::PathBuf;
 use speedy2d::window::ModifiersState;
 use crate::hardware::keyboard::vkey::CustomVirtualKeyCode;
 
 pub(crate) enum UserInput {
-    SetK7(PathBuf),
+    OpenK7File,
     Stop,
     Start,
     SoftReset,

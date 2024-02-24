@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use chrono::{DateTime, Local};
 use log::info;
+use rfd::FileDialog;
 
 use crate::hardware::keyboard::Keyboard;
 use crate::hardware::keyboard::vkey::map_virtual_key_code;
@@ -36,9 +37,9 @@ pub(crate) struct Machine {
 
 impl Machine {
     pub(crate) fn new(image_data_sender: Sender<Vec<u8>>, user_input_receiver: Receiver<UserInput>) -> Self {
-        println!("Machine::new()");
+        info!("Machine::new()");
         let screen = Screen::new();
-        println!("Machine::screen()");
+        info!("Machine::screen()");
         let mut mem = Memory::default();
         mem.reset();
         let sound = Sound::new();
@@ -83,7 +84,7 @@ impl Machine {
     fn eventually_process_user_input(&mut self) {
         if let Ok(user_input) = self.user_input_receiver.try_recv() {
             match user_input {
-                UserInput::SetK7(k7) => self.set_k7_file(&k7),
+                UserInput::OpenK7File => self.open_file(),
                 UserInput::Stop => self.running = false,
                 UserInput::Start => self.running = true,
                 UserInput::SoftReset => self.reset_soft(),
@@ -92,6 +93,17 @@ impl Machine {
                 UserInput::KeyUp(vk) => self.keyboard.key_released(vk, &mut self.mem),
                 UserInput::KeyboardModifierChanged(state) => self.keyboard.modifiers = state,
             }
+        }
+    }
+
+    fn open_file(&mut self) {
+        let files = FileDialog::new()
+            .add_filter("k7", &["k7"])
+            .set_directory("./")
+            .pick_file();
+        if let Some(filename) = files {
+            info!("Machine::set_k7_file({:?})", filename);
+            self.mem.set_k7file(&filename);
         }
     }
 

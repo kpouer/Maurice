@@ -13,7 +13,7 @@ use crate::hardware::keyboard::vkey::map_virtual_key_code;
 use crate::hardware::screen::{DEFAULT_PIXEL_SIZE, HEIGHT, WIDTH};
 
 use crate::user_input::UserInput;
-use crate::user_input::UserInput::{HardReset, SoftReset};
+use crate::user_input::UserInput::{HardReset, OpenK7File, SoftReset};
 
 #[derive(Debug)]
 pub(crate) struct Gui {
@@ -28,16 +28,6 @@ impl Gui {
             image: None,
             user_input_sender,
             image_data_receiver
-        }
-    }
-
-    fn open_file(&mut self) {
-        let files = FileDialog::new()
-            .add_filter("k7", &["k7"])
-            .set_directory("./")
-            .pick_file();
-        if let Some(filename) = files {
-            self.user_input_sender.send(UserInput::SetK7(filename)).ok();
         }
     }
 }
@@ -67,7 +57,7 @@ impl WindowHandler for Gui {
 
     fn on_key_down(&mut self, _: &mut WindowHelper<()>, virtual_key_code: Option<VirtualKeyCode>, scancode: KeyScancode) {
         match virtual_key_code {
-            Some(VirtualKeyCode::F2) => {self.open_file();}
+            Some(VirtualKeyCode::F2) => {self.user_input_sender.send(OpenK7File).ok();}
             Some(VirtualKeyCode::F7) => {self.user_input_sender.send(SoftReset).ok();}
             Some(VirtualKeyCode::F8) => {self.user_input_sender.send(HardReset).ok();}
             _ => {
