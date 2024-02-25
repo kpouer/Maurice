@@ -38,7 +38,7 @@ pub(crate) struct Memory {
     DDRB: int,
     CRA: int,
     pub(crate) CRB:int,
-    sound_mem:  int,
+    pub(crate) sound_mem:  i8,
 
     /* Registre du Gate Array */
     GA0:int,
@@ -249,7 +249,7 @@ impl Memory {
                 }
 
                 self.mem[0xA + 2][0x7C1] = self.ORB;
-                self.sound_mem = (self.ORB & 1) << 5;
+                self.sound_mem = ((self.ORB & 1) << 5) as i8;
             } else {
                 self.DDRB = OP;
                 self.mem[0xA + 2][0x7C1] = OP;

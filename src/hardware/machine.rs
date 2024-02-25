@@ -16,12 +16,12 @@ use crate::hardware::sound::Sound;
 use crate::int;
 use crate::user_input::UserInput;
 
-#[derive(Debug)]
 pub(crate) struct Machine {
     // Emulation Objects
     pub(crate) mem: Memory,
     pub(crate) micro: M6809,
     pub(crate) screen: Screen,
+    sound: Sound,
     pub(crate) keyboard: Keyboard,
     pub(crate) testtimer:int,
     pub(crate) irq: bool,
@@ -48,6 +48,7 @@ impl Machine {
             mem,
             micro,
             screen,
+            sound,
             keyboard: Keyboard::default(),
             testtimer: 0,
             last_time: Local::now(),
@@ -121,19 +122,19 @@ impl Machine {
         /* 3.9 ms haut �cran (+0.3 irq)*/
         if self.irq {
             self.irq = false;
-            self.micro.FetchUntil(3800, &mut self.mem, &mut self.screen);
+            self.micro.FetchUntil(3800, &mut self.mem, &mut self.screen, &mut self.sound);
         } else {
-            self.micro.FetchUntil(4100, &mut self.mem, &mut self.screen);
+            self.micro.FetchUntil(4100, &mut self.mem, &mut self.screen, &mut self.sound);
         }
 
         /* 13ms fenetre */
         self.mem.set(0xA7E7, 0x80);
         self.mem.GA3 = 0x80;
-        self.micro.FetchUntil(13100, &mut self.mem, &mut self.screen);
+        self.micro.FetchUntil(13100, &mut self.mem, &mut self.screen, &mut self.sound);
 
         self.mem.set(0xA7E7, 0x00);
         self.mem.GA3 = 0x00;
-        self.micro.FetchUntil(2800, &mut self.mem, &mut self.screen);
+        self.micro.FetchUntil(2800, &mut self.mem, &mut self.screen, &mut self.sound);
 
         if (self.mem.CRB & 0x01) == 0x01 {
             self.irq = true;
@@ -145,7 +146,7 @@ impl Machine {
                 self.micro.IRQ(&mut self.mem);
             }
             /* 300 cycles sous interrupt */
-            self.micro.FetchUntil(300, &mut self.mem, &mut self.screen);
+            self.micro.FetchUntil(300, &mut self.mem, &mut self.screen, &mut self.sound);
             self.mem.CRB &= 0x7F;
             self.mem.set(0xA7C3, self.mem.CRB);
         }
