@@ -32,12 +32,12 @@ impl Sound {
     // Cette fonction est lancée lorsque le buffer 6809 est plein
     pub(crate) fn play_sound(&mut self, cpu: &M6809) {
         let mut has_data = false;
-        let mut data = vec![0f32; N_BYTES];
+        let mut data = vec![0u8; N_BYTES / 4];
         for i in 0..N_BYTES {
             let value = cpu.sound_buffer[i];
             if value != 0 {
                 has_data = true;
-                data[i / 4] = value as f32 /  u8::MAX as f32;
+                data[i / 4] = value;
             }
         }
         if has_data {
@@ -55,17 +55,17 @@ impl Sound {
 }
 
 struct PcmSource {
-    data: Vec<f32>,
+    data: Vec<u8>,
     position: usize,
 }
 
 impl Iterator for PcmSource {
-    type Item = f32;
+    type Item = u16;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.position < self.data.len() {
-            let result = self.data[self.position];
+            let result = (self.data[self.position] as u16) << 8;
             self.position += 1;
             Some(result)
         } else {
