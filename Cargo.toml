@@ -12,3 +12,4 @@ chrono = "0.4.34"
 rfd = "0.13.0"
 log = "0.4.20"
 rust-embed = "8.2.0"
+symphonia = { version = "0.5.4", features = ["pcm"] }
