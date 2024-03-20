@@ -1,10 +1,10 @@
 use std::collections::HashMap;
-use log::info;
 
+use log::info;
 use speedy2d::window::{ModifiersState, VirtualKeyCode};
+
 use crate::hardware::keyboard::vkey::CustomVirtualKeyCode;
 use crate::hardware::keyboard::vkey::CustomVirtualKeyCode::Base;
-
 use crate::hardware::memory::Memory;
 use crate::int;
 

@@ -6,10 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-speedy2d = "2.0.0"
-env_logger = "0.11.2"
-chrono = "0.4.34"
+speedy2d = "2.1.0"
+env_logger = "0.11.3"
+chrono = "0.4.38"
 rfd = "0.13.0"
-log = "0.4.20"
+log = "0.4.21"
 rust-embed = "8.2.0"
-symphonia = { version = "0.5.4", features = ["pcm"] }
+cpal = "0.15.3"
+anyhow = "1.0.86"

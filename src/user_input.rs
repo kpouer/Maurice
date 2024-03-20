@@ -1,4 +1,5 @@
 use speedy2d::window::ModifiersState;
+
 use crate::hardware::keyboard::vkey::CustomVirtualKeyCode;
 
 pub(crate) enum UserInput {

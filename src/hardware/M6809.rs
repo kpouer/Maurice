@@ -2,6 +2,7 @@
 
 use crate::hardware::memory::Memory;
 use crate::hardware::screen::Screen;
+use crate::hardware::sound::Sound;
 use crate::int;
 
 const SOUND_SIZE: usize = 1024;
@@ -10,7 +11,7 @@ const SOUND_SIZE: usize = 1024;
 pub(crate) struct M6809 {
     // Sound emulation parameters
     pub(crate) sound_buffer: Vec<u8>,
-    sound_addr: int,
+    sound_addr: usize,
 
     cl: int,
 
@@ -2404,24 +2405,23 @@ impl M6809 {
         self.cl += 20;
     }
 
-    pub(crate) fn FetchUntil(&mut self, clock: int, mem: &mut Memory, screen: &mut Screen) -> int {
+    pub(crate) fn FetchUntil(&mut self, clock: int, mem: &mut Memory, screen: &mut Screen, sound: &mut Sound) -> int {
         while self.cl < clock {
-            self.Fetch(mem, screen);
+            self.Fetch(mem, screen, sound);
         }
         self.cl -= clock;
         return self.cl;
     }
 
-    fn Fetch(&mut self, mem: &mut Memory, screen: &mut Screen) {
+    fn Fetch(&mut self, mem: &mut Memory, screen: &mut Screen, sound: &mut Sound) {
         let opcode = mem.read(self.PC);
         self.PC += 1;
         // 	Sound emulation process
-        //todo sound
-        // self.sound_buffer[self.sound_addr] = (byte) mem.getSoundMem();
-        // self.sound_addr = (self.sound_addr + 1) % sound_size;
-        // if (self.sound_addr == 0) {
-        //     Sound.playSound(this);
-        // }
+        self.sound_buffer[self.sound_addr] = mem.sound_mem;
+        self.sound_addr = (self.sound_addr + 1) % SOUND_SIZE;
+        if self.sound_addr == 0 {
+            sound.play_sound(self);
+        }
 
         match opcode {
 

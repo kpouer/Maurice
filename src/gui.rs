@@ -1,17 +1,16 @@
 use std::fs;
-use std::path::Path;
 use std::sync::mpsc::{Receiver, Sender};
+
 use log::error;
-use rfd::FileDialog;
 use speedy2d::dimen::{UVec2, Vec2};
 use speedy2d::Graphics2D;
 use speedy2d::image::ImageDataType::RGB;
 use speedy2d::image::ImageHandle;
 use speedy2d::image::ImageSmoothingMode::NearestNeighbor;
 use speedy2d::window::{KeyScancode, ModifiersState, VirtualKeyCode, WindowHandler, WindowHelper};
+
 use crate::hardware::keyboard::vkey::map_virtual_key_code;
 use crate::hardware::screen::{DEFAULT_PIXEL_SIZE, HEIGHT, WIDTH};
-
 use crate::user_input::UserInput;
 use crate::user_input::UserInput::{HardReset, OpenK7File, SoftReset};
 

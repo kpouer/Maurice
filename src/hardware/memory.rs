@@ -4,8 +4,10 @@ use std::fs;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
+
 use chrono::Local;
 use log::{debug, error, info};
+
 use crate::bios::Bios;
 use crate::data_input_stream::DataInputStream;
 use crate::hardware::screen::Screen;
@@ -38,7 +40,7 @@ pub(crate) struct Memory {
     DDRB: int,
     CRA: int,
     pub(crate) CRB:int,
-    sound_mem:  int,
+    pub(crate) sound_mem: u8,
 
     /* Registre du Gate Array */
     GA0:int,
@@ -249,7 +251,7 @@ impl Memory {
                 }
 
                 self.mem[0xA + 2][0x7C1] = self.ORB;
-                self.sound_mem = (self.ORB & 1) << 5;
+                self.sound_mem = ((self.ORB & 1) << 5) as u8;
             } else {
                 self.DDRB = OP;
                 self.mem[0xA + 2][0x7C1] = OP;
