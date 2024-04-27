@@ -29,14 +29,14 @@ pub(crate) struct Machine {
 
 impl Default for Machine {
     fn default() -> Self {
-        println!("Machine::new()");
+        info!("Machine::new()");
         let screen = Screen::new();
-        println!("Machine::screen()");
+        info!("Machine::screen()");
         let mut mem = Memory::default();
         mem.reset();
         let sound = Sound::new();
         let micro = M6809::new(&mem);
-        Machine {
+        Self {
             mem,
             micro,
             screen,
@@ -149,11 +149,12 @@ impl Machine {
             return;
         }
 
-        sleep(Duration::from_millis(sleep_millis as u64));
+        thread::sleep(Duration::from_millis(sleep_millis as u64));
         self.last_time = Local::now();
     }
 
     pub(crate) fn set_k7_file(&mut self, k7: &PathBuf) -> bool {
+        info!("Machine::set_k7_file({:?})", k7);
         return self.mem.set_k7file(k7);
     }
 

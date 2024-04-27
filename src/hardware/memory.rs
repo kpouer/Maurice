@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
 use chrono::Local;
+use log::{debug, error, info};
 use crate::data_input_stream::DataInputStream;
 use crate::hardware::screen::Screen;
 use crate::int;
@@ -258,19 +259,19 @@ impl Memory {
     }
 
     pub(crate) fn set_key(&mut self, i: int) {
-        println!("key down:{}", i);
+        debug!("key down:{}", i);
         self.key[i as usize] = true;
     }
 
     pub(crate) fn rem_key(&mut self, i: int) {
         if self.key[i as usize] {
-            println!("key up:{}", i);
+            debug!("key up:{}", i);
             self.key[i as usize] = false;
         }
     }
 
     pub(crate) fn set_k7file(&mut self, name: &Path) -> bool {
-        println!("opening:{}", name.to_str().unwrap());
+        info!("opening:{}", name.to_str().unwrap());
         if self.k7_fis.is_none() {
             self.is_file_opened = false;
         }
@@ -278,11 +279,11 @@ impl Memory {
         return if Path::new(name).exists() {
             let metadata = fs::metadata(name).unwrap();
             if metadata.len() == 0 {
-                eprintln!("Error : file is empty");
+                error!("Error : file is empty");
                 return false;
             }
             if metadata.len() > 1000000 {
-                eprintln!("Error : file is too big {}", metadata.len());
+                error!("Error : file is too big {}", metadata.len());
                 return false;
             }
 
@@ -297,7 +298,7 @@ impl Memory {
                     self.is_file_opened
                 }
                 Err(error) => {
-                    eprintln!("Error : file is missing {}", error);
+                    error!("Error : file is missing {}", error);
                     false
                 }
             }
