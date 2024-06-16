@@ -35,14 +35,13 @@ Then usually you have to type "load" and press enter. Then "run" and press enter
 ![Boot](media/aigledor.png)
 ![Boot](media/aigledoranimated.png)
 
-## Note
-
-Sound is not supported and it is probable that many limitations are still present.
-
 ## Dependencies
 
 This project depends on
-- speedy2d (https://crates.io/crates/speedy2d)
-- env_logger (https://crates.io/crates/env_logger)
 - chrono (https://crates.io/crates/chrono)
+- cpal (https://crates.io/crates/cpal)
+- env_logger (https://crates.io/crates/env_logger)
+- log (https://crates.io/crates/log)
 - rfd (https://crates.io/crates/rfd)
+- rust-embed (https://crates.io/crates/rust-embed)
+- speedy2d (https://crates.io/crates/speedy2d)
