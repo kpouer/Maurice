@@ -12,24 +12,26 @@ const DESIRED_SAMPLE_RATE: cpal::SampleRate = cpal::SampleRate(44100);
 
 pub(crate) struct Sound {
     pub buffer: Arc<Mutex<Vec<u8>>>,
-    sample_rate: u32,
-    audio_stream: cpal::Stream,
+    audio_stream: Option<cpal::Stream>,
     audio: [u8; N_BYTES / 4],
 }
 
 impl Sound {
-    pub(crate) fn new() -> Option<Self> {
+    pub(crate) fn new() -> Self {
         let buffer = Arc::new(Mutex::new(Vec::new()));
-        let (stream, sample_rate) = get_audio_stream(buffer.clone())?;
-        let rate = sample_rate.0;
+        let audio_stream = if let Some((stream, _)) = get_audio_stream(buffer.clone()) {
+            // let rate = sample_rate.0;
+            stream.play().ok();
+            Some(stream)
+        } else {
+            None
+        };
         let apu = Sound {
             buffer,
-            sample_rate: rate,
-            audio_stream: stream,
+            audio_stream,
             audio: [0; N_BYTES / 4],
         };
-        apu.audio_stream.play().ok()?;
-        Some(apu)
+        apu
     }
 
     // Copie du buffer de son provenant du 6809 vers le buffer de la carte son

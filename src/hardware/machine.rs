@@ -44,13 +44,12 @@ impl Machine {
         info!("Machine::screen()");
         let mut mem = Memory::default();
         mem.reset();
-        let sound = Sound::new();
         let micro = M6809::new(&mem);
         Self {
             mem,
             micro,
             screen,
-            sound: sound.unwrap(),
+            sound: Sound::new(),
             keyboard: Keyboard::default(),
             testtimer: 0,
             last_time: Local::now(),
