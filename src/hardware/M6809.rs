@@ -119,30 +119,18 @@ impl M6809 {
         self.PC += 1;
         if m < 0x80 {
             // effectue le complement a 2 sur la precision int
-            let delta;
-            if (m & 0x10) == 0x10 {
-                delta = ((-1 >> 5) << 5) | (m & 0x1F);
+            let delta = if (m & 0x10) == 0x10 {
+                ((-1 >> 5) << 5) | (m & 0x1F)
             } else {
-                delta = m & 0x1F;
-            }
-            let reg;
-            match m & 0xE0 {
-                0x00 => {
-                    reg = self.X;
-                }
-                0x20 => {
-                    reg = self.Y;
-                }
-                0x40 => {
-                    reg = self.U;
-                }
-                0x60 => {
-                    reg = self.S;
-                }
-                _ => {
-                    return 0;
-                }
-            }
+                m & 0x1F
+            };
+            let reg = match m & 0xE0 {
+                0x00 => self.X,
+                0x20 => self.Y,
+                0x40 => self.U,
+                0x60 => self.S,
+                _ => return 0,
+            };
             self.cl += 1;
             return (reg + delta) & 0xFFFF;
         }
@@ -3448,16 +3436,16 @@ fn r_tfr(m: int) -> String {
         _ => {}
     };
     match m & 0x0F {
-        0x8 => { output.push_str("A"); }
-        0x9 => { output.push_str("B"); }
+        0x8 => { output.push('A'); }
+        0x9 => { output.push('B'); }
         0xA => { output.push_str("CC"); }
-        0x0 => { output.push_str("D"); }
+        0x0 => { output.push('D'); }
         0xB => { output.push_str("DP"); }
-        0x5 => { output.push_str("PC"); }
-        0x4 => { output.push_str("S"); }
-        0x3 => { output.push_str("U"); }
-        0x1 => { output.push_str("X"); }
-        0x2 => { output.push_str("Y"); }
+        0x5 => output.push_str("PC"),
+        0x4 => { output.push('S'); }
+        0x3 => { output.push('U'); }
+        0x1 => { output.push('X'); }
+        0x2 => { output.push('Y'); }
         _ => {}
     }
     output
@@ -3491,7 +3479,6 @@ fn r_pile(m: int) -> String {
     }
     output
 }
-
 
 pub(crate) fn unassemble(start: int, maxLines: int, mem: &mut Memory) -> String {
     let mut MNEMO: [&str; 256] = ["ILL -"; 256];
@@ -3995,8 +3982,7 @@ pub(crate) fn unassemble(start: int, maxLines: int, mem: &mut Memory) -> String 
                 output2.push(')');
             }
             'x' => {
-                let mmx;
-                mmx = mem.read(_where);
+                let mmx = mem.read(_where);
                 _where += 1;
                 output1.push_str(hex(mmx, 2).as_str());
                 output1.push(' ');

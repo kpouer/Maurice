@@ -98,7 +98,7 @@ impl Memory {
     // read with io
     pub(crate) fn read(&self, address: int) -> int {
         let page = (address & 0xF000) >> 12;
-        return self.mem[self.mapper[page as usize] as usize][(address & 0xFFF) as usize];
+        self.mem[self.mapper[page as usize] as usize][(address & 0xFFF) as usize]
     }
 
     pub(crate) fn read_16(&self, address: int) -> int {
@@ -141,7 +141,7 @@ impl Memory {
     // read without io
     fn get(&mut self, address: int) -> int {
         let page = (address & 0xF000) >> 12;
-        return self.mem[self.mapper[page as usize] as usize][(address & 0xFFF) as usize];
+        self.mem[self.mapper[page as usize] as usize][(address & 0xFFF) as usize]
     }
 
     pub(crate) fn set(&mut self, address: int, value: int) {
@@ -151,18 +151,18 @@ impl Memory {
 
     pub(crate) fn POINT(&mut self, address: int) ->int {
         let page = (address & 0xF000) >> 12;
-        return self.mem[page as usize][(address & 0xFFF) as usize];
+        self.mem[page as usize][(address & 0xFFF) as usize]
     }
 
     pub(crate) fn COLOR(&mut self, address: int) ->int {
         let page = (address & 0xF000) >> 12;
-        return self.mem[(page + 2) as usize][(address & 0xFFF) as usize];
+        self.mem[(page + 2) as usize][(address & 0xFFF) as usize]
     }
 
     pub(crate) fn is_dirty(&mut self, line: usize) -> bool {
         let ret = self.dirty[line];
         self.dirty[line] = false;
-        return ret;
+        ret
     }
 
     pub(crate) fn set_all_dirty(&mut self) {
@@ -239,15 +239,15 @@ impl Memory {
         } else if ADR == 0xA7C1/* accès à ORB ou DDRB */
         {
             if (self.CRB & 0x04) == 0x04
-            /* Acc�s � ORB */ {
+            /* Accès à ORB */ {
                 self.ORB = (self.ORB & (self.DDRB ^ 0xFF)) | (OP & self.DDRB);
 
                 /* GESTION HARD DU CLAVIER */
 
                 if self.key[(self.ORB & 0x7E) as usize] {
-                    self.ORB = self.ORB & 0x7F;
+                    self.ORB &= 0x7F;
                 } else {
-                    self.ORB = self.ORB | 0x80;
+                    self.ORB |= 0x80;
                 }
 
                 self.mem[0xA + 2][0x7C1] = self.ORB;
@@ -284,7 +284,7 @@ impl Memory {
             self.is_file_opened = false;
         }
 
-        return if Path::new(name).exists() {
+        if Path::new(name).exists() {
             let metadata = fs::metadata(name).unwrap();
             if metadata.len() == 0 {
                 error!("Error : file is empty");
@@ -352,7 +352,7 @@ impl Memory {
         self.k7_bit = 0;
         self.k7_char = 0;
 
-        return self.is_file_opened_out;
+        self.is_file_opened_out
     }
 
     fn readbit(&mut self, screen: &mut Screen) -> int {
@@ -365,12 +365,10 @@ impl Memory {
         if self.k7_bit == 0x00 {
             if self.k7_in.is_some() {
                 self.k7_char = self.k7_in.as_mut().unwrap().read();
+            } else if self.k7_fis.is_some() {
+                self.k7_char = self.k7_fis.as_mut().unwrap().read();
             } else {
-                if self.k7_fis.is_some() {
-                    self.k7_char = self.k7_fis.as_mut().unwrap().read();
-                } else {
-                    return 0;
-                }
+                return 0;
             }
 
             self.k7_bit = 0x80;
@@ -378,7 +376,7 @@ impl Memory {
         let mut octet = self.get(0x2045);
 
         if (self.k7_char & self.k7_bit) == 0 {
-            octet = octet << 1;
+            octet <<= 1;
             // A=0x00;
             self.set(0xF16A, 0x00);
         } else {
@@ -391,7 +389,7 @@ impl Memory {
         screen.led = octet & 0xff;
         screen.show_led = 10;
         self.k7_bit >>= 1;
-        return 0;
+        0
     }
 
 

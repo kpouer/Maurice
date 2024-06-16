@@ -1,4 +1,3 @@
-use std::fs;
 use std::sync::mpsc::{Receiver, Sender};
 
 use log::error;
@@ -33,7 +32,7 @@ impl Gui {
 
 impl WindowHandler for Gui {
     fn on_draw(&mut self, helper: &mut WindowHelper<()>, graphics: &mut Graphics2D) {
-        if let Some(buf) =self.image_data_receiver.try_recv().ok() {
+        if let Ok(buf) = self.image_data_receiver.try_recv() {
             let raw = buf.as_slice();
             let image = graphics.create_image_from_raw_pixels(
                 RGB,

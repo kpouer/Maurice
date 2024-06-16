@@ -151,11 +151,11 @@ impl Machine {
         }
     }
 
-    fn auto_type(&mut self, input: &String) {
-        let input = input.replace("\"", "zxz");
+    fn auto_type(&mut self, input: &str) {
+        let input = input.replace('"', "zxz");
 
         self.keys = Vec::new();
-        for (i, c) in input.char_indices() {
+        for c in input.chars() {
             self.keys.push(c as int);
         }
         self.keytimer = 1;
