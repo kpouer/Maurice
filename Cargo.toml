@@ -2,6 +2,14 @@
 name = "maurice"
 version = "1.1.0"
 edition = "2021"
+authors = ["Matthieu Casanova"]
+description = "Maurice, a Thomson MO5 emulator"
+homepage = "https://github.com/kpouer/maurice"
+repository = "https://github.com/kpouer/maurice"
+license = "MIT"
+readme = "README.md"
+keywords = ["emulator", "emulation"]
+categories = ["emulators"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
