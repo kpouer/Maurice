@@ -91,19 +91,19 @@ impl M6809 {
     fn IMMED8(&mut self) -> int {
         let M = self.PC;
         self.PC += 1;
-        return M;
+        M
     }
 
     fn IMMED16(&mut self) -> int {
         let M = self.PC;
         self.PC += 2;
-        return M;
+        M
     }
 
     fn DIREC(&mut self, mem: &mut Memory) -> int {
         let M = (self.DP << 8) | mem.read(self.PC);
         self.PC += 1;
-        return M;
+        M
     }
 
     fn ETEND(&mut self, mem: &mut Memory) -> int {
@@ -111,7 +111,7 @@ impl M6809 {
         self.PC += 1;
         M |= mem.read(self.PC);
         self.PC += 1;
-        return M;
+        M
     }
 
     fn INDEXE(&mut self, mem: &mut Memory) -> int {
@@ -749,7 +749,7 @@ impl M6809 {
             _ => {}
         }
         // eprintln!("Indexed mode not implemented");
-        return 0;
+        0
     }
 
     // cc register recalculate from separate bits
@@ -769,7 +769,7 @@ impl M6809 {
                 | self.ccrest;
         }
 
-        return self.CC;
+        self.CC
     }
 
     // calculate CC fast bits from CC register
@@ -786,11 +786,11 @@ impl M6809 {
 
     pub(crate) fn readCC(&mut self) -> int {
         self.getcc();
-        return self.CC;
+        self.CC
     }
 
     fn LOAD8(ADR: int, mem: &mut Memory) -> int {
-        return mem.read(ADR);
+        mem.read(ADR)
     }
 
     // LDx
@@ -799,7 +799,7 @@ impl M6809 {
         self.m1 = self.ovfl;
         self.res = (self.res & 0x100) | self.sign;
         self.cl += c;
-        return self.sign;
+        self.sign
     }
 
     fn LD16(&mut self, M: int, c: int, mem: &mut Memory) -> int {
@@ -808,7 +808,7 @@ impl M6809 {
         self.sign = R >> 8;
         self.res = (self.res & 0x100) | ((self.sign | R) & 0xFF);
         self.cl += c;
-        return R;
+        R
     }
 
     // STx
@@ -834,7 +834,7 @@ impl M6809 {
         let R = self.INDEXE(mem);
         self.res = (self.res & 0x100) | ((R | (R >> 8)) & 0xFF);
         self.cl += 4;
-        return R;
+        R
     }
 
     // CLR
@@ -1129,7 +1129,7 @@ impl M6809 {
             self.getcc();
             mem.write(self.S, self.CC);
             self.cl += 1;
-        } else {}
+        }
         self.cl += 5;
     }
 
@@ -2410,7 +2410,7 @@ impl M6809 {
             self.Fetch(mem, screen, sound);
         }
         self.cl -= clock;
-        return self.cl;
+        self.cl
     }
 
     fn Fetch(&mut self, mem: &mut Memory, screen: &mut Screen, sound: &mut Sound) {
@@ -3368,7 +3368,7 @@ impl M6809 {
                         hex(self.U, 4),
                         hex(self.S, 4),
                         hex(self.CC, 2));
-        return s;
+        s
     }
 }
 
@@ -3402,7 +3402,7 @@ fn signedChar(v: int) -> int {
     }
     let mut delta = -1; // delta is 0xFFFF.... independently of 32/64bits
     delta = (delta >> 8) << 8; // force last 8bits to 0
-    return (v & 0xFF) | delta; // result is now signed
+    (v & 0xFF) | delta // result is now signed
 }
 
 // force sign extension in a portable but ugly maneer
@@ -3412,7 +3412,7 @@ fn signed16bits(v: int) -> int {
     }
     let mut delta = -1; // delta is 0xFFFF.... independently of 32/64bits
     delta = (delta >> 16) << 16; // force last 16bits to 0
-    return (v & 0xFFFF) | delta; // result is now signed
+    (v & 0xFFFF) | delta // result is now signed
 }
 
 fn regx(m: int) -> String {
@@ -3429,7 +3429,7 @@ fn regx(m: int) -> String {
     if (m & 0x60) == 0x60 {
         output.push('S');
     }
-    return output;
+    output
 }
 
 fn r_tfr(m: int) -> String {
@@ -3460,7 +3460,7 @@ fn r_tfr(m: int) -> String {
         0x2 => { output.push_str("Y"); }
         _ => {}
     }
-    return output;
+    output
 }
 
 fn r_pile(m: int) -> String {
@@ -3489,7 +3489,7 @@ fn r_pile(m: int) -> String {
     if (m & 0x01) != 0 {
         output.push_str("CC");
     }
-    return output;
+    output
 }
 
 
@@ -4217,6 +4217,6 @@ pub(crate) fn unassemble(start: int, maxLines: int, mem: &mut Memory) -> String 
         output.push_str(output2.as_str());
         output.push('\n');
     } // of for ... maxLines
-    return output;
+    output
 }
 
