@@ -137,40 +137,47 @@ impl M6809 {
         // let m2;
         let mut M;
         match m {
-            0x80 => { //i_d_P1_X
+            0x80 => {
+                //i_d_P1_X
                 M = self.X;
                 self.X = (self.X + 1) & 0xFFFF;
                 self.cl += 2;
                 return M;
             }
-            0x81 => { //i_d_P2_X
+            0x81 => {
+                //i_d_P2_X
                 M = self.X;
                 self.X = (self.X + 2) & 0xFFFF;
                 self.cl += 3;
                 return M;
             }
-            0x82 => { //i_d_M1_X
+            0x82 => {
+                //i_d_M1_X
                 self.X = (self.X - 1) & 0xFFFF;
                 M = self.X;
                 self.cl += 2;
                 return M;
             }
-            0x83 => { //i_d_M2_X
+            0x83 => {
+                //i_d_M2_X
                 self.X = (self.X - 2) & 0xFFFF;
                 M = self.X;
                 self.cl += 3;
                 return M;
             }
-            0x84 => { //i_d_X
+            0x84 => {
+                //i_d_X
                 M = self.X;
                 return M;
             }
-            0x85 => { //i_d_B_X
+            0x85 => {
+                //i_d_B_X
                 M = (self.X + signedChar(self.B)) & 0xFFFF;
                 self.cl += 1;
                 return M;
             }
-            0x86 => { //i_d_A_X;
+            0x86 => {
+                //i_d_A_X;
                 M = (self.X + signedChar(self.A)) & 0xFFFF;
                 self.cl += 1;
                 return M;
@@ -178,14 +185,16 @@ impl M6809 {
             0x87 => {
                 return 0; //i_undoc;	/* empty */
             }
-            0x88 => {  //i_d_8_X;
+            0x88 => {
+                //i_d_8_X;
                 self.m2 = mem.read(self.PC);
                 self.PC += 1;
                 M = (self.X + signedChar(self.m2)) & 0xFFFF;
                 self.cl += 1;
                 return M;
             }
-            0x89 => {  //i_d_16_X;
+            0x89 => {
+                //i_d_16_X;
                 self.m2 = mem.read_16(self.PC);
                 self.PC += 2;
                 M = (self.X + signed16bits(self.m2)) & 0xFFFF;
@@ -195,25 +204,22 @@ impl M6809 {
             0x8A => {
                 return 0; //i_undoc;	/* empty */
             }
-            0x8B => {  //i_d_D_X;
+            0x8B => {
+                //i_d_D_X;
                 M = (self.X + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
                 self.cl += 4;
                 return M;
             }
-            0x8C |
-            0xAC |
-            0xCC |
-            0xEC => {  //i_d_PC8;
+            0x8C | 0xAC | 0xCC | 0xEC => {
+                //i_d_PC8;
                 m = mem.read(self.PC);
                 self.PC = (self.PC + 1) & 0xFFFF;
                 M = (self.PC + signedChar(m)) & 0xFFFF;
                 self.cl += 1;
                 return M;
             }
-            0x8D |
-            0xAD |
-            0xCD |
-            0xED => {  //i_d_PC16;
+            0x8D | 0xAD | 0xCD | 0xED => {
+                //i_d_PC16;
                 M = mem.read_16(self.PC);
                 self.PC = (self.PC + 2) & 0xFFFF;
                 M = (self.PC + signed16bits(M)) & 0xFFFF;
@@ -229,7 +235,8 @@ impl M6809 {
             0x90 => {
                 return 0; //i_undoc;	/* empty */
             }
-            0x91 => {  //i_i_P2_X;
+            0x91 => {
+                //i_i_P2_X;
                 M = mem.read_16(self.X);
                 self.X = (self.X + 2) & 0xFFFF;
                 self.cl += 6;
@@ -238,24 +245,28 @@ impl M6809 {
             0x92 => {
                 return 0; //i_undoc;	/* empty */
             }
-            0x93 => {  //i_i_M2_X;
+            0x93 => {
+                //i_i_M2_X;
                 self.X = (self.X - 2) & 0xFFFF;
                 M = mem.read_16(self.X);
                 self.cl += 6;
                 return M;
             }
-            0x94 => {  //i_i_0_X;
+            0x94 => {
+                //i_i_0_X;
                 M = mem.read_16(self.X);
                 self.cl += 3;
                 return M;
             }
-            0x95 => {  //i_i_B_X;
+            0x95 => {
+                //i_i_B_X;
                 M = (self.X + signedChar(self.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
                 return M;
             }
-            0x96 => {  //i_i_A_X;
+            0x96 => {
+                //i_i_A_X;
                 M = (self.X + signedChar(self.A)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
@@ -264,7 +275,8 @@ impl M6809 {
             0x97 => {
                 return 0; //i_undoc;	/* empty */
             }
-            0x98 => {  //i_i_8_X;
+            0x98 => {
+                //i_i_8_X;
                 self.m2 = mem.read(self.PC);
                 self.PC = (self.PC + 1) & 0xFFFF;
                 M = (self.X + signedChar(self.m2)) & 0xFFFF;
@@ -272,7 +284,8 @@ impl M6809 {
                 self.cl += 4;
                 return M;
             }
-            0x99 => {  //i_i_16_X;
+            0x99 => {
+                //i_i_16_X;
                 self.m2 = mem.read_16(self.PC);
                 self.PC = (self.PC + 2) & 0xFFFF;
                 M = (self.X + signed16bits(self.m2)) & 0xFFFF;
@@ -283,16 +296,15 @@ impl M6809 {
             0x9A => {
                 return 0; //i_undoc;	/* empty */
             }
-            0x9B => {  //i_i_D_X;
+            0x9B => {
+                //i_i_D_X;
                 M = (self.X + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
                 return M;
             }
-            0x9C |
-            0xBC |
-            0xDC |
-            0xFC => {  //i_i_PC8;
+            0x9C | 0xBC | 0xDC | 0xFC => {
+                //i_i_PC8;
                 self.m2 = mem.read(self.PC);
                 self.PC = (self.PC + 1) & 0xFFFF;
                 M = (self.PC + signedChar(self.m2)) & 0xFFFF;
@@ -300,10 +312,8 @@ impl M6809 {
                 self.cl += 4;
                 return M;
             }
-            0x9D |
-            0xBD |
-            0xDD |
-            0xFD => {  //i_i_PC16;
+            0x9D | 0xBD | 0xDD | 0xFD => {
+                //i_i_PC16;
                 self.m2 = mem.read_16(self.PC);
                 self.PC = (self.PC + 2) & 0xFFFF;
                 M = (self.PC + signed16bits(self.m2)) & 0xFFFF;
@@ -314,10 +324,8 @@ impl M6809 {
             0x9E => {
                 return 0; //i_undoc;	/* empty */
             }
-            0x9F |
-            0xBF |
-            0xDF |
-            0xFF => {  //i_i_e16;
+            0x9F | 0xBF | 0xDF | 0xFF => {
+                //i_i_e16;
                 self.m2 = mem.read_16(self.PC);
                 self.PC = (self.PC + 2) & 0xFFFF;
                 M = mem.read_16(self.m2);
@@ -325,40 +333,47 @@ impl M6809 {
                 return M;
                 // Y
             }
-            0xA0 => {  //i_d_P1_Y;
+            0xA0 => {
+                //i_d_P1_Y;
                 M = self.Y;
                 self.Y = (self.Y + 1) & 0xFFFF;
                 self.cl += 2;
                 return M;
             }
-            0xA1 => {  //i_d_P2_Y;
+            0xA1 => {
+                //i_d_P2_Y;
                 M = self.Y;
                 self.Y = (self.Y + 2) & 0xFFFF;
                 self.cl += 3;
                 return M;
             }
-            0xA2 => {  //i_d_M1_Y;
+            0xA2 => {
+                //i_d_M1_Y;
                 self.Y = (self.Y - 1) & 0xFFFF;
                 M = self.Y;
                 self.cl += 2;
                 return M;
             }
-            0xA3 => {  //i_d_M2_Y;
+            0xA3 => {
+                //i_d_M2_Y;
                 self.Y = (self.Y - 2) & 0xFFFF;
                 M = self.Y;
                 self.cl += 3;
                 return M;
             }
-            0xA4 => {  //i_d_Y;
+            0xA4 => {
+                //i_d_Y;
                 M = self.Y;
                 return M;
             }
-            0xA5 => {  //i_d_B_Y;
+            0xA5 => {
+                //i_d_B_Y;
                 M = (self.Y + signedChar(self.B)) & 0xFFFF;
                 self.cl += 1;
                 return M;
             }
-            0xA6 => {  //i_d_A_Y;
+            0xA6 => {
+                //i_d_A_Y;
                 M = (self.Y + signedChar(self.A)) & 0xFFFF;
                 self.cl += 1;
                 return M;
@@ -366,14 +381,16 @@ impl M6809 {
             0xA7 => {
                 return 0; //i_undoc;	/* empty */
             }
-            0xA8 => {  //i_d_8_Y;
+            0xA8 => {
+                //i_d_8_Y;
                 self.m2 = mem.read(self.PC);
                 self.PC += 1;
                 M = (self.Y + signedChar(self.m2)) & 0xFFFF;
                 self.cl += 1;
                 return M;
             }
-            0xA9 => {  //i_d_16_Y;
+            0xA9 => {
+                //i_d_16_Y;
                 self.m2 = mem.read_16(self.PC);
                 self.PC += 2;
                 M = (self.Y + signed16bits(self.m2)) & 0xFFFF;
@@ -383,7 +400,8 @@ impl M6809 {
             0xAA => {
                 return 0; //i_undoc;	/* empty */
             }
-            0xAB => {  //i_d_D_Y;
+            0xAB => {
+                //i_d_D_Y;
                 M = (self.Y + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
                 self.cl += 4;
                 return M;
@@ -397,7 +415,8 @@ impl M6809 {
             0xB0 => {
                 return 0; //i_undoc;	/* empty */
             }
-            0xB1 => {  //i_i_P2_Y;
+            0xB1 => {
+                //i_i_P2_Y;
                 M = mem.read_16(self.Y);
                 self.Y = (self.Y + 2) & 0xFFFF;
                 self.cl += 6;
@@ -406,24 +425,28 @@ impl M6809 {
             0xB2 => {
                 return 0; //i_undoc;	/* empty */
             }
-            0xB3 => {  //i_i_M2_Y;
+            0xB3 => {
+                //i_i_M2_Y;
                 self.Y = (self.Y - 2) & 0xFFFF;
                 M = mem.read_16(self.Y);
                 self.cl += 6;
                 return M;
             }
-            0xB4 => {  //i_i_0_Y;
+            0xB4 => {
+                //i_i_0_Y;
                 M = mem.read_16(self.Y);
                 self.cl += 3;
                 return M;
             }
-            0xB5 => {  //i_i_B_Y;
+            0xB5 => {
+                //i_i_B_Y;
                 M = (self.Y + signedChar(self.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
                 return M;
             }
-            0xB6 => {  //i_i_A_Y;
+            0xB6 => {
+                //i_i_A_Y;
                 M = (self.Y + signedChar(self.A)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
@@ -432,7 +455,8 @@ impl M6809 {
             0xB7 => {
                 return 0; //i_undoc;	/* empty */
             }
-            0xB8 => {  //i_i_8_Y;
+            0xB8 => {
+                //i_i_8_Y;
                 self.m2 = mem.read(self.PC);
                 self.PC = (self.PC + 1) & 0xFFFF;
                 M = (self.Y + signedChar(self.m2)) & 0xFFFF;
@@ -440,7 +464,8 @@ impl M6809 {
                 self.cl += 4;
                 return M;
             }
-            0xB9 => {  //i_i_16_Y;
+            0xB9 => {
+                //i_i_16_Y;
                 self.m2 = mem.read_16(self.PC);
                 self.PC = (self.PC + 2) & 0xFFFF;
                 M = (self.Y + signed16bits(self.m2)) & 0xFFFF;
@@ -451,7 +476,8 @@ impl M6809 {
             0xBA => {
                 return 0; //i_undoc;	/* empty */
             }
-            0xBB => {  //i_i_D_Y;
+            0xBB => {
+                //i_i_D_Y;
                 M = (self.Y + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
@@ -462,40 +488,47 @@ impl M6809 {
 
                 // U
             }
-            0xC0 => {  //i_d_P1_U;
+            0xC0 => {
+                //i_d_P1_U;
                 M = self.U;
                 self.U = (self.U + 1) & 0xFFFF;
                 self.cl += 2;
                 return M;
             }
-            0xC1 => {  //i_d_P2_U;
+            0xC1 => {
+                //i_d_P2_U;
                 M = self.U;
                 self.U = (self.U + 2) & 0xFFFF;
                 self.cl += 3;
                 return M;
             }
-            0xC2 => {  //i_d_M1_U;
+            0xC2 => {
+                //i_d_M1_U;
                 self.U = (self.U - 1) & 0xFFFF;
                 M = self.U;
                 self.cl += 2;
                 return M;
             }
-            0xC3 => {  //i_d_M2_U;
+            0xC3 => {
+                //i_d_M2_U;
                 self.U = (self.U - 2) & 0xFFFF;
                 M = self.U;
                 self.cl += 3;
                 return M;
             }
-            0xC4 => {  //i_d_U;
+            0xC4 => {
+                //i_d_U;
                 M = self.U;
                 return M;
             }
-            0xC5 => {  //i_d_B_U;
+            0xC5 => {
+                //i_d_B_U;
                 M = (self.U + signedChar(self.B)) & 0xFFFF;
                 self.cl += 1;
                 return M;
             }
-            0xC6 => {  //i_d_A_U;
+            0xC6 => {
+                //i_d_A_U;
                 M = (self.U + signedChar(self.A)) & 0xFFFF;
                 self.cl += 1;
                 return M;
@@ -503,14 +536,16 @@ impl M6809 {
             0xC7 => {
                 return 0; //i_undoc;	/* empty */
             }
-            0xC8 => {  //i_d_8_U;
+            0xC8 => {
+                //i_d_8_U;
                 self.m2 = mem.read(self.PC);
                 self.PC += 1;
                 M = (self.U + signedChar(self.m2)) & 0xFFFF;
                 self.cl += 1;
                 return M;
             }
-            0xC9 => {  //i_d_16_U;
+            0xC9 => {
+                //i_d_16_U;
                 self.m2 = mem.read_16(self.PC);
                 self.PC += 2;
                 M = (self.U + signed16bits(self.m2)) & 0xFFFF;
@@ -520,7 +555,8 @@ impl M6809 {
             0xCA => {
                 return 0; //i_undoc;	/* empty */
             }
-            0xCB => {  //i_d_D_U;
+            0xCB => {
+                //i_d_D_U;
                 M = (self.U + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
                 self.cl += 4;
                 return M;
@@ -534,7 +570,8 @@ impl M6809 {
             0xD0 => {
                 return 0; //i_undoc;	/* empty */
             }
-            0xD1 => {  //i_i_P2_U;
+            0xD1 => {
+                //i_i_P2_U;
                 M = mem.read_16(self.U);
                 self.U = (self.U + 2) & 0xFFFF;
                 self.cl += 6;
@@ -543,24 +580,28 @@ impl M6809 {
             0xD2 => {
                 return 0; //i_undoc;	/* empty */
             }
-            0xD3 => {  //i_i_M2_U;
+            0xD3 => {
+                //i_i_M2_U;
                 self.U = (self.U - 2) & 0xFFFF;
                 M = mem.read_16(self.U);
                 self.cl += 6;
                 return M;
             }
-            0xD4 => {  //i_i_0_U;
+            0xD4 => {
+                //i_i_0_U;
                 M = mem.read_16(self.U);
                 self.cl += 3;
                 return M;
             }
-            0xD5 => {  //i_i_B_U;
+            0xD5 => {
+                //i_i_B_U;
                 M = (self.U + signedChar(self.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
                 return M;
             }
-            0xD6 => {  //i_i_A_U;
+            0xD6 => {
+                //i_i_A_U;
                 M = (self.U + signedChar(self.A)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
@@ -569,7 +610,8 @@ impl M6809 {
             0xD7 => {
                 return 0; //i_undoc;	/* empty */
             }
-            0xD8 => {  //i_i_8_U;
+            0xD8 => {
+                //i_i_8_U;
                 self.m2 = mem.read(self.PC);
                 self.PC = (self.PC + 1) & 0xFFFF;
                 M = (self.U + signedChar(self.m2)) & 0xFFFF;
@@ -577,7 +619,8 @@ impl M6809 {
                 self.cl += 4;
                 return M;
             }
-            0xD9 => {  //i_i_16_U;
+            0xD9 => {
+                //i_i_16_U;
                 self.m2 = mem.read_16(self.PC);
                 self.PC = (self.PC + 2) & 0xFFFF;
                 M = (self.U + signed16bits(self.m2)) & 0xFFFF;
@@ -588,7 +631,8 @@ impl M6809 {
             0xDA => {
                 return 0; //i_undoc;	/* empty */
             }
-            0xDB => {  //i_i_D_U;
+            0xDB => {
+                //i_i_D_U;
                 M = (self.U + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
@@ -599,40 +643,47 @@ impl M6809 {
 
                 // S
             }
-            0xE0 => {  //i_d_P1_S;
+            0xE0 => {
+                //i_d_P1_S;
                 M = self.S;
                 self.S = (self.S + 1) & 0xFFFF;
                 self.cl += 2;
                 return M;
             }
-            0xE1 => {  //i_d_P2_S;
+            0xE1 => {
+                //i_d_P2_S;
                 M = self.S;
                 self.S = (self.S + 2) & 0xFFFF;
                 self.cl += 3;
                 return M;
             }
-            0xE2 => {  //i_d_M1_S;
+            0xE2 => {
+                //i_d_M1_S;
                 self.S = (self.S - 1) & 0xFFFF;
                 M = self.S;
                 self.cl += 2;
                 return M;
             }
-            0xE3 => {  //i_d_M2_S;
+            0xE3 => {
+                //i_d_M2_S;
                 self.S = (self.S - 2) & 0xFFFF;
                 M = self.S;
                 self.cl += 3;
                 return M;
             }
-            0xE4 => {  //i_d_S;
+            0xE4 => {
+                //i_d_S;
                 M = self.S;
                 return M;
             }
-            0xE5 => {  //i_d_B_S;
+            0xE5 => {
+                //i_d_B_S;
                 M = (self.S + signedChar(self.B)) & 0xFFFF;
                 self.cl += 1;
                 return M;
             }
-            0xE6 => {  //i_d_A_S;
+            0xE6 => {
+                //i_d_A_S;
                 M = (self.S + signedChar(self.A)) & 0xFFFF;
                 self.cl += 1;
                 return M;
@@ -640,14 +691,16 @@ impl M6809 {
             0xE7 => {
                 return 0; //i_undoc;	/* empty */
             }
-            0xE8 => {  //i_d_8_S;
+            0xE8 => {
+                //i_d_8_S;
                 self.m2 = mem.read(self.PC);
                 self.PC += 1;
                 M = (self.S + signedChar(self.m2)) & 0xFFFF;
                 self.cl += 1;
                 return M;
             }
-            0xE9 => {  //i_d_16_S;
+            0xE9 => {
+                //i_d_16_S;
                 self.m2 = mem.read_16(self.PC);
                 self.PC += 2;
                 M = (self.S + signed16bits(self.m2)) & 0xFFFF;
@@ -657,7 +710,8 @@ impl M6809 {
             0xEA => {
                 return 0; //i_undoc;	/* empty */
             }
-            0xEB => {  //i_d_D_S;
+            0xEB => {
+                //i_d_D_S;
                 M = (self.S + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
                 self.cl += 4;
                 return M;
@@ -671,7 +725,8 @@ impl M6809 {
             0xF0 => {
                 return 0; //i_undoc;	/* empty */
             }
-            0xF1 => {  //i_i_P2_S;
+            0xF1 => {
+                //i_i_P2_S;
                 M = mem.read_16(self.S);
                 self.S = (self.S + 2) & 0xFFFF;
                 self.cl += 6;
@@ -680,24 +735,28 @@ impl M6809 {
             0xF2 => {
                 return 0; //i_undoc;	/* empty */
             }
-            0xF3 => {  //i_i_M2_S;
+            0xF3 => {
+                //i_i_M2_S;
                 self.S = (self.S - 2) & 0xFFFF;
                 M = mem.read_16(self.S);
                 self.cl += 6;
                 return M;
             }
-            0xF4 => {  //i_i_0_S;
+            0xF4 => {
+                //i_i_0_S;
                 M = mem.read_16(self.S);
                 self.cl += 3;
                 return M;
             }
-            0xF5 => {  //i_i_B_S;
+            0xF5 => {
+                //i_i_B_S;
                 M = (self.S + signedChar(self.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
                 return M;
             }
-            0xF6 => {  //i_i_A_S;
+            0xF6 => {
+                //i_i_A_S;
                 M = (self.S + signedChar(self.A)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
@@ -706,7 +765,8 @@ impl M6809 {
             0xF7 => {
                 return 0; //i_undoc;	/* empty */
             }
-            0xF8 => {  //i_i_8_S;
+            0xF8 => {
+                //i_i_8_S;
                 self.m2 = mem.read(self.PC);
                 self.PC = (self.PC + 1) & 0xFFFF;
                 M = (self.S + signedChar(self.m2)) & 0xFFFF;
@@ -714,7 +774,8 @@ impl M6809 {
                 self.cl += 4;
                 return M;
             }
-            0xF9 => {  //i_i_16_S;
+            0xF9 => {
+                //i_i_16_S;
                 self.m2 = mem.read_16(self.PC);
                 self.PC = (self.PC + 2) & 0xFFFF;
                 M = (self.S + signed16bits(self.m2)) & 0xFFFF;
@@ -725,7 +786,8 @@ impl M6809 {
             0xFA => {
                 return 0; //i_undoc;	/* empty */
             }
-            0xFB => {  //i_i_D_S;
+            0xFB => {
+                //i_i_D_S;
                 M = (self.S + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
@@ -842,24 +904,23 @@ impl M6809 {
         // only for javac
         // of match r1
         let k: int = match r1 {
-            0x00 => { (self.A << 8) | self.B }
-            0x01 => { self.X }
-            0x02 => { self.Y }
-            0x03 => { self.U }
-            0x04 => { self.S }
-            0x05 => { self.PC }
-            0x06 => { self.getcc() }
-            0x07 => { self.getcc() }
-            0x08 => { self.A }
-            0x09 => { self.B }
-            0x0A => { self.getcc() }
-            0x0B => { self.DP }
-            0x0C => { self.getcc() }
-            0x0D => { self.getcc() }
-            0x0E => { self.getcc() }
-            0x0F => { self.getcc() }
-            _ => { 0 }
-            // only for javac
+            0x00 => (self.A << 8) | self.B,
+            0x01 => self.X,
+            0x02 => self.Y,
+            0x03 => self.U,
+            0x04 => self.S,
+            0x05 => self.PC,
+            0x06 => self.getcc(),
+            0x07 => self.getcc(),
+            0x08 => self.A,
+            0x09 => self.B,
+            0x0A => self.getcc(),
+            0x0B => self.DP,
+            0x0C => self.getcc(),
+            0x0D => self.getcc(),
+            0x0E => self.getcc(),
+            0x0F => self.getcc(),
+            _ => 0, // only for javac
         };
         let mut l = 0;
         let r2 = m & 0x0F;
@@ -993,23 +1054,23 @@ impl M6809 {
         // only for javac
         // of match r1
         let k: int = match r1 {
-            0x00 => { (self.A << 8) | self.B }
-            0x01 => { self.X }
-            0x02 => { self.Y }
-            0x03 => { self.U }
-            0x04 => { self.S }
-            0x05 => { self.PC }
-            0x06 => { self.getcc() }
-            0x07 => { self.getcc() }
-            0x08 => { self.A }
-            0x09 => { self.B }
-            0x0A => { self.getcc() }
-            0x0B => { self.DP }
-            0x0C => { self.getcc() }
-            0x0D => { self.getcc() }
-            0x0E => { self.getcc() }
-            0x0F => { self.getcc() }
-            _ => { 0 }
+            0x00 => (self.A << 8) | self.B,
+            0x01 => self.X,
+            0x02 => self.Y,
+            0x03 => self.U,
+            0x04 => self.S,
+            0x05 => self.PC,
+            0x06 => self.getcc(),
+            0x07 => self.getcc(),
+            0x08 => self.A,
+            0x09 => self.B,
+            0x0A => self.getcc(),
+            0x0B => self.DP,
+            0x0C => self.getcc(),
+            0x0D => self.getcc(),
+            0x0E => self.getcc(),
+            0x0F => self.getcc(),
+            _ => 0,
         };
         let r2 = m & 0x0F;
         match r2 {
@@ -1407,7 +1468,7 @@ impl M6809 {
 
     fn ANDCC(&mut self, adr: int, c: int, mem: &mut Memory) {
         let val = mem.read(adr);
-//	getcc();
+        //	getcc();
         self.CC &= val;
         self.setcc(self.CC);
         self.cl += c;
@@ -2062,7 +2123,8 @@ impl M6809 {
         let m = mem.read(self.PC);
         self.PC += 1;
         if ((self.res & 0xff) == 0)
-            || (((self.sign ^ ((!(self.m1 ^ self.m2)) & (self.m1 ^ self.ovfl))) & 0x80) != 0) {
+            || (((self.sign ^ ((!(self.m1 ^ self.m2)) & (self.m1 ^ self.ovfl))) & 0x80) != 0)
+        {
             self.PC += signedChar(m);
         }
         self.cl += 3;
@@ -2076,7 +2138,8 @@ impl M6809 {
         self.PC += 1;
         off |= m;
         if ((self.res & 0xff) == 0)
-            || (((self.sign ^ ((!(self.m1 ^ self.m2)) & (self.m1 ^ self.ovfl))) & 0x80) != 0) {
+            || (((self.sign ^ ((!(self.m1 ^ self.m2)) & (self.m1 ^ self.ovfl))) & 0x80) != 0)
+        {
             self.PC = (self.PC + off) & 0xFFFF;
             self.cl += 6;
         } else {
@@ -2112,7 +2175,8 @@ impl M6809 {
         let m = mem.read(self.PC);
         self.PC += 1;
         if ((self.res & 0xff) != 0)
-            && (((self.sign ^ ((!(self.m1 ^ self.m2)) & (self.m1 ^ self.ovfl))) & 0x80) == 0) {
+            && (((self.sign ^ ((!(self.m1 ^ self.m2)) & (self.m1 ^ self.ovfl))) & 0x80) == 0)
+        {
             self.PC += signedChar(m);
         }
         self.cl += 3;
@@ -2126,7 +2190,8 @@ impl M6809 {
         self.PC += 1;
         off |= m;
         if ((self.res & 0xff) != 0)
-            && (((self.sign ^ ((!(self.m1 ^ self.m2)) & (self.m1 ^ self.ovfl))) & 0x80) == 0) {
+            && (((self.sign ^ ((!(self.m1 ^ self.m2)) & (self.m1 ^ self.ovfl))) & 0x80) == 0)
+        {
             self.PC = (self.PC + off) & 0xFFFF;
             self.cl += 6;
         } else {
@@ -2393,7 +2458,13 @@ impl M6809 {
         self.cl += 20;
     }
 
-    pub(crate) fn FetchUntil(&mut self, clock: int, mem: &mut Memory, screen: &mut Screen, sound: &mut Sound) -> int {
+    pub(crate) fn FetchUntil(
+        &mut self,
+        clock: int,
+        mem: &mut Memory,
+        screen: &mut Screen,
+        sound: &mut Sound,
+    ) -> int {
         while self.cl < clock {
             self.Fetch(mem, screen, sound);
         }
@@ -2412,7 +2483,6 @@ impl M6809 {
         }
 
         match opcode {
-
             // the mystery undocumented opcode
             0x01 => {
                 self.PC += 1;
@@ -2477,7 +2547,7 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.D = self.LD16(M, 5, mem);
                 self.CALCAB();
-           }
+            }
             // LDU
             0xCE => {
                 let M = self.IMMED16();
@@ -2525,7 +2595,7 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.ST8(self.A, M, 4, mem);
             }
-// STB
+            // STB
             0xD7 => {
                 let M = self.DIREC(mem);
                 self.ST8(self.B, M, 4, mem);
@@ -2538,7 +2608,7 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.ST8(self.B, M, 4, mem);
             }
-// STD
+            // STD
             0xDD => {
                 self.CALCD();
                 let M = self.DIREC(mem);
@@ -2554,7 +2624,7 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.ST16(self.D, M, 6, mem);
             }
-// STU
+            // STU
             0xDF => {
                 let adr = self.DIREC(mem);
                 self.ST16(self.U, adr, 5, mem);
@@ -2567,7 +2637,7 @@ impl M6809 {
                 let adr = self.INDEXE(mem);
                 self.ST16(self.U, adr, 5, mem);
             }
-// STX
+            // STX
             0x9F => {
                 let M = self.DIREC(mem);
                 self.ST16(self.X, M, 5, mem);
@@ -2580,15 +2650,23 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.ST16(self.X, M, 5, mem);
             }
-// LEAS
-            0x32 => { self.S = self.INDEXE(mem); }
-// LEAU
-            0x33 => { self.U = self.INDEXE(mem); }
-// LEAX
-            0x30 => { self.X = self.LEA(mem); }
-// LEAY
-            0x31 => { self.Y = self.LEA(mem); }
-// CLRA
+            // LEAS
+            0x32 => {
+                self.S = self.INDEXE(mem);
+            }
+            // LEAU
+            0x33 => {
+                self.U = self.INDEXE(mem);
+            }
+            // LEAX
+            0x30 => {
+                self.X = self.LEA(mem);
+            }
+            // LEAY
+            0x31 => {
+                self.Y = self.LEA(mem);
+            }
+            // CLRA
             0x4F => {
                 self.A = 0;
                 self.m1 = self.ovfl;
@@ -2596,7 +2674,7 @@ impl M6809 {
                 self.res = 0;
                 self.cl += 2;
             }
-// CLRB
+            // CLRB
             0x5F => {
                 self.B = 0;
                 self.m1 = self.ovfl;
@@ -2604,7 +2682,7 @@ impl M6809 {
                 self.res = 0;
                 self.cl += 2;
             }
-// CLR
+            // CLR
             0x0F => {
                 let M = self.DIREC(mem);
                 self.CLR(M, 6, mem);
@@ -2617,16 +2695,32 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.CLR(M, 6, mem);
             }
-            0x1E => { self.EXG(mem); }
-            0x1F => { self.TFR(mem); }
-// PSH/PUL
-            0x34 => { self.PSHS(mem); }
-            0x36 => { self.PSHU(mem); }
-            0x35 => { self.PULS(mem); }
-            0x37 => { self.PULU(mem); }
-// INC
-            0x4C => { self.INCA(); }
-            0x5C => { self.INCB(); }
+            0x1E => {
+                self.EXG(mem);
+            }
+            0x1F => {
+                self.TFR(mem);
+            }
+            // PSH/PUL
+            0x34 => {
+                self.PSHS(mem);
+            }
+            0x36 => {
+                self.PSHU(mem);
+            }
+            0x35 => {
+                self.PULS(mem);
+            }
+            0x37 => {
+                self.PULU(mem);
+            }
+            // INC
+            0x4C => {
+                self.INCA();
+            }
+            0x5C => {
+                self.INCB();
+            }
             0x7C => {
                 let M = self.ETEND(mem);
                 self.INC(M, 7, mem);
@@ -2639,9 +2733,13 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.INC(M, 6, mem);
             }
-// DEC
-            0x4A => { self.DECA(); }
-            0x5A => { self.DECB(); }
+            // DEC
+            0x4A => {
+                self.DECA();
+            }
+            0x5A => {
+                self.DECB();
+            }
             0x7A => {
                 let M = self.ETEND(mem);
                 self.DEC(M, 7, mem);
@@ -2654,7 +2752,7 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.DEC(M, 6, mem);
             }
-// BIT
+            // BIT
             0x85 => {
                 let M = self.IMMED8();
                 self.BIT(self.A, M, 2, mem);
@@ -2687,7 +2785,7 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.BIT(self.B, M, 4, mem);
             }
-// CMP
+            // CMP
             0x81 => {
                 let M = self.IMMED8();
                 self.CMP8(self.A, M, 2, mem);
@@ -2736,9 +2834,13 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.CMP16(self.X, M, 7, mem);
             }
-// TST
-            0x4D => { self.TSTAi(); }
-            0x5D => { self.TSTBi(); }
+            // TST
+            0x4D => {
+                self.TSTAi();
+            }
+            0x5D => {
+                self.TSTBi();
+            }
             0x0D => {
                 let M = self.DIREC(mem);
                 self.TST(M, 6, mem);
@@ -2751,7 +2853,7 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.TST(M, 6, mem);
             }
-// AND
+            // AND
             0x84 => {
                 let M = self.IMMED8();
                 self.ANDA(M, 2, mem);
@@ -2788,7 +2890,7 @@ impl M6809 {
                 let M = self.IMMED8();
                 self.ANDCC(M, 3, mem);
             }
-// OR
+            // OR
             0x8A => {
                 let M = self.IMMED8();
                 self.ORA(M, 2, mem);
@@ -2825,7 +2927,7 @@ impl M6809 {
                 let M = self.IMMED8();
                 self.ORCC(M, 3, mem);
             }
-// EOR
+            // EOR
             0x88 => {
                 let M = self.IMMED8();
                 self.EORA(M, 2, mem);
@@ -2858,9 +2960,13 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.EORB(M, 4, mem);
             }
-// COM
-            0x43 => { self.COMA(); }
-            0x53 => { self.COMB(); }
+            // COM
+            0x43 => {
+                self.COMA();
+            }
+            0x53 => {
+                self.COMB();
+            }
             0x03 => {
                 let M = self.DIREC(mem);
                 self.COM(M, 6, mem);
@@ -2873,9 +2979,13 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.COM(M, 6, mem);
             }
-// NEG
-            0x40 => { self.NEGA(); }
-            0x50 => { self.NEGB(); }
+            // NEG
+            0x40 => {
+                self.NEGA();
+            }
+            0x50 => {
+                self.NEGB();
+            }
             0x00 => {
                 let M = self.DIREC(mem);
                 self.NEG(M, 6, mem);
@@ -2888,8 +2998,10 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.NEG(M, 6, mem);
             }
-            0x3A => { self.ABX(); }
-//ADD
+            0x3A => {
+                self.ABX();
+            }
+            //ADD
             0x8B => {
                 let M = self.IMMED8();
                 self.ADDA(M, 2, mem);
@@ -2938,7 +3050,7 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.ADDD(M, 6, mem);
             }
-// ADC
+            // ADC
             0x89 => {
                 let M = self.IMMED8();
                 self.ADCA(M, 2, mem);
@@ -2971,8 +3083,10 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.ADCB(M, 4, mem);
             }
-            0x3D => { self.MUL(); }
-// SBC
+            0x3D => {
+                self.MUL();
+            }
+            // SBC
             0x82 => {
                 let M = self.IMMED8();
                 self.SBCA(M, 2, mem);
@@ -3005,7 +3119,7 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.SBCB(M, 4, mem);
             }
-//SUB
+            //SUB
             0x80 => {
                 let M = self.IMMED8();
                 self.SUBA(M, 2, mem);
@@ -3054,10 +3168,16 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.SUBD(M, 6, mem);
             }
-            0x1D => { self.SEX(); }
-// ASL
-            0x48 => { self.ASLA(); }
-            0x58 => { self.ASLB(); }
+            0x1D => {
+                self.SEX();
+            }
+            // ASL
+            0x48 => {
+                self.ASLA();
+            }
+            0x58 => {
+                self.ASLB();
+            }
             0x08 => {
                 let M = self.DIREC(mem);
                 self.ASL(M, 6, mem);
@@ -3070,9 +3190,13 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.ASL(M, 6, mem);
             }
-// ASR
-            0x47 => { self.ASRA(); }
-            0x57 => { self.ASRB(); }
+            // ASR
+            0x47 => {
+                self.ASRA();
+            }
+            0x57 => {
+                self.ASRB();
+            }
             0x07 => {
                 let M = self.DIREC(mem);
                 self.ASR(M, 6, mem);
@@ -3085,9 +3209,13 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.ASR(M, 6, mem);
             }
-// LSR
-            0x44 => { self.LSRA(); }
-            0x54 => { self.LSRB(); }
+            // LSR
+            0x44 => {
+                self.LSRA();
+            }
+            0x54 => {
+                self.LSRB();
+            }
             0x04 => {
                 let M = self.DIREC(mem);
                 self.LSR(M, 6, mem);
@@ -3100,9 +3228,13 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.LSR(M, 6, mem);
             }
-// ROL
-            0x49 => { self.ROLA(); }
-            0x59 => { self.ROLB(); }
+            // ROL
+            0x49 => {
+                self.ROLA();
+            }
+            0x59 => {
+                self.ROLB();
+            }
             0x09 => {
                 let M = self.DIREC(mem);
                 self.ROL(M, 6, mem);
@@ -3115,9 +3247,13 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.ROL(M, 6, mem);
             }
-// ROR
-            0x46 => { self.RORA(); }
-            0x56 => { self.RORB(); }
+            // ROR
+            0x46 => {
+                self.RORA();
+            }
+            0x56 => {
+                self.RORB();
+            }
             0x06 => {
                 let M = self.DIREC(mem);
                 self.ROR(M, 6, mem);
@@ -3130,48 +3266,110 @@ impl M6809 {
                 let M = self.INDEXE(mem);
                 self.ROR(M, 6, mem);
             }
-// BRA
-            0x20 => { self.BRA(mem); }
-            0x16 => { self.LBRA(mem); }
-// JMP
-            0x0E => { self.JMPd(mem); }
-            0x7E => { self.JMPe(mem); }
-            0x6E => { self.JMPx(mem); }
-// BSR
-            0x8D => { self.BSR(mem); }
-            0x17 => { self.LBSR(mem); }
-// JSR
-            0x9D => { self.JSRd(mem); }
-            0xBD => { self.JSRe(mem); }
-            0xAD => { self.JSRx(mem); }
-            0x12 => { self.NOP(); }
-            0x39 => { self.RTS(mem); }
-// Bxx
-            0x21 => { self.BRN(mem); }
-            0x24 => { self.BCC(mem); }
-            0x25 => { self.BCS(mem); }
-            0x27 => { self.BEQ(mem); }
-            0x26 => { self.BNE(mem); }
-            0x2C => { self.BGE(mem); }
-            0x2F => { self.BLE(mem); }
-            0x23 => { self.BLS(mem); }
-            0x2E => { self.BGT(mem); }
-            0x2D => { self.BLT(mem); }
-            0x22 => { self.BHI(mem); }
-            0x2B => { self.BMI(mem); }
-            0x2A => { self.BPL(mem); }
-            0x28 => { self.BVC(mem); }
-            0x29 => { self.BVS(mem); }
-            0x3F => { self.SWI(mem); }
-            0x3B => { self.RTI(mem); }
-            0x19 => { self.DAA(); }
-            0x3C => { self.CWAI(mem); }
+            // BRA
+            0x20 => {
+                self.BRA(mem);
+            }
+            0x16 => {
+                self.LBRA(mem);
+            }
+            // JMP
+            0x0E => {
+                self.JMPd(mem);
+            }
+            0x7E => {
+                self.JMPe(mem);
+            }
+            0x6E => {
+                self.JMPx(mem);
+            }
+            // BSR
+            0x8D => {
+                self.BSR(mem);
+            }
+            0x17 => {
+                self.LBSR(mem);
+            }
+            // JSR
+            0x9D => {
+                self.JSRd(mem);
+            }
+            0xBD => {
+                self.JSRe(mem);
+            }
+            0xAD => {
+                self.JSRx(mem);
+            }
+            0x12 => {
+                self.NOP();
+            }
+            0x39 => {
+                self.RTS(mem);
+            }
+            // Bxx
+            0x21 => {
+                self.BRN(mem);
+            }
+            0x24 => {
+                self.BCC(mem);
+            }
+            0x25 => {
+                self.BCS(mem);
+            }
+            0x27 => {
+                self.BEQ(mem);
+            }
+            0x26 => {
+                self.BNE(mem);
+            }
+            0x2C => {
+                self.BGE(mem);
+            }
+            0x2F => {
+                self.BLE(mem);
+            }
+            0x23 => {
+                self.BLS(mem);
+            }
+            0x2E => {
+                self.BGT(mem);
+            }
+            0x2D => {
+                self.BLT(mem);
+            }
+            0x22 => {
+                self.BHI(mem);
+            }
+            0x2B => {
+                self.BMI(mem);
+            }
+            0x2A => {
+                self.BPL(mem);
+            }
+            0x28 => {
+                self.BVC(mem);
+            }
+            0x29 => {
+                self.BVS(mem);
+            }
+            0x3F => {
+                self.SWI(mem);
+            }
+            0x3B => {
+                self.RTI(mem);
+            }
+            0x19 => {
+                self.DAA();
+            }
+            0x3C => {
+                self.CWAI(mem);
+            }
             // extended mode
             0x10 => {
                 let opcode0x10 = mem.read(self.PC);
                 self.PC += 1;
                 match opcode0x10 {
-// LDS
+                    // LDS
                     0xCE => {
                         let M = self.IMMED16();
                         self.S = self.LD16(M, 3, mem);
@@ -3188,7 +3386,7 @@ impl M6809 {
                         let M = self.INDEXE(mem);
                         self.S = self.LD16(M, 5, mem);
                     }
-// LDY
+                    // LDY
                     0x8E => {
                         let M = self.IMMED16();
                         self.Y = self.LD16(M, 3, mem);
@@ -3205,7 +3403,7 @@ impl M6809 {
                         let M = self.INDEXE(mem);
                         self.Y = self.LD16(M, 5, mem);
                     }
-// STS
+                    // STS
                     0xDF => {
                         let M = self.DIREC(mem);
                         self.ST16(self.S, M, 5, mem);
@@ -3218,7 +3416,7 @@ impl M6809 {
                         let M = self.INDEXE(mem);
                         self.ST16(self.S, M, 5, mem);
                     }
-// STY
+                    // STY
                     0x9F => {
                         let M = self.DIREC(mem);
                         self.ST16(self.Y, M, 5, mem);
@@ -3231,7 +3429,7 @@ impl M6809 {
                         let M = self.INDEXE(mem);
                         self.ST16(self.Y, M, 5, mem);
                     }
-// CMP
+                    // CMP
                     0x83 => {
                         self.CALCD();
                         let M = self.IMMED16();
@@ -3268,22 +3466,52 @@ impl M6809 {
                         let M = self.INDEXE(mem);
                         self.CMP16(self.Y, M, 7, mem);
                     }
-// Bxx
-                    0x21 => { self.LBRN(mem); }
-                    0x24 => { self.LBCC(mem); }
-                    0x25 => { self.LBCS(mem); }
-                    0x27 => { self.LBEQ(mem); }
-                    0x26 => { self.LBNE(mem); }
-                    0x2C => { self.LBGE(mem); }
-                    0x2F => { self.LBLE(mem); }
-                    0x23 => { self.LBLS(mem); }
-                    0x2E => { self.LBGT(mem); }
-                    0x2D => { self.LBLT(mem); }
-                    0x22 => { self.LBHI(mem); }
-                    0x2B => { self.LBMI(mem); }
-                    0x2A => { self.LBPL(mem); }
-                    0x28 => { self.LBVC(mem); }
-                    0x29 => { self.LBVS(mem); }
+                    // Bxx
+                    0x21 => {
+                        self.LBRN(mem);
+                    }
+                    0x24 => {
+                        self.LBCC(mem);
+                    }
+                    0x25 => {
+                        self.LBCS(mem);
+                    }
+                    0x27 => {
+                        self.LBEQ(mem);
+                    }
+                    0x26 => {
+                        self.LBNE(mem);
+                    }
+                    0x2C => {
+                        self.LBGE(mem);
+                    }
+                    0x2F => {
+                        self.LBLE(mem);
+                    }
+                    0x23 => {
+                        self.LBLS(mem);
+                    }
+                    0x2E => {
+                        self.LBGT(mem);
+                    }
+                    0x2D => {
+                        self.LBLT(mem);
+                    }
+                    0x22 => {
+                        self.LBHI(mem);
+                    }
+                    0x2B => {
+                        self.LBMI(mem);
+                    }
+                    0x2A => {
+                        self.LBPL(mem);
+                    }
+                    0x28 => {
+                        self.LBVC(mem);
+                    }
+                    0x29 => {
+                        self.LBVS(mem);
+                    }
                     _ => {
                         eprintln!("opcode 10 {} not implemented", hex(opcode0x10, 2));
                         eprintln!("{}", self.print_state());
@@ -3295,7 +3523,6 @@ impl M6809 {
                 self.PC += 1;
 
                 match opcode0x11 {
-
                     // CMP
                     0x8C => {
                         let M = self.IMMED16();
@@ -3342,20 +3569,21 @@ impl M6809 {
         } // of case  opcode
     } // of method fetch()
 
-
     // UNASSEMBLE/DEBUG PART
     pub(crate) fn print_state(&mut self) -> String {
         self.CC = self.getcc();
-        let s = format!("A={} B={} X={} Y={}\nPC={} DP={} U={} S={} CC={}",
-                        hex(self.A, 2),
-                        hex(self.B, 2),
-                        hex(self.X, 4),
-                        hex(self.Y, 4),
-                        hex(self.PC, 4),
-                        hex(self.DP, 2),
-                        hex(self.U, 4),
-                        hex(self.S, 4),
-                        hex(self.CC, 2));
+        let s = format!(
+            "A={} B={} X={} Y={}\nPC={} DP={} U={} S={} CC={}",
+            hex(self.A, 2),
+            hex(self.B, 2),
+            hex(self.X, 4),
+            hex(self.Y, 4),
+            hex(self.PC, 4),
+            hex(self.DP, 2),
+            hex(self.U, 4),
+            hex(self.S, 4),
+            hex(self.CC, 2)
+        );
         s
     }
 }
@@ -3370,12 +3598,24 @@ fn hex(val: int, size: int) -> String {
             output.push_str(format!("{}", q).as_str());
         } else {
             match q {
-                10 => { output.push('A'); }
-                11 => { output.push('B'); }
-                12 => { output.push('C'); }
-                13 => { output.push('D'); }
-                14 => { output.push('E'); }
-                15 => { output.push('F'); }
+                10 => {
+                    output.push('A');
+                }
+                11 => {
+                    output.push('B');
+                }
+                12 => {
+                    output.push('C');
+                }
+                13 => {
+                    output.push('D');
+                }
+                14 => {
+                    output.push('E');
+                }
+                15 => {
+                    output.push('F');
+                }
                 _ => {}
             }
         }
@@ -3423,29 +3663,67 @@ fn regx(m: int) -> String {
 fn r_tfr(m: int) -> String {
     let mut output = String::new();
     match m & 0xF0 {
-        0x80 => { output.push_str("A,"); }
-        0x90 => { output.push_str("B,"); }
-        0xA0 => { output.push_str("CC,"); }
-        0x00 => { output.push_str("D,"); }
-        0xB0 => { output.push_str("DP,"); }
-        0x50 => { output.push_str("PC,"); }
-        0x40 => { output.push_str("S,"); }
-        0x30 => { output.push_str("U,"); }
-        0x10 => { output.push_str("X,"); }
-        0x20 => { output.push_str("Y,"); }
+        0x80 => {
+            output.push_str("A,");
+        }
+        0x90 => {
+            output.push_str("B,");
+        }
+        0xA0 => {
+            output.push_str("CC,");
+        }
+        0x00 => {
+            output.push_str("D,");
+        }
+        0xB0 => {
+            output.push_str("DP,");
+        }
+        0x50 => {
+            output.push_str("PC,");
+        }
+        0x40 => {
+            output.push_str("S,");
+        }
+        0x30 => {
+            output.push_str("U,");
+        }
+        0x10 => {
+            output.push_str("X,");
+        }
+        0x20 => {
+            output.push_str("Y,");
+        }
         _ => {}
     };
     match m & 0x0F {
-        0x8 => { output.push('A'); }
-        0x9 => { output.push('B'); }
-        0xA => { output.push_str("CC"); }
-        0x0 => { output.push('D'); }
-        0xB => { output.push_str("DP"); }
+        0x8 => {
+            output.push('A');
+        }
+        0x9 => {
+            output.push('B');
+        }
+        0xA => {
+            output.push_str("CC");
+        }
+        0x0 => {
+            output.push('D');
+        }
+        0xB => {
+            output.push_str("DP");
+        }
         0x5 => output.push_str("PC"),
-        0x4 => { output.push('S'); }
-        0x3 => { output.push('U'); }
-        0x1 => { output.push('X'); }
-        0x2 => { output.push('Y'); }
+        0x4 => {
+            output.push('S');
+        }
+        0x3 => {
+            output.push('U');
+        }
+        0x1 => {
+            output.push('X');
+        }
+        0x2 => {
+            output.push('Y');
+        }
         _ => {}
     }
     output
@@ -3726,7 +4004,6 @@ pub(crate) fn unassemble(start: int, maxLines: int, mem: &mut Memory) -> String 
     /* MUL */
     MNEMO[0x3D] = "MUL -";
 
-
     /* SBC */
     MNEMO[0x82] = "SBCAi";
     MNEMO[0x92] = "SBCAd";
@@ -3879,7 +4156,6 @@ pub(crate) fn unassemble(start: int, maxLines: int, mem: &mut Memory) -> String 
 
     /* RTI */
     MNEMO[0x3B] = "RTI -";
-
 
     let mut _where = start;
 
@@ -4205,4 +4481,3 @@ pub(crate) fn unassemble(start: int, maxLines: int, mem: &mut Memory) -> String 
     } // of for ... maxLines
     output
 }
-

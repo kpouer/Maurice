@@ -14,7 +14,7 @@ pub(crate) struct Sound {
     pub buffer: Arc<Mutex<Vec<u8>>>,
     sample_rate: u32,
     audio_stream: cpal::Stream,
-    audio: [u8;N_BYTES/4],
+    audio: [u8; N_BYTES / 4],
 }
 
 impl Sound {
@@ -26,7 +26,7 @@ impl Sound {
             buffer,
             sample_rate: rate,
             audio_stream: stream,
-            audio: [0;N_BYTES/4],
+            audio: [0; N_BYTES / 4],
         };
         apu.audio_stream.play().ok()?;
         Some(apu)
@@ -39,7 +39,7 @@ impl Sound {
             self.audio[i / 4] = cpu.sound_buffer[i];
         }
         let mut buffer = self.buffer.lock().unwrap();
-        for i in 0..N_BYTES/4 {
+        for i in 0..N_BYTES / 4 {
             buffer.push(self.audio[i]);
         }
     }
@@ -47,9 +47,7 @@ impl Sound {
 
 // Get audio stream and sample rate to use when processing audio. We pass the shared
 // buffer which will be used by the APU.
-fn get_audio_stream(
-    buffer: Arc<Mutex<Vec<u8>>>,
-) -> Option<(cpal::Stream, cpal::SampleRate)> {
+fn get_audio_stream(buffer: Arc<Mutex<Vec<u8>>>) -> Option<(cpal::Stream, cpal::SampleRate)> {
     let device = cpal::default_host().default_output_device()?;
     let supported_configs = device.supported_output_configs().ok()?;
     let mut supported_config = None;
@@ -97,7 +95,7 @@ fn get_audio_stream(
         ),
         _ => panic!("apu: unsupported audio sample format (supported options: F32, U16, I16)"),
     }
-        .ok()?;
+    .ok()?;
     Some((stream, sample_rate))
 }
 

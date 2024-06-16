@@ -8,10 +8,10 @@ use log::info;
 use rfd::FileDialog;
 
 use crate::hardware::keyboard::Keyboard;
-use crate::hardware::M6809::M6809;
 use crate::hardware::memory::Memory;
-use crate::hardware::screen::{DEFAULT_PIXEL_SIZE, Screen};
+use crate::hardware::screen::{Screen, DEFAULT_PIXEL_SIZE};
 use crate::hardware::sound::Sound;
+use crate::hardware::M6809::M6809;
 use crate::int;
 use crate::user_input::UserInput;
 
@@ -22,11 +22,11 @@ pub(crate) struct Machine {
     pub(crate) screen: Screen,
     sound: Sound,
     pub(crate) keyboard: Keyboard,
-    pub(crate) testtimer:int,
+    pub(crate) testtimer: int,
     pub(crate) irq: bool,
     pub(crate) last_time: DateTime<Local>,
     pub(crate) keys: Vec<int>,
-    pub(crate) keytimer:int,
+    pub(crate) keytimer: int,
     pub(crate) keypos: usize,
     pub(crate) typetext: Option<String>,
     pub(crate) running: bool,
@@ -35,7 +35,10 @@ pub(crate) struct Machine {
 }
 
 impl Machine {
-    pub(crate) fn new(image_data_sender: Sender<Vec<u8>>, user_input_receiver: Receiver<UserInput>) -> Self {
+    pub(crate) fn new(
+        image_data_sender: Sender<Vec<u8>>,
+        user_input_receiver: Receiver<UserInput>,
+    ) -> Self {
         info!("Machine::new()");
         let screen = Screen::new();
         info!("Machine::screen()");
@@ -121,19 +124,23 @@ impl Machine {
         /* 3.9 ms haut �cran (+0.3 irq)*/
         if self.irq {
             self.irq = false;
-            self.micro.FetchUntil(3800, &mut self.mem, &mut self.screen, &mut self.sound);
+            self.micro
+                .FetchUntil(3800, &mut self.mem, &mut self.screen, &mut self.sound);
         } else {
-            self.micro.FetchUntil(4100, &mut self.mem, &mut self.screen, &mut self.sound);
+            self.micro
+                .FetchUntil(4100, &mut self.mem, &mut self.screen, &mut self.sound);
         }
 
         /* 13ms fenetre */
         self.mem.set(0xA7E7, 0x80);
         self.mem.GA3 = 0x80;
-        self.micro.FetchUntil(13100, &mut self.mem, &mut self.screen, &mut self.sound);
+        self.micro
+            .FetchUntil(13100, &mut self.mem, &mut self.screen, &mut self.sound);
 
         self.mem.set(0xA7E7, 0x00);
         self.mem.GA3 = 0x00;
-        self.micro.FetchUntil(2800, &mut self.mem, &mut self.screen, &mut self.sound);
+        self.micro
+            .FetchUntil(2800, &mut self.mem, &mut self.screen, &mut self.sound);
 
         if (self.mem.CRB & 0x01) == 0x01 {
             self.irq = true;
@@ -145,7 +152,8 @@ impl Machine {
                 self.micro.IRQ(&mut self.mem);
             }
             /* 300 cycles sous interrupt */
-            self.micro.FetchUntil(300, &mut self.mem, &mut self.screen, &mut self.sound);
+            self.micro
+                .FetchUntil(300, &mut self.mem, &mut self.screen, &mut self.sound);
             self.mem.CRB &= 0x7F;
             self.mem.set(0xA7C3, self.mem.CRB);
         }
@@ -186,9 +194,10 @@ impl Machine {
                 }
             }
         }
-        let real_time_millis:i64 = Local::now().timestamp_millis() - self.last_time.timestamp_millis();
+        let real_time_millis: i64 =
+            Local::now().timestamp_millis() - self.last_time.timestamp_millis();
 
-        let sleep_millis:i64 = 20i64 - real_time_millis - 1;
+        let sleep_millis: i64 = 20i64 - real_time_millis - 1;
         if sleep_millis < 0 {
             self.last_time = Local::now();
             return;
@@ -231,4 +240,3 @@ impl Machine {
     //     unassemble(self.micro.PC, nblines, mem)
     // }
 }
-

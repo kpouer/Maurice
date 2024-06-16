@@ -20,18 +20,17 @@ pub(crate) struct Memory {
     pub(crate) light_pen_x: int,
     pub(crate) light_pen_y: int,
 
-// 0 1 			POINT 	2
-// 2 3 			COLOR 	2
-// 4 5 6 7   	RAM1 	4
-// 8 9 10 11 	RAM2 	4
-// 12			LINEA 	1
-// 13 			LINEB 	1
-// 14 15 16 17 	ROM 	4
-
-    mem:Vec<Vec<int>>,
-    mapper:[int;16],
-    key:Vec<bool>,
-    dirty:Vec<bool>,
+    // 0 1 			POINT 	2
+    // 2 3 			COLOR 	2
+    // 4 5 6 7   	RAM1 	4
+    // 8 9 10 11 	RAM2 	4
+    // 12			LINEA 	1
+    // 13 			LINEB 	1
+    // 14 15 16 17 	ROM 	4
+    mem: Vec<Vec<int>>,
+    mapper: [int; 16],
+    key: Vec<bool>,
+    dirty: Vec<bool>,
 
     /* Registres du 6821 */
     ORA: int,
@@ -39,25 +38,25 @@ pub(crate) struct Memory {
     DDRA: int,
     DDRB: int,
     CRA: int,
-    pub(crate) CRB:int,
+    pub(crate) CRB: int,
     pub(crate) sound_mem: u8,
 
     /* Registre du Gate Array */
-    GA0:int,
-    GA1:int,
-    GA2:int,
-    pub(crate) GA3:int,
+    GA0: int,
+    GA1: int,
+    GA2: int,
+    pub(crate) GA3: int,
 
-    k7_bit:int,
-    k7_char:int,
+    k7_bit: int,
+    k7_char: int,
 
-    k7_fis:Option<DataInputStream>,
-    k7_fos:Option<BufWriter<File>>,
-    is_file_opened:bool,
-    is_file_opened_out:bool,
-    k7_in:Option<DataInputStream>,
-    k7_out:Option<DataInputStream>,
-    k7_out_name:Option<String>,
+    k7_fis: Option<DataInputStream>,
+    k7_fos: Option<BufWriter<File>>,
+    is_file_opened: bool,
+    is_file_opened_out: bool,
+    k7_in: Option<DataInputStream>,
+    k7_out: Option<DataInputStream>,
+    k7_out_name: Option<String>,
 }
 
 impl Default for Memory {
@@ -67,7 +66,7 @@ impl Default for Memory {
             light_pen_x: 0,
             light_pen_y: 0,
             mem: vec![vec![0; 0x1000]; 18],
-            mapper: [0, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,],
+            mapper: [0, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
             key: vec![false; 256],
             dirty: vec![false; 200],
             ORA: 0,
@@ -121,7 +120,8 @@ impl Memory {
         if page == 0x0A {
             self.hardware(address, value);
         } else {
-            self.mem[self.mapper[page as usize] as usize][(address & 0xFFF) as usize] = value & 0xFF;
+            self.mem[self.mapper[page as usize] as usize][(address & 0xFFF) as usize] =
+                value & 0xFF;
         }
     }
 
@@ -134,7 +134,8 @@ impl Memory {
         if page == 0x0A {
             self.hardware(address, value);
         } else {
-            self.mem[self.mapper[page as usize] as usize][(address & 0xFFF) as usize] = value & 0xFF;
+            self.mem[self.mapper[page as usize] as usize][(address & 0xFFF) as usize] =
+                value & 0xFF;
         }
     }
 
@@ -149,12 +150,12 @@ impl Memory {
         self.mem[self.mapper[page as usize] as usize][(address & 0xFFF) as usize] = value & 0xFF;
     }
 
-    pub(crate) fn POINT(&mut self, address: int) ->int {
+    pub(crate) fn POINT(&mut self, address: int) -> int {
         let page = (address & 0xF000) >> 12;
         self.mem[page as usize][(address & 0xFFF) as usize]
     }
 
-    pub(crate) fn COLOR(&mut self, address: int) ->int {
+    pub(crate) fn COLOR(&mut self, address: int) -> int {
         let page = (address & 0xF000) >> 12;
         self.mem[(page + 2) as usize][(address & 0xFFF) as usize]
     }
@@ -193,7 +194,10 @@ impl Memory {
         let embedded_bios = Bios::get("mo5.rom").unwrap();
         let starting_address = 0xC000;
         for i in starting_address..0x10000 {
-            self.write_p(i, embedded_bios.data[(i - starting_address) as usize] as int);
+            self.write_p(
+                i,
+                embedded_bios.data[(i - starting_address) as usize] as int,
+            );
         }
         //
         // let u = "bios/mo5.rom";
@@ -215,8 +219,9 @@ impl Memory {
         /* 6821 système */
         /* acces à ORA ou DDRA */
         if ADR == 0xA7C0 {
-
-            if (self.CRA & 0x04) == 0x04 /* Accès à ORA */ {
+            if (self.CRA & 0x04) == 0x04
+            /* Accès à ORA */
+            {
                 if (OP & 0x01) == 0x01 {
                     self.mapper[0] = 0;
                     self.mapper[1] = 1;
@@ -236,10 +241,12 @@ impl Memory {
                 self.DDRA = OP;
                 self.mem[0xA + 2][0x7C0] = OP;
             }
-        } else if ADR == 0xA7C1/* accès à ORB ou DDRB */
+        } else if ADR == 0xA7C1
+        /* accès à ORB ou DDRB */
         {
             if (self.CRB & 0x04) == 0x04
-            /* Accès à ORB */ {
+            /* Accès à ORB */
+            {
                 self.ORB = (self.ORB & (self.DDRB ^ 0xFF)) | (OP & self.DDRB);
 
                 /* GESTION HARD DU CLAVIER */
@@ -256,14 +263,15 @@ impl Memory {
                 self.DDRB = OP;
                 self.mem[0xA + 2][0x7C1] = OP;
             }
-        } else if ADR == 0xA7C2 {/* accès à CRA */
+        } else if ADR == 0xA7C2 {
+            /* accès à CRA */
             self.CRA = (self.CRA & 0xD0) | (OP & 0x3F);
             self.mem[0xA + 2][0x7C2] = self.CRA;
-        } else if ADR == 0xA7C3 {/* accès à CRB */
+        } else if ADR == 0xA7C3 {
+            /* accès à CRB */
             self.CRB = (self.CRB & 0xD0) | (OP & 0x3F);
             self.mem[0xA + 2][0x7C3] = self.CRB;
         }
-
     }
 
     pub(crate) fn set_key(&mut self, i: int) {
@@ -297,7 +305,11 @@ impl Memory {
 
             match DataInputStream::new(name) {
                 Ok(data) => {
-                    println!("Opened K7 {} of length {}", name.file_name().unwrap().to_str().unwrap(), data.len());
+                    println!(
+                        "Opened K7 {} of length {}",
+                        name.file_name().unwrap().to_str().unwrap(),
+                        data.len()
+                    );
                     self.k7_fis = Some(data);
                     self.is_file_opened = true;
                     self.k7_bit = 0;
@@ -318,7 +330,6 @@ impl Memory {
     }
 
     fn create_k7file(&mut self) -> bool {
-
         if self.k7_out_name.is_some() {
             return self.is_file_opened_out;
         }
@@ -356,7 +367,6 @@ impl Memory {
     }
 
     fn readbit(&mut self, screen: &mut Screen) -> int {
-
         if !self.is_file_opened {
             return 0;
         }
@@ -392,12 +402,9 @@ impl Memory {
         0
     }
 
-
     pub(crate) fn periph(&mut self, PC: int, S: int, A: int, screen: &mut Screen) {
-
         if PC == 0xF169 {
             self.readbit(screen);
-
         }
         /* Write K7 byte */
         /* Merci  Olivier Tardieu pour le dsassemblage de la routine en ROM */
@@ -433,12 +440,11 @@ impl Memory {
     }
 
     fn patch_k7(&mut self) {
-
         /*
 
             PATCH une partie des fonctions du moniteur
 
-            la squence 02 39 correspond 
+            la squence 02 39 correspond
             Illegal (instruction)
             NOP
             le TRAP active la gestion des
@@ -450,7 +456,6 @@ impl Memory {
         // Crayon optique
         self.set(0xf548, 0x02); // PER instruction émulateur
         self.set(0xf549, 0x39); // RTS
-
 
         self.set(0xF1AF, 0x02);
         self.set(0xF1B0, 0x39);
@@ -467,6 +472,5 @@ impl Memory {
         self.set(0xF16B, 0x39);
     }
 
-    fn unpatch_k7(&mut self) {
-    }
+    fn unpatch_k7(&mut self) {}
 }
