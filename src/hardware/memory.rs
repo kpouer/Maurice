@@ -96,8 +96,8 @@ impl Default for Memory {
 impl Memory {
     // read with io
     pub(crate) fn read(&self, address: int) -> int {
-        let page = (address & 0xF000) >> 12;
-        self.mem[self.mapper[page as usize] as usize][(address & 0xFFF) as usize]
+        let page = ((address & 0xF000) >> 12) as usize;
+        self.mem[self.mapper[page] as usize][(address & 0xFFF) as usize]
     }
 
     pub(crate) fn read_16(&self, address: int) -> int {
@@ -108,9 +108,9 @@ impl Memory {
 
     // write with io
     pub(crate) fn write(&mut self, address: int, value: int) {
-        let page = (address & 0xF000) >> 12;
+        let page = ((address & 0xF000) >> 12) as usize;
 
-        if (self.mapper[page as usize] >= 14) && (self.mapper[page as usize] <= 17) {
+        if (self.mapper[page] >= 14) && (self.mapper[page] <= 17) {
             return; // Protection en écriture de la ROM
         }
 
@@ -120,7 +120,7 @@ impl Memory {
         if page == 0x0A {
             self.hardware(address, value);
         } else {
-            self.mem[self.mapper[page as usize] as usize][(address & 0xFFF) as usize] =
+            self.mem[self.mapper[page] as usize][(address & 0xFFF) as usize] =
                 value & 0xFF;
         }
     }
