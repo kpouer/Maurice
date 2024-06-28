@@ -86,8 +86,8 @@ impl Screen {
                 let mut x: usize = 0;
                 for _ in 0..40 {
                     let col = mem.COLOR(i);
-                    let c2: usize = (col & 0x0F) as usize;
-                    let c1: usize = (col >> 4) as usize;
+                    let c2 = (col & 0x0F) as usize;
+                    let c1 = (col >> 4) as usize;
                     let cc2 = PALETTE[c1];
                     let cc1 = PALETTE[c2];
 
