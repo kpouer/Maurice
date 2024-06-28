@@ -120,8 +120,7 @@ impl Memory {
         if page == 0x0A {
             self.hardware(address, value);
         } else {
-            self.mem[self.mapper[page] as usize][(address & 0xFFF) as usize] =
-                value & 0xFF;
+            self.mem[self.mapper[page] as usize][(address & 0xFFF) as usize] = value & 0xFF;
         }
     }
 

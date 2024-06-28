@@ -26,12 +26,11 @@ impl Sound {
         } else {
             None
         };
-        let apu = Sound {
+        Sound {
             buffer,
             audio_stream,
             audio: [0; N_BYTES / 4],
-        };
-        apu
+        }
     }
 
     // Copie du buffer de son provenant du 6809 vers le buffer de la carte son
