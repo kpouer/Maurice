@@ -92,54 +92,15 @@ impl Screen {
                     let cc1 = PALETTE[c2];
 
                     let pt = mem.POINT(i);
-                    if (0x80 & pt) != 0 {
-                        self.pixels[x + offset] = cc2;
-                    } else {
-                        self.pixels[x + offset] = cc1;
+                    const PATTERN: [int; 8] = [0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01];
+                    for v in PATTERN {
+                        if (v & pt) != 0 {
+                            self.pixels[x + offset] = cc2;
+                        } else {
+                            self.pixels[x + offset] = cc1;
+                        }
+                        x += 1;
                     }
-                    x += 1;
-                    if (0x40 & pt) != 0 {
-                        self.pixels[x + offset] = cc2;
-                    } else {
-                        self.pixels[x + offset] = cc1;
-                    }
-                    x += 1;
-                    if (0x20 & pt) != 0 {
-                        self.pixels[x + offset] = cc2;
-                    } else {
-                        self.pixels[x + offset] = cc1;
-                    }
-                    x += 1;
-                    if (0x10 & pt) != 0 {
-                        self.pixels[x + offset] = cc2;
-                    } else {
-                        self.pixels[x + offset] = cc1;
-                    }
-                    x += 1;
-                    if (0x08 & pt) != 0 {
-                        self.pixels[x + offset] = cc2;
-                    } else {
-                        self.pixels[x + offset] = cc1;
-                    }
-                    x += 1;
-                    if (0x04 & pt) != 0 {
-                        self.pixels[x + offset] = cc2;
-                    } else {
-                        self.pixels[x + offset] = cc1;
-                    }
-                    x += 1;
-                    if (0x02 & pt) != 0 {
-                        self.pixels[x + offset] = cc2;
-                    } else {
-                        self.pixels[x + offset] = cc1;
-                    }
-                    x += 1;
-                    if (0x01 & pt) != 0 {
-                        self.pixels[x + offset] = cc2;
-                    } else {
-                        self.pixels[x + offset] = cc1;
-                    }
-                    x += 1;
                     i += 1;
                 }
             }
