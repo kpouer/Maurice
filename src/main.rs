@@ -12,7 +12,6 @@ mod bios;
 pub(crate) mod data_input_stream;
 mod gui;
 mod hardware;
-mod menu;
 mod user_input;
 
 pub(crate) type int = i32;
