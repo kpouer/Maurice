@@ -69,21 +69,14 @@ impl WindowHandler for Gui {
         virtual_key_code: Option<VirtualKeyCode>,
         scancode: KeyScancode,
     ) {
-        match virtual_key_code {
-            Some(VirtualKeyCode::F2) => {
-                self.user_input_sender.send(OpenK7File).ok();
-            }
-            Some(VirtualKeyCode::F7) => {
-                self.user_input_sender.send(SoftReset).ok();
-            }
-            Some(VirtualKeyCode::F8) => {
-                self.user_input_sender.send(HardReset).ok();
-            }
-            _ => {
-                if let Some(vk) = map_virtual_key_code(virtual_key_code, scancode) {
-                    self.user_input_sender.send(UserInput::KeyDown(vk)).ok();
-                }
-            }
+        let action = match virtual_key_code {
+            Some(VirtualKeyCode::F2) => Some(OpenK7File),
+            Some(VirtualKeyCode::F7) => Some(SoftReset),
+            Some(VirtualKeyCode::F8) => Some(HardReset),
+            _ => map_virtual_key_code(virtual_key_code, scancode).map(|vk| UserInput::KeyDown(vk)),
+        };
+        if let Some(action) = action {
+            self.user_input_sender.send(action).ok();
         }
     }
 
