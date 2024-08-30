@@ -1,12 +1,12 @@
-use std::sync::mpsc::{Receiver, Sender};
-
 use log::error;
 use speedy2d::dimen::{UVec2, Vec2};
+use speedy2d::error::{BacktraceError, ErrorMessage};
 use speedy2d::image::ImageDataType::RGB;
 use speedy2d::image::ImageHandle;
 use speedy2d::image::ImageSmoothingMode::NearestNeighbor;
 use speedy2d::window::{KeyScancode, ModifiersState, VirtualKeyCode, WindowHandler, WindowHelper};
 use speedy2d::Graphics2D;
+use std::sync::mpsc::{Receiver, Sender};
 
 use crate::hardware::keyboard::vkey::map_virtual_key_code;
 use crate::hardware::screen::{DEFAULT_PIXEL_SIZE, HEIGHT, WIDTH};
@@ -46,18 +46,15 @@ impl WindowHandler for Gui {
                 ),
                 raw,
             );
-            if image.is_ok() {
-                self.image = Some(image.unwrap());
-            } else {
-                error!(
-                    "Error creating image from raw pixels {:?}",
-                    image.err().unwrap()
-                );
+            match image {
+                Ok(image) => {
+                    self.image = Some(image);
+                }
+                Err(err) => error!("Error creating image from raw pixels {err:?}"),
             }
         }
 
-        if self.image.is_some() {
-            let image = self.image.as_ref().unwrap();
+        if let Some(image) = &self.image {
             graphics.draw_image(Vec2::ZERO, image);
         }
         helper.request_redraw();
