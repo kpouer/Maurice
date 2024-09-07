@@ -71,11 +71,11 @@ impl Screen {
         for y in 0..HEIGHT {
             for _ in 0..pixel_size {
                 for x in 0..WIDTH {
+                    let p = self.pixels[x + y * WIDTH];
+                    let r = (p & 0xFF) as u8;
+                    let g = ((p >> 8) & 0xFF) as u8;
+                    let b = ((p >> 16) & 0xFF) as u8;
                     for _ in 0..pixel_size {
-                        let p = self.pixels[x + y * WIDTH];
-                        let r = (p & 0xFF) as u8;
-                        let g = ((p >> 8) & 0xFF) as u8;
-                        let b = ((p >> 16) & 0xFF) as u8;
                         buffer[index] = b;
                         index += 1;
                         buffer[index] = g;
