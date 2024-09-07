@@ -1,5 +1,8 @@
+use crate::domension::Dimension;
 use crate::hardware::memory::Memory;
-use crate::int;
+use crate::raw_image::RawImage;
+use crate::{int, raw_image};
+use std::cmp;
 
 const PALETTE: [u32; 16] = [
     0x000000, 0xF00000, 0x00F000, 0xF0F000, 0x0000F0, 0xF000F0, 0x00F0F0, 0xF0F0F0, 0x636363,
@@ -8,7 +11,7 @@ const PALETTE: [u32; 16] = [
 
 pub(crate) const WIDTH: usize = 320;
 pub(crate) const HEIGHT: usize = 200;
-pub(crate) const DEFAULT_PIXEL_SIZE: usize = 1;
+pub(crate) const DEFAULT_PIXEL_SIZE: usize = 3;
 
 #[derive(Debug)]
 pub(crate) struct Screen {
@@ -20,6 +23,7 @@ pub(crate) struct Screen {
     filter: bool,
     pub(crate) led: int,
     pub(crate) show_led: int,
+    ratio: usize,
 }
 
 impl Screen {
@@ -33,12 +37,15 @@ impl Screen {
             filter: false,
             led: 0,
             show_led: 0,
+            ratio: DEFAULT_PIXEL_SIZE,
         }
     }
 
-    // pub(crate) fn set_pixel_size(&mut self, ps: usize, mem: &mut Memory) {
-    //     mem.set_all_dirty();
-    // }
+    pub(crate) fn new_size(&mut self, new_size: Dimension) {
+        let x_ratio = new_size.width / WIDTH;
+        let y_ratio = new_size.height / HEIGHT;
+        self.ratio = cmp::min(x_ratio, y_ratio);
+    }
 
     pub(crate) fn paint(&mut self, mem: &mut Memory) {
         if self.show_led > 0 {
@@ -55,8 +62,12 @@ impl Screen {
         self.dopaint(mem);
     }
 
-    pub(crate) fn get_pixels(&self, pixel_size: usize) -> Vec<u8> {
-        let mut buffer: Vec<u8> = Vec::new();
+    pub(crate) fn get_pixels(&self) -> RawImage {
+        let pixel_size = self.ratio;
+        let mut raw_image = RawImage::new(WIDTH * pixel_size, HEIGHT * pixel_size);
+
+        let buffer = &mut raw_image.data;
+        let mut index = 0;
         for y in 0..HEIGHT {
             for _ in 0..pixel_size {
                 for x in 0..WIDTH {
@@ -65,14 +76,18 @@ impl Screen {
                         let r = (p & 0xFF) as u8;
                         let g = ((p >> 8) & 0xFF) as u8;
                         let b = ((p >> 16) & 0xFF) as u8;
-                        buffer.push(b);
-                        buffer.push(g);
-                        buffer.push(r);
+                        buffer[index] = b;
+                        index += 1;
+                        buffer[index] = g;
+                        index += 1;
+                        buffer[index] = r;
+                        index += 1;
                     }
                 }
             }
         }
-        buffer
+
+        raw_image
     }
 
     pub(crate) fn dopaint(&mut self, mem: &mut Memory) {

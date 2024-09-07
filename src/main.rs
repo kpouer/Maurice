@@ -6,19 +6,22 @@ use speedy2d::Window;
 use crate::gui::Gui;
 use crate::hardware::machine::Machine;
 use crate::hardware::screen::{DEFAULT_PIXEL_SIZE, HEIGHT, WIDTH};
+use crate::raw_image::RawImage;
 use crate::user_input::UserInput;
 
 mod bios;
 pub(crate) mod data_input_stream;
+mod domension;
 mod gui;
 mod hardware;
+mod raw_image;
 mod user_input;
 
 pub(crate) type int = i32;
 
 fn main() {
     env_logger::init();
-    let (image_data_sender, image_data_receiver) = channel::<Vec<u8>>();
+    let (image_data_sender, image_data_receiver) = channel::<RawImage>();
     let (user_input_sender, user_input_receiver) = channel::<UserInput>();
     // let machine = Machine::new(image_data_sender, user_input_receiver);
     thread::spawn(move || {
