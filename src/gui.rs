@@ -1,7 +1,6 @@
 use log::error;
 use speedy2d::dimen::{UVec2, Vec2};
 use speedy2d::image::ImageDataType::RGB;
-use speedy2d::image::ImageHandle;
 use speedy2d::image::ImageSmoothingMode::NearestNeighbor;
 use speedy2d::window::{KeyScancode, ModifiersState, VirtualKeyCode, WindowHandler, WindowHelper};
 use speedy2d::Graphics2D;
@@ -14,7 +13,6 @@ use crate::user_input::UserInput::{HardReset, OpenK7File, SoftReset};
 
 #[derive(Debug)]
 pub(crate) struct Gui {
-    image: Option<ImageHandle>,
     user_input_sender: Sender<UserInput>,
     image_data_receiver: Receiver<RawImage>,
 }
@@ -25,7 +23,6 @@ impl Gui {
         image_data_receiver: Receiver<RawImage>,
     ) -> Self {
         Self {
-            image: None,
             user_input_sender,
             image_data_receiver,
         }
@@ -40,18 +37,17 @@ impl WindowHandler for Gui {
     }
 
     fn on_draw(&mut self, helper: &mut WindowHelper<()>, graphics: &mut Graphics2D) {
-        if let Ok(buf) = self.image_data_receiver.try_recv() {
+        if let Ok(buf) = self.image_data_receiver.recv() {
             let image =
                 graphics.create_image_from_raw_pixels(RGB, NearestNeighbor, buf.size(), &buf.data);
             match image {
-                Ok(image) => self.image = Some(image),
+                Ok(image) => graphics.draw_image(Vec2::ZERO, &image),
                 Err(err) => error!("Error creating image from raw pixels {err:?}"),
             }
+        } else {
+            println!("No image available");
         }
 
-        if let Some(image) = &self.image {
-            graphics.draw_image(Vec2::ZERO, image);
-        }
         helper.request_redraw();
     }
 
