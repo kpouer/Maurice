@@ -1,6 +1,5 @@
 use log::error;
 use speedy2d::dimen::{UVec2, Vec2};
-use speedy2d::error::{BacktraceError, ErrorMessage};
 use speedy2d::image::ImageDataType::RGB;
 use speedy2d::image::ImageHandle;
 use speedy2d::image::ImageSmoothingMode::NearestNeighbor;
@@ -9,7 +8,6 @@ use speedy2d::Graphics2D;
 use std::sync::mpsc::{Receiver, Sender};
 
 use crate::hardware::keyboard::vkey::map_virtual_key_code;
-use crate::hardware::screen::{DEFAULT_PIXEL_SIZE, HEIGHT, WIDTH};
 use crate::raw_image::RawImage;
 use crate::user_input::UserInput;
 use crate::user_input::UserInput::{HardReset, OpenK7File, SoftReset};
@@ -46,9 +44,7 @@ impl WindowHandler for Gui {
             let image =
                 graphics.create_image_from_raw_pixels(RGB, NearestNeighbor, buf.size(), &buf.data);
             match image {
-                Ok(image) => {
-                    self.image = Some(image);
-                }
+                Ok(image) => self.image = Some(image),
                 Err(err) => error!("Error creating image from raw pixels {err:?}"),
             }
         }

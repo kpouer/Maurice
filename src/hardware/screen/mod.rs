@@ -1,13 +1,11 @@
+mod color;
+
 use crate::domension::Dimension;
 use crate::hardware::memory::Memory;
+use crate::hardware::screen::color::{Color, PALETTE};
+use crate::int;
 use crate::raw_image::RawImage;
-use crate::{int, raw_image};
 use std::cmp;
-
-const PALETTE: [u32; 16] = [
-    0x000000, 0xF00000, 0x00F000, 0xF0F000, 0x0000F0, 0xF000F0, 0x00F0F0, 0xF0F0F0, 0x636363,
-    0xF06363, 0x63F063, 0xF0F063, 0x0063F0, 0xF063F0, 0x63F0F0, 0xF06300,
-];
 
 pub(crate) const WIDTH: usize = 320;
 pub(crate) const HEIGHT: usize = 200;
@@ -18,8 +16,7 @@ pub(crate) struct Screen {
     pub(crate) mouse_clic: bool,
     pub(crate) mouse_x: int,
     pub(crate) mouse_y: int,
-    pub(crate) pixels: Vec<u32>,
-    pub(crate) rgb_pixels: Vec<u8>,
+    pixels: [&'static Color; WIDTH * HEIGHT],
     filter: bool,
     pub(crate) led: int,
     pub(crate) show_led: int,
@@ -32,8 +29,7 @@ impl Screen {
             mouse_clic: false,
             mouse_x: -1,
             mouse_y: -1,
-            pixels: vec![0xff000000; WIDTH * HEIGHT],
-            rgb_pixels: Vec::new(),
+            pixels: [&PALETTE[0]; WIDTH * HEIGHT],
             filter: false,
             led: 0,
             show_led: 0,
@@ -68,26 +64,29 @@ impl Screen {
 
         let buffer = &mut raw_image.data;
         let mut index = 0;
+        let line_size = WIDTH * pixel_size * 3;
+        let mut line_buffer = vec![0; line_size];
         for y in 0..HEIGHT {
+            self.get_line(y, &mut line_buffer, pixel_size);
+
             for _ in 0..pixel_size {
-                for x in 0..WIDTH {
-                    let p = self.pixels[x + y * WIDTH];
-                    let r = (p & 0xFF) as u8;
-                    let g = ((p >> 8) & 0xFF) as u8;
-                    let b = ((p >> 16) & 0xFF) as u8;
-                    for _ in 0..pixel_size {
-                        buffer[index] = b;
-                        index += 1;
-                        buffer[index] = g;
-                        index += 1;
-                        buffer[index] = r;
-                        index += 1;
-                    }
-                }
+                buffer[index..index + line_size].copy_from_slice(&line_buffer);
+                index += line_size;
             }
         }
 
         raw_image
+    }
+
+    fn get_line(&self, y: usize, line_buffer: &mut [u8], pixel_size: usize) {
+        let mut x_offset = 0;
+        for x in 0..WIDTH {
+            let color = self.pixels[x + y * WIDTH].as_ref();
+            for _ in 0..pixel_size {
+                line_buffer[x_offset..x_offset + 3].copy_from_slice(color);
+                x_offset += 3;
+            }
+        }
     }
 
     pub(crate) fn dopaint(&mut self, mem: &mut Memory) {
@@ -103,8 +102,8 @@ impl Screen {
                     let col = mem.COLOR(i);
                     let c2 = (col & 0x0F) as usize;
                     let c1 = (col >> 4) as usize;
-                    let cc2 = PALETTE[c1];
-                    let cc1 = PALETTE[c2];
+                    let cc2 = &PALETTE[c1];
+                    let cc1 = &PALETTE[c2];
 
                     let pt = mem.POINT(i);
                     const PATTERN: [int; 8] = [0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01];
