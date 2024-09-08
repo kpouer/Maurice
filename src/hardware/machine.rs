@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 use chrono::{DateTime, Local};
 use log::info;
@@ -9,10 +9,11 @@ use rfd::FileDialog;
 
 use crate::hardware::keyboard::Keyboard;
 use crate::hardware::memory::Memory;
-use crate::hardware::screen::{Screen, DEFAULT_PIXEL_SIZE};
+use crate::hardware::screen::Screen;
 use crate::hardware::sound::Sound;
 use crate::hardware::M6809::M6809;
 use crate::int;
+use crate::raw_image::RawImage;
 use crate::user_input::UserInput;
 
 pub(crate) struct Machine {
@@ -30,13 +31,13 @@ pub(crate) struct Machine {
     pub(crate) keypos: usize,
     pub(crate) typetext: Option<String>,
     pub(crate) running: bool,
-    image_data_sender: Sender<Vec<u8>>,
+    image_data_sender: Sender<RawImage>,
     pub(crate) user_input_receiver: Receiver<UserInput>,
 }
 
 impl Machine {
     pub(crate) fn new(
-        image_data_sender: Sender<Vec<u8>>,
+        image_data_sender: Sender<RawImage>,
         user_input_receiver: Receiver<UserInput>,
     ) -> Self {
         info!("Machine::new()");
@@ -73,7 +74,11 @@ impl Machine {
             }
             self.run();
             self.screen.paint(&mut self.mem);
-            let pixels = self.screen.get_pixels(DEFAULT_PIXEL_SIZE);
+            #[cfg(debug_assertions)]
+            let start = SystemTime::now();
+            let pixels = self.screen.get_pixels();
+            #[cfg(debug_assertions)]
+            println!("Elapsed time: {:?}", start.elapsed());
             self.image_data_sender.send(pixels).unwrap();
         }
     }
@@ -94,6 +99,7 @@ impl Machine {
                 UserInput::KeyDown(vk) => self.keyboard.key_pressed(vk, &mut self.mem),
                 UserInput::KeyUp(vk) => self.keyboard.key_released(vk, &mut self.mem),
                 UserInput::KeyboardModifierChanged(state) => self.keyboard.modifiers = state,
+                UserInput::WindowResized(size) => self.screen.new_size(size),
             }
         }
     }

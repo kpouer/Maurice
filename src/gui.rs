@@ -1,5 +1,3 @@
-use std::sync::mpsc::{Receiver, Sender};
-
 use log::error;
 use speedy2d::dimen::{UVec2, Vec2};
 use speedy2d::image::ImageDataType::RGB;
@@ -7,9 +5,10 @@ use speedy2d::image::ImageHandle;
 use speedy2d::image::ImageSmoothingMode::NearestNeighbor;
 use speedy2d::window::{KeyScancode, ModifiersState, VirtualKeyCode, WindowHandler, WindowHelper};
 use speedy2d::Graphics2D;
+use std::sync::mpsc::{Receiver, Sender};
 
 use crate::hardware::keyboard::vkey::map_virtual_key_code;
-use crate::hardware::screen::{DEFAULT_PIXEL_SIZE, HEIGHT, WIDTH};
+use crate::raw_image::RawImage;
 use crate::user_input::UserInput;
 use crate::user_input::UserInput::{HardReset, OpenK7File, SoftReset};
 
@@ -17,15 +16,15 @@ use crate::user_input::UserInput::{HardReset, OpenK7File, SoftReset};
 pub(crate) struct Gui {
     image: Option<ImageHandle>,
     user_input_sender: Sender<UserInput>,
-    image_data_receiver: Receiver<Vec<u8>>,
+    image_data_receiver: Receiver<RawImage>,
 }
 
 impl Gui {
     pub(crate) fn new(
         user_input_sender: Sender<UserInput>,
-        image_data_receiver: Receiver<Vec<u8>>,
+        image_data_receiver: Receiver<RawImage>,
     ) -> Self {
-        Gui {
+        Self {
             image: None,
             user_input_sender,
             image_data_receiver,
@@ -34,30 +33,23 @@ impl Gui {
 }
 
 impl WindowHandler for Gui {
+    fn on_resize(&mut self, _: &mut WindowHelper<()>, size_pixels: UVec2) {
+        self.user_input_sender
+            .send(UserInput::WindowResized(size_pixels.into()))
+            .ok();
+    }
+
     fn on_draw(&mut self, helper: &mut WindowHelper<()>, graphics: &mut Graphics2D) {
         if let Ok(buf) = self.image_data_receiver.try_recv() {
-            let raw = buf.as_slice();
-            let image = graphics.create_image_from_raw_pixels(
-                RGB,
-                NearestNeighbor,
-                UVec2::new(
-                    (DEFAULT_PIXEL_SIZE * WIDTH) as u32,
-                    (DEFAULT_PIXEL_SIZE * HEIGHT) as u32,
-                ),
-                raw,
-            );
-            if image.is_ok() {
-                self.image = Some(image.unwrap());
-            } else {
-                error!(
-                    "Error creating image from raw pixels {:?}",
-                    image.err().unwrap()
-                );
+            let image =
+                graphics.create_image_from_raw_pixels(RGB, NearestNeighbor, buf.size(), &buf.data);
+            match image {
+                Ok(image) => self.image = Some(image),
+                Err(err) => error!("Error creating image from raw pixels {err:?}"),
             }
         }
 
-        if self.image.is_some() {
-            let image = self.image.as_ref().unwrap();
+        if let Some(image) = &self.image {
             graphics.draw_image(Vec2::ZERO, image);
         }
         helper.request_redraw();
@@ -69,21 +61,14 @@ impl WindowHandler for Gui {
         virtual_key_code: Option<VirtualKeyCode>,
         scancode: KeyScancode,
     ) {
-        match virtual_key_code {
-            Some(VirtualKeyCode::F2) => {
-                self.user_input_sender.send(OpenK7File).ok();
-            }
-            Some(VirtualKeyCode::F7) => {
-                self.user_input_sender.send(SoftReset).ok();
-            }
-            Some(VirtualKeyCode::F8) => {
-                self.user_input_sender.send(HardReset).ok();
-            }
-            _ => {
-                if let Some(vk) = map_virtual_key_code(virtual_key_code, scancode) {
-                    self.user_input_sender.send(UserInput::KeyDown(vk)).ok();
-                }
-            }
+        let action = match virtual_key_code {
+            Some(VirtualKeyCode::F2) => Some(OpenK7File),
+            Some(VirtualKeyCode::F7) => Some(SoftReset),
+            Some(VirtualKeyCode::F8) => Some(HardReset),
+            _ => map_virtual_key_code(virtual_key_code, scancode).map(|vk| UserInput::KeyDown(vk)),
+        };
+        if let Some(action) = action {
+            self.user_input_sender.send(action).ok();
         }
     }
 
