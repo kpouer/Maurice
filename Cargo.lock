@@ -1466,6 +1466,7 @@ dependencies = [
  "env_logger",
  "fast_image_resize",
  "log",
+ "rayon",
  "rfd",
  "rust-embed",
  "speedy2d",

@@ -5,6 +5,7 @@ use crate::hardware::memory::Memory;
 use crate::hardware::screen::color::{Color, PALETTE};
 use crate::int;
 use crate::raw_image::RawImage;
+use rayon::prelude::*;
 use std::cmp;
 
 pub(crate) const WIDTH: usize = 320;
@@ -62,24 +63,28 @@ impl Screen {
         let pixel_size = self.ratio;
         let mut raw_image = RawImage::new(WIDTH * pixel_size, HEIGHT * pixel_size);
 
+        let lines: Vec<Vec<u8>> = (0..HEIGHT)
+            .into_par_iter()
+            .map(|y| self.get_line(y, pixel_size))
+            .collect();
+
         let buffer = &mut raw_image.data;
         let mut index = 0;
         let line_size = WIDTH * pixel_size * 3;
-        let mut line_buffer = vec![0; line_size];
-        for y in 0..HEIGHT {
-            self.get_line(y, &mut line_buffer, pixel_size);
-
+        lines.iter().for_each(|line_buffer| {
             for _ in 0..pixel_size {
-                buffer[index..index + line_size].copy_from_slice(&line_buffer);
+                buffer[index..index + line_size].copy_from_slice(line_buffer);
                 index += line_size;
             }
-        }
+        });
 
         raw_image
     }
 
-    fn get_line(&self, y: usize, line_buffer: &mut [u8], pixel_size: usize) {
+    fn get_line(&self, y: usize, pixel_size: usize) -> Vec<u8> {
         let mut x_offset = 0;
+        let mut line_buffer = vec![0; WIDTH * pixel_size * 3];
+
         for x in 0..WIDTH {
             let color = self.pixels[x + y * WIDTH].as_ref();
             for _ in 0..pixel_size {
@@ -87,6 +92,7 @@ impl Screen {
                 x_offset += 3;
             }
         }
+        line_buffer
     }
 
     pub(crate) fn dopaint(&mut self, mem: &mut Memory) {
