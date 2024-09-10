@@ -5,6 +5,7 @@ use crate::hardware::memory::Memory;
 use crate::hardware::screen::color::{Color, PALETTE};
 use crate::int;
 use crate::raw_image::RawImage;
+use rayon::prelude::*;
 use std::cmp;
 
 pub(crate) const WIDTH: usize = 320;
@@ -21,6 +22,7 @@ pub(crate) struct Screen {
     pub(crate) led: int,
     pub(crate) show_led: int,
     ratio: usize,
+    tmp_lines: Vec<Vec<u8>>,
 }
 
 impl Screen {
@@ -34,13 +36,22 @@ impl Screen {
             led: 0,
             show_led: 0,
             ratio: DEFAULT_PIXEL_SIZE,
+            tmp_lines: vec![vec![0; WIDTH * DEFAULT_PIXEL_SIZE * 3]; HEIGHT],
         }
     }
 
     pub(crate) fn new_size(&mut self, new_size: Dimension) {
         let x_ratio = new_size.width / WIDTH;
         let y_ratio = new_size.height / HEIGHT;
-        self.ratio = cmp::min(x_ratio, y_ratio);
+        self.set_ratio(cmp::min(x_ratio, y_ratio));
+    }
+
+    fn set_ratio(&mut self, mut ratio: usize) {
+        if ratio == 0 {
+            ratio = 1;
+        }
+        self.ratio = ratio;
+        self.tmp_lines = vec![vec![0; WIDTH * ratio * 3]; HEIGHT];
     }
 
     pub(crate) fn paint(&mut self, mem: &mut Memory) {
@@ -58,30 +69,41 @@ impl Screen {
         self.dopaint(mem);
     }
 
-    pub(crate) fn get_pixels(&self) -> RawImage {
+    pub(crate) fn get_pixels(&mut self) -> RawImage {
         let pixel_size = self.ratio;
+
+        self.tmp_lines
+            .par_iter_mut()
+            .enumerate()
+            .for_each(|(y, line_buffer)| {
+                Self::fill_line(y, &self.pixels, line_buffer, pixel_size);
+            });
+
         let mut raw_image = RawImage::new(WIDTH * pixel_size, HEIGHT * pixel_size);
-
-        let buffer = &mut raw_image.data;
-        let mut index = 0;
         let line_size = WIDTH * pixel_size * 3;
-        let mut line_buffer = vec![0; line_size];
-        for y in 0..HEIGHT {
-            self.get_line(y, &mut line_buffer, pixel_size);
-
-            for _ in 0..pixel_size {
-                buffer[index..index + line_size].copy_from_slice(&line_buffer);
-                index += line_size;
-            }
-        }
+        raw_image
+            .data
+            .par_chunks_mut(line_size)
+            .enumerate()
+            .for_each(|(y, line_buffer)| {
+                let real_y = y / pixel_size;
+                let line_data = &self.tmp_lines[real_y];
+                line_buffer.copy_from_slice(line_data);
+            });
 
         raw_image
     }
 
-    fn get_line(&self, y: usize, line_buffer: &mut [u8], pixel_size: usize) {
+    fn fill_line(
+        y: usize,
+        pixels: &[&'static Color; WIDTH * HEIGHT],
+        line_buffer: &mut [u8],
+        pixel_size: usize,
+    ) {
         let mut x_offset = 0;
+
         for x in 0..WIDTH {
-            let color = self.pixels[x + y * WIDTH].as_ref();
+            let color = pixels[x + y * WIDTH].as_ref();
             for _ in 0..pixel_size {
                 line_buffer[x_offset..x_offset + 3].copy_from_slice(color);
                 x_offset += 3;
