@@ -222,9 +222,7 @@ impl M6809 {
                 self.cl += 5;
                 return M;
             }
-            0x8E | //i_undoc;	/* empty */
-            0x8F | //i_undoc;	/* empty */
-            0x90 => return 0, //i_undoc;	/* empty */
+            0x8E..=0x90 => return 0, //i_undoc;	/* empty */
             0x91 => {
                 //i_i_P2_X;
                 M = mem.read_16(self.X);
@@ -384,9 +382,7 @@ impl M6809 {
                 self.cl += 4;
                 return M;
             }
-            0xAE | //i_undoc;	/* empty */
-            0xAF | //i_undoc;	/* empty */
-            0xB0 => return 0, //i_undoc;	/* empty */
+            0xAE..=0xB0 => return 0, //i_undoc;	/* empty */
             0xB1 => {
                 //i_i_P2_Y;
                 M = mem.read_16(self.Y);
@@ -519,9 +515,7 @@ impl M6809 {
                 self.cl += 4;
                 return M;
             }
-            0xCE | //i_undoc;	/* empty */
-            0xCF | //i_undoc;	/* empty */
-            0xD0 => return 0, //i_undoc;	/* empty */
+            0xCE..=0xD0 => return 0, //i_undoc;	/* empty */
             0xD1 => {
                 //i_i_P2_U;
                 M = mem.read_16(self.U);
@@ -656,9 +650,7 @@ impl M6809 {
                 self.cl += 4;
                 return M;
             }
-            0xEE | //i_undoc;	/* empty */
-            0xEF | //i_undoc;	/* empty */
-            0xF0 => return 0, //i_undoc;	/* empty */
+            0xEE..=0xF0 => return 0, //i_undoc;	/* empty */
             0xF1 => {
                 //i_i_P2_S;
                 M = mem.read_16(self.S);
