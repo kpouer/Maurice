@@ -103,7 +103,7 @@ impl Screen {
         let mut x_offset = 0;
 
         for x in 0..WIDTH {
-            let color = pixels[x + y * WIDTH].as_ref();
+            let color = pixels[x + y * WIDTH];
             for _ in 0..pixel_size {
                 line_buffer[x_offset..x_offset + 3].copy_from_slice(color);
                 x_offset += 3;
