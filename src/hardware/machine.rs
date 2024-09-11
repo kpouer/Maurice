@@ -79,7 +79,7 @@ impl Machine {
             let pixels = self.screen.get_pixels();
             #[cfg(debug_assertions)]
             println!("Elapsed time: {:?}", start.elapsed());
-            self.image_data_sender.send(pixels).unwrap();
+            self.image_data_sender.send(pixels).ok();
         }
     }
 
