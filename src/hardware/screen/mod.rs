@@ -69,7 +69,7 @@ impl Screen {
         self.dopaint(mem);
     }
 
-    pub(crate) fn get_pixels(&mut self) -> RawImage {
+    pub fn get_pixels(&mut self) -> RawImage {
         let pixel_size = self.ratio;
 
         self.tmp_lines
