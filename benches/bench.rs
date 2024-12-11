@@ -1,18 +1,10 @@
 use criterion::{criterion_group, criterion_main, Criterion};
+use maurice::hardware::screen::Screen;
 
 fn criterion_benchmark(c: &mut Criterion) {
-    let screen = Screen::new();
-    let mut counter = StatsManager::default();
-    for i in 0..1000 {
-        counter.publish(i);
-    }
-    c.bench_function("min", |b| b.iter(|| counter.min()));
+    let mut screen = Screen::new();
 
-    c.bench_function("max", |b| b.iter(|| counter.max()));
-
-    c.bench_function("percentile_90", |b| b.iter(|| counter.percentile_90()));
-
-    c.bench_function("average", |b| b.iter(|| counter.average()));
+    c.bench_function("min", |b| b.iter(|| screen.get_pixels()));
 }
 
 criterion_group!(benches, criterion_benchmark);
