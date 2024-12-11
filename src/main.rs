@@ -11,7 +11,7 @@ use crate::user_input::UserInput;
 
 mod bios;
 pub(crate) mod data_input_stream;
-mod domension;
+mod dimension;
 mod gui;
 mod hardware;
 mod raw_image;
@@ -31,8 +31,8 @@ fn main() {
     let window = Window::new_centered(
         "Maurice",
         (
-            DEFAULT_PIXEL_SIZE as u32 * WIDTH as u32,
-            DEFAULT_PIXEL_SIZE as u32 * HEIGHT as u32,
+            (DEFAULT_PIXEL_SIZE * WIDTH) as u32,
+            (DEFAULT_PIXEL_SIZE * HEIGHT) as u32,
         ),
     )
     .unwrap();

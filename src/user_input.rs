@@ -1,4 +1,4 @@
-use crate::domension::Dimension;
+use crate::dimension::Dimension;
 use crate::hardware::keyboard::vkey::CustomVirtualKeyCode;
 use speedy2d::window::ModifiersState;
 

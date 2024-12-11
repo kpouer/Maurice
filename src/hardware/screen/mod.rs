@@ -1,6 +1,6 @@
 mod color;
 
-use crate::domension::Dimension;
+use crate::dimension::Dimension;
 use crate::hardware::memory::Memory;
 use crate::hardware::screen::color::{Color, PALETTE};
 use crate::int;
