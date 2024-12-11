@@ -1,6 +1,6 @@
 pub(crate) mod M6809;
 pub(crate) mod keyboard;
-pub(crate) mod machine;
+pub mod machine;
 pub(crate) mod memory;
-pub(crate) mod screen;
+pub mod screen;
 pub(crate) mod sound;
