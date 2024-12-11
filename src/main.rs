@@ -1,13 +1,12 @@
-use std::sync::mpsc::channel;
-use std::thread;
-
-use speedy2d::Window;
-
 use crate::gui::Gui;
 use crate::hardware::machine::Machine;
 use crate::hardware::screen::{DEFAULT_PIXEL_SIZE, HEIGHT, WIDTH};
 use crate::raw_image::RawImage;
 use crate::user_input::UserInput;
+use log::error;
+use speedy2d::Window;
+use std::sync::mpsc::channel;
+use std::thread;
 
 mod bios;
 pub(crate) mod data_input_stream;
@@ -34,7 +33,12 @@ fn main() {
             (DEFAULT_PIXEL_SIZE * WIDTH) as u32,
             (DEFAULT_PIXEL_SIZE * HEIGHT) as u32,
         ),
-    )
-    .unwrap();
-    window.run_loop(Gui::new(user_input_sender, image_data_receiver));
+    );
+
+    match window {
+        Ok(window) => window.run_loop(Gui::new(user_input_sender, image_data_receiver)),
+        Err(e) => {
+            error!("Error creating window: {e}");
+        }
+    }
 }
