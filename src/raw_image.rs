@@ -1,7 +1,7 @@
 use speedy2d::dimen::UVec2;
 
 #[derive(Debug)]
-pub(crate) struct RawImage {
+pub struct RawImage {
     pub(crate) data: Vec<u8>,
     pub(crate) width: usize,
     pub(crate) height: usize,

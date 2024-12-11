@@ -12,13 +12,13 @@ use crate::user_input::UserInput;
 use crate::user_input::UserInput::{HardReset, OpenK7File, SoftReset};
 
 #[derive(Debug)]
-pub(crate) struct Gui {
+pub struct Gui {
     user_input_sender: Sender<UserInput>,
     image_data_receiver: Receiver<RawImage>,
 }
 
 impl Gui {
-    pub(crate) fn new(
+    pub fn new(
         user_input_sender: Sender<UserInput>,
         image_data_receiver: Receiver<RawImage>,
     ) -> Self {

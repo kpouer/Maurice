@@ -1,22 +1,12 @@
-use crate::gui::Gui;
-use crate::hardware::machine::Machine;
-use crate::hardware::screen::{DEFAULT_PIXEL_SIZE, HEIGHT, WIDTH};
-use crate::raw_image::RawImage;
-use crate::user_input::UserInput;
 use log::error;
+use maurice::gui::Gui;
+use maurice::hardware::machine::Machine;
+use maurice::hardware::screen::{DEFAULT_PIXEL_SIZE, HEIGHT, WIDTH};
+use maurice::raw_image::RawImage;
+use maurice::user_input::UserInput;
 use speedy2d::Window;
 use std::sync::mpsc::channel;
 use std::thread;
-
-mod bios;
-pub(crate) mod data_input_stream;
-mod dimension;
-mod gui;
-mod hardware;
-mod raw_image;
-mod user_input;
-
-pub(crate) type int = i32;
 
 fn main() {
     env_logger::init();

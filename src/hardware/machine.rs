@@ -16,7 +16,7 @@ use crate::int;
 use crate::raw_image::RawImage;
 use crate::user_input::UserInput;
 
-pub(crate) struct Machine {
+pub struct Machine {
     // Emulation Objects
     pub(crate) mem: Memory,
     pub(crate) micro: M6809,
@@ -36,7 +36,7 @@ pub(crate) struct Machine {
 }
 
 impl Machine {
-    pub(crate) fn new(
+    pub fn new(
         image_data_sender: Sender<RawImage>,
         user_input_receiver: Receiver<UserInput>,
     ) -> Self {
@@ -65,7 +65,7 @@ impl Machine {
         }
     }
 
-    pub(crate) fn run_loop(&mut self) {
+    pub fn run_loop(&mut self) {
         loop {
             self.eventually_process_user_input();
             if !self.running {
