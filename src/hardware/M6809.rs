@@ -3356,7 +3356,6 @@ fn signed16bits(v: int) -> int {
     delta = (delta >> 16) << 16; // force last 16bits to 0
     (v & 0xFFFF) | delta // result is now signed
 }
-
 fn regx(m: int) -> String {
     let mut output = String::from("?");
     if (m & 0x60) == 0x00 {
