@@ -2,7 +2,7 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use maurice::hardware::screen::Screen;
 
 fn criterion_benchmark(c: &mut Criterion) {
-    let mut screen = Screen::new();
+    let mut screen = Screen::default();
 
     c.bench_function("min", |b| b.iter(|| screen.get_pixels()));
 }

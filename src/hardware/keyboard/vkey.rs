@@ -3,7 +3,7 @@ use speedy2d::window::{KeyScancode, VirtualKeyCode};
 use crate::hardware::keyboard::vkey::CustomVirtualKeyCode::Base;
 
 #[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy)]
-pub(crate) enum CustomVirtualKeyCode {
+pub enum CustomVirtualKeyCode {
     Base(VirtualKeyCode),
 }
 

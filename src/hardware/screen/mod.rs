@@ -25,6 +25,12 @@ pub struct Screen {
     tmp_lines: Vec<Vec<u8>>,
 }
 
+impl Default for Screen {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Screen {
     pub fn new() -> Self {
         Screen {
