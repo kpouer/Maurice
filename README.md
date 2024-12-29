@@ -9,6 +9,17 @@ of the original repository which is available at https://sourceforge.net/project
 Of course the licence remains BSD Licence and all the credit goes to the original author.
 My goal was to learn Rust and I thought that porting this emulator would be a good way to do so.
 
+## Installation
+
+# Via Cargo
+
+1. Install rust https://www.rust-lang.org/
+2. cargo install maurice
+
+# Via releases
+
+1. Some compiled binaries are available in Github releases
+
 ## Commands
 
 ### Keyboard
