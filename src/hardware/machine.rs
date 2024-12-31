@@ -12,9 +12,9 @@ use crate::hardware::memory::Memory;
 use crate::hardware::screen::Screen;
 use crate::hardware::sound::Sound;
 use crate::hardware::M6809::M6809;
-use crate::int;
 use crate::raw_image::RawImage;
 use crate::user_input::UserInput;
+use crate::{hardware, int};
 
 pub struct Machine {
     // Emulation Objects
@@ -41,7 +41,7 @@ impl Machine {
         user_input_receiver: Receiver<UserInput>,
     ) -> Self {
         info!("Machine::new()");
-        let screen = Screen::new();
+        let screen = Screen::new(get_ratio());
         info!("Machine::screen()");
         let mut mem = Memory::default();
         mem.reset();
@@ -99,6 +99,7 @@ impl Machine {
                 UserInput::KeyDown(vk) => self.keyboard.key_pressed(vk, &mut self.mem),
                 UserInput::KeyUp(vk) => self.keyboard.key_released(vk, &mut self.mem),
                 UserInput::KeyboardModifierChanged(state) => self.keyboard.modifiers = state,
+                #[cfg(feature = "resizable-api")]
                 UserInput::WindowResized(size) => self.screen.new_size(size),
             }
         }
@@ -244,4 +245,14 @@ impl Machine {
     // fn unassemble_from_pc(&self, nblines: int, mem: &mut Memory) -> String {
     //     unassemble(self.micro.PC, nblines, mem)
     // }
+}
+
+#[cfg(feature = "resizable-api")]
+fn get_ratio() -> usize {
+    hardware::screen::DEFAULT_PIXEL_SIZE
+}
+
+#[cfg(not(feature = "resizable-api"))]
+fn get_ratio() -> usize {
+    5
 }
