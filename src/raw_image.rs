@@ -1,4 +1,4 @@
-use speedy2d::dimen::UVec2;
+use crate::dimension::Dimension;
 
 #[derive(Debug)]
 pub struct RawImage {
@@ -16,13 +16,13 @@ impl RawImage {
         }
     }
 
-    pub(crate) fn size(&self) -> UVec2 {
-        UVec2::new(self.width as u32, self.height as u32)
+    pub(crate) fn size(&self) -> Dimension {
+        Dimension::new(self.width, self.height)
     }
 }
 
-impl From<UVec2> for RawImage {
-    fn from(size: UVec2) -> Self {
-        Self::new(size.x as usize, size.y as usize)
+impl From<Dimension> for RawImage {
+    fn from(size: Dimension) -> Self {
+        Self::new(size.width, size.height)
     }
 }
