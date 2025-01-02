@@ -213,7 +213,8 @@ impl Machine {
         self.last_time = Local::now();
     }
 
-    pub(crate) fn set_k7_file(&mut self, k7: &Path) {
+    pub fn set_k7_file<P: AsRef<Path>>(&mut self, k7: P) {
+        let k7 = k7.as_ref();
         info!("Machine::set_k7_file({:?})", k7);
         self.mem.set_k7file(k7);
     }
