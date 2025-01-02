@@ -1,4 +1,3 @@
-use crate::dimension::Dimension;
 use crate::hardware::keyboard::modifiers::Modifiers;
 use crate::hardware::keyboard::vkey::MO5VirtualKeyCode;
 
@@ -12,5 +11,5 @@ pub enum UserInput {
     KeyUp(MO5VirtualKeyCode),
     KeyboardModifierChanged(Modifiers),
     #[cfg(feature = "resizable-api")]
-    WindowResized(Dimension),
+    WindowResized(crate::dimension::Dimension),
 }
