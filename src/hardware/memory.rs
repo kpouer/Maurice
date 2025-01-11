@@ -47,8 +47,8 @@ pub(crate) struct Memory {
     GA2: int,
     pub(crate) GA3: int,
 
-    k7_bit: int,
-    k7_char: int,
+    k7_bit: u8,
+    k7_char: u8,
 
     k7_fis: Option<DataInputStream>,
     k7_fos: Option<BufWriter<File>>,

@@ -8,12 +8,12 @@ use crate::raw_image::RawImage;
 use rayon::prelude::*;
 use std::cmp;
 
-pub(crate) const WIDTH: usize = 320;
-pub(crate) const HEIGHT: usize = 200;
-pub(crate) const DEFAULT_PIXEL_SIZE: usize = 3;
+pub const WIDTH: usize = 320;
+pub const HEIGHT: usize = 200;
+pub const DEFAULT_PIXEL_SIZE: usize = 3;
 
 #[derive(Debug)]
-pub(crate) struct Screen {
+pub struct Screen {
     pub(crate) mouse_clic: bool,
     pub(crate) mouse_x: int,
     pub(crate) mouse_y: int,
@@ -25,8 +25,14 @@ pub(crate) struct Screen {
     tmp_lines: Vec<Vec<u8>>,
 }
 
+impl Default for Screen {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Screen {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Screen {
             mouse_clic: false,
             mouse_x: -1,
@@ -69,7 +75,7 @@ impl Screen {
         self.dopaint(mem);
     }
 
-    pub(crate) fn get_pixels(&mut self) -> RawImage {
+    pub fn get_pixels(&mut self) -> RawImage {
         let pixel_size = self.ratio;
 
         self.tmp_lines

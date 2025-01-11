@@ -2,7 +2,7 @@ use crate::dimension::Dimension;
 use crate::hardware::keyboard::vkey::CustomVirtualKeyCode;
 use speedy2d::window::ModifiersState;
 
-pub(crate) enum UserInput {
+pub enum UserInput {
     OpenK7File,
     Stop,
     Start,

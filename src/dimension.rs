@@ -1,6 +1,6 @@
 use speedy2d::dimen::UVec2;
 
-pub(crate) struct Dimension {
+pub struct Dimension {
     pub(crate) width: usize,
     pub(crate) height: usize,
 }

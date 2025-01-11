@@ -1,8 +1,6 @@
 use std::path::Path;
 use std::{fs, io};
 
-use crate::int;
-
 #[derive(Debug)]
 pub(crate) struct DataInputStream {
     bytes: Vec<u8>,
@@ -17,10 +15,10 @@ impl DataInputStream {
         }
     }
 
-    pub(crate) fn read(&mut self) -> int {
+    pub(crate) fn read(&mut self) -> u8 {
         let b = self.bytes[self.pos];
         self.pos += 1;
-        b as int
+        b
     }
 
     pub fn len(&self) -> usize {
