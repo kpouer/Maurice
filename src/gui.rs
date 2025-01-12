@@ -85,13 +85,16 @@ impl Gui {
         }
 
         if let Some(buf) = current_raw_image {
-            let image = egui::ColorImage::from_rgb([buf.width, buf.height], &buf.data);
-            match &mut self.image {
-                None => {
-                    self.image =
-                        Some(ctx.load_texture("my_texture", image, TextureOptions::default()))
+            if !buf.data.is_empty() {
+                // it might be empty so we don't update the texture
+                let image = egui::ColorImage::from_rgb([buf.width, buf.height], &buf.data);
+                match &mut self.image {
+                    None => {
+                        self.image =
+                            Some(ctx.load_texture("my_texture", image, TextureOptions::default()))
+                    }
+                    Some(texture) => texture.set(image, TextureOptions::default()),
                 }
-                Some(texture) => texture.set(image, TextureOptions::default()),
             }
         }
     }

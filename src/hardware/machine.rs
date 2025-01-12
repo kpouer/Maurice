@@ -69,6 +69,7 @@ impl Machine {
         loop {
             self.eventually_process_user_input();
             if !self.running {
+                self.image_data_sender.send(RawImage::default()).ok();
                 thread::sleep(std::time::Duration::from_millis(1000 / 60));
                 continue;
             }
@@ -78,7 +79,7 @@ impl Machine {
             let start = SystemTime::now();
             let pixels = self.screen.get_pixels();
             #[cfg(debug_assertions)]
-            println!("Elapsed time: {:?}", start.elapsed());
+            log::debug!("Elapsed time: {:?}", start.elapsed());
             self.image_data_sender.send(pixels).ok();
         }
     }
