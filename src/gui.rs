@@ -15,6 +15,8 @@ use {
     egui::{pos2, Color32, Context, Event, Key, Rect, TextureId, TextureOptions, Ui},
 };
 
+use crate::hardware::screen::{HEIGHT, WIDTH};
+use egui::{ResizeDirection, ViewportCommand};
 use log::info;
 use std::sync::mpsc::{Receiver, Sender};
 
@@ -77,24 +79,20 @@ impl Gui {
 
     fn update_texture(&mut self, ctx: &Context) {
         let mut current_raw_image = None;
-        if let Ok(buf) = self.image_data_receiver.recv() {
-            current_raw_image = Some(buf);
-            while let Ok(buf) = self.image_data_receiver.try_recv() {
+        while let Ok(buf) = self.image_data_receiver.try_recv() {
+            if !buf.data.is_empty() {
                 current_raw_image = Some(buf);
             }
         }
 
         if let Some(buf) = current_raw_image {
-            if !buf.data.is_empty() {
-                // it might be empty so we don't update the texture
-                let image = egui::ColorImage::from_rgb([buf.width, buf.height], &buf.data);
-                match &mut self.image {
-                    None => {
-                        self.image =
-                            Some(ctx.load_texture("my_texture", image, TextureOptions::default()))
-                    }
-                    Some(texture) => texture.set(image, TextureOptions::default()),
+            let image = egui::ColorImage::from_rgb([buf.width, buf.height], &buf.data);
+            match &mut self.image {
+                None => {
+                    self.image =
+                        Some(ctx.load_texture("my_texture", image, TextureOptions::default()))
                 }
+                Some(texture) => texture.set(image, TextureOptions::default()),
             }
         }
     }
@@ -105,7 +103,7 @@ impl Gui {
                 self.file_menu(ui);
                 self.run_menu(ui);
                 self.reset_menu(ui);
-                self.image_menu(ui);
+                self.image_menu(ui, ctx);
                 self.debug_menu(ui);
                 self.help_menu(ui);
             });
@@ -152,16 +150,22 @@ impl Gui {
     //Reset
     //     Soft Reset
     // Hard Reset
-    fn image_menu(&mut self, ui: &mut Ui) {
+    fn image_menu(&mut self, ui: &mut Ui, ctx: &Context) {
         ui.menu_button("Image", |ui| {
             if ui.button("Zoom 1x").clicked() {
-                //todo: implement
+                ctx.send_viewport_cmd(ViewportCommand::InnerSize(
+                    [(1 * WIDTH) as f32, (1 * HEIGHT) as f32].into(),
+                ))
             }
             if ui.button("Zoom 2x").clicked() {
-                //todo: implement
+                ctx.send_viewport_cmd(ViewportCommand::InnerSize(
+                    [(2 * WIDTH) as f32, (2 * HEIGHT) as f32].into(),
+                ))
             }
             if ui.button("Zoom 3x").clicked() {
-                //todo: implement
+                ctx.send_viewport_cmd(ViewportCommand::InnerSize(
+                    [(3 * WIDTH) as f32, (3 * HEIGHT) as f32].into(),
+                ))
             }
             if ui.button("Filter").clicked() {
                 //todo: implement
@@ -195,24 +199,22 @@ impl Gui {
 #[cfg(feature = "egui-display")]
 impl App for Gui {
     fn update(&mut self, ctx: &Context, frame: &mut Frame) {
+        self.build_menu_panel(ctx);
         self.update_texture(ctx);
 
         if let Some(image) = &self.image {
-            let texture_id = TextureId::from(image);
-
-            // Draw
+            let available_rect = ctx.available_rect();
             let rect = Rect {
-                min: pos2(0.0, 0.0),
-                max: pos2(ctx.available_rect().width(), ctx.available_rect().height()),
+                min: pos2(available_rect.left(), available_rect.top()),
+                max: pos2(available_rect.width(), available_rect.height()),
             };
             let uv = Rect {
                 min: pos2(0.0, 0.0),
                 max: pos2(1.0, 1.0),
             };
 
-            self.build_menu_panel(ctx);
             egui::CentralPanel::default().show(ctx, |ui| {
-                ui.painter().image(texture_id, rect, uv, Color32::WHITE);
+                ui.painter().image(image.into(), rect, uv, Color32::WHITE);
             });
             ctx.request_repaint_after(std::time::Duration::from_millis(50));
         }
