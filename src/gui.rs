@@ -1,7 +1,7 @@
 use crate::hardware::keyboard::vkey::MO5VirtualKeyCode;
 use crate::raw_image::RawImage;
 use crate::user_input::UserInput;
-use crate::user_input::UserInput::{HardReset, OpenK7File, SoftReset};
+use crate::user_input::UserInput::{HardReset, OpenK7File, SoftReset, Start, Stop};
 #[cfg(feature = "speedy2d-display")]
 use speedy2d::{
     dimen::{UVec2, Vec2},
@@ -12,9 +12,10 @@ use speedy2d::{
 #[cfg(feature = "egui-display")]
 use {
     eframe::{epaint::TextureHandle, App, Frame},
-    egui::{pos2, Color32, Context, Event, Key, Rect, TextureId, TextureOptions},
+    egui::{pos2, Color32, Context, Event, Key, Rect, TextureId, TextureOptions, Ui},
 };
 
+use log::info;
 use std::sync::mpsc::{Receiver, Sender};
 
 pub struct Gui {
@@ -94,6 +95,98 @@ impl Gui {
             }
         }
     }
+
+    fn build_menu_panel(&mut self, ctx: &Context) {
+        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                self.file_menu(ui);
+                self.run_menu(ui);
+                self.reset_menu(ui);
+                self.image_menu(ui);
+                self.debug_menu(ui);
+                self.help_menu(ui);
+            });
+        });
+    }
+
+    fn file_menu(&mut self, ui: &mut Ui) {
+        ui.menu_button("File", |ui| {
+            if ui.button("Select K7").clicked() {
+                self.user_input_sender.send(OpenK7File).ok();
+            }
+            if ui.button("Rewind Tape").clicked() {
+                //todo: implement
+            }
+            if ui.button("Exit").clicked() {
+                info!("Exit");
+                ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
+            }
+        });
+    }
+
+    fn run_menu(&mut self, ui: &mut Ui) {
+        ui.menu_button("Run", |ui| {
+            if ui.button("Stop").clicked() {
+                self.user_input_sender.send(Stop).ok();
+            }
+            if ui.button("Go").clicked() {
+                self.user_input_sender.send(Start).ok();
+            }
+        });
+    }
+
+    fn reset_menu(&mut self, ui: &mut Ui) {
+        ui.menu_button("Reset", |ui| {
+            if ui.button("Soft Reset").clicked() {
+                self.user_input_sender.send(SoftReset).ok();
+            }
+            if ui.button("Hard Reset").clicked() {
+                self.user_input_sender.send(HardReset).ok();
+            }
+        });
+    }
+
+    //Reset
+    //     Soft Reset
+    // Hard Reset
+    fn image_menu(&mut self, ui: &mut Ui) {
+        ui.menu_button("Image", |ui| {
+            if ui.button("Zoom 1x").clicked() {
+                //todo: implement
+            }
+            if ui.button("Zoom 2x").clicked() {
+                //todo: implement
+            }
+            if ui.button("Zoom 3x").clicked() {
+                //todo: implement
+            }
+            if ui.button("Filter").clicked() {
+                //todo: implement
+            }
+        });
+    }
+
+    //Reset
+    //     Soft Reset
+    // Hard Reset
+    fn debug_menu(&mut self, ui: &mut Ui) {
+        ui.menu_button("Debug", |ui| {
+            if ui.button("Debug").clicked() {
+                //todo: implement
+            }
+        });
+    }
+
+    //Reset
+    //     Soft Reset
+    // Hard Reset
+    fn help_menu(&mut self, ui: &mut Ui) {
+        ui.menu_button("Help", |ui| {
+            if ui.button("About").clicked() {
+                //todo: implement
+            }
+        });
+    }
 }
 
 #[cfg(feature = "egui-display")]
@@ -113,6 +206,8 @@ impl App for Gui {
                 min: pos2(0.0, 0.0),
                 max: pos2(1.0, 1.0),
             };
+
+            self.build_menu_panel(ctx);
             egui::CentralPanel::default().show(ctx, |ui| {
                 ui.painter().image(texture_id, rect, uv, Color32::WHITE);
             });
