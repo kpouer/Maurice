@@ -12,11 +12,12 @@ use speedy2d::{
 #[cfg(feature = "egui-display")]
 use {
     eframe::{epaint::TextureHandle, App, Frame},
-    egui::{pos2, Color32, Context, Event, Key, Rect, TextureId, TextureOptions, Ui},
+    egui::{
+        pos2, Color32, Context, Event, Key, Rect, TextureId, TextureOptions, Ui, ViewportCommand,
+    },
 };
 
 use crate::hardware::screen::{HEIGHT, WIDTH};
-use egui::{ResizeDirection, ViewportCommand};
 use log::info;
 use std::sync::mpsc::{Receiver, Sender};
 

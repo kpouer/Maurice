@@ -1,6 +1,6 @@
 use crate::dimension::Dimension;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct RawImage {
     pub(crate) data: Vec<u8>,
     pub(crate) width: usize,

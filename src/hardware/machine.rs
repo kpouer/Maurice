@@ -69,7 +69,6 @@ impl Machine {
         loop {
             self.eventually_process_user_input();
             if !self.running {
-                self.image_data_sender.send(RawImage::default()).ok();
                 thread::sleep(std::time::Duration::from_millis(1000 / 60));
                 continue;
             }
