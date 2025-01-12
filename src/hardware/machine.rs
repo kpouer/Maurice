@@ -91,6 +91,7 @@ impl Machine {
     fn eventually_process_user_input(&mut self) {
         if let Ok(user_input) = self.user_input_receiver.try_recv() {
             match user_input {
+                UserInput::RewindK7File => self.mem.rewind_k7(),
                 UserInput::OpenK7File => self.open_file(),
                 UserInput::Stop => self.running = false,
                 UserInput::Start => self.running = true,

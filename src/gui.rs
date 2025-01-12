@@ -1,7 +1,7 @@
 use crate::hardware::keyboard::vkey::MO5VirtualKeyCode;
 use crate::raw_image::RawImage;
 use crate::user_input::UserInput;
-use crate::user_input::UserInput::{HardReset, OpenK7File, SoftReset, Start, Stop};
+use crate::user_input::UserInput::{HardReset, OpenK7File, RewindK7File, SoftReset, Start, Stop};
 #[cfg(feature = "speedy2d-display")]
 use speedy2d::{
     dimen::{UVec2, Vec2},
@@ -117,7 +117,7 @@ impl Gui {
                 self.user_input_sender.send(OpenK7File).ok();
             }
             if ui.button("Rewind Tape").clicked() {
-                //todo: implement
+                self.user_input_sender.send(RewindK7File).ok();
             }
             if ui.button("Exit").clicked() {
                 info!("Exit");

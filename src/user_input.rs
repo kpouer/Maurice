@@ -3,6 +3,7 @@ use crate::hardware::keyboard::vkey::MO5VirtualKeyCode;
 
 pub enum UserInput {
     OpenK7File,
+    RewindK7File,
     Stop,
     Start,
     SoftReset,

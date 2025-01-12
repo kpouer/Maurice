@@ -285,6 +285,15 @@ impl Memory {
         }
     }
 
+    pub(crate) fn rewind_k7(&mut self) {
+        info!("rewind");
+        if let Some(k7fis) = self.k7_fis.as_mut() {
+            k7fis.reset();
+            self.k7_bit = 0;
+            self.k7_char = 0;
+        }
+    }
+
     pub(crate) fn set_k7file(&mut self, name: &Path) -> bool {
         info!("opening:{}", name.to_str().unwrap());
         if self.k7_fis.is_none() {
