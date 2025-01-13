@@ -166,9 +166,7 @@ impl Memory {
     }
 
     pub(crate) fn set_all_dirty(&mut self) {
-        for i in 0..200 {
-            self.dirty[i] = true;
-        }
+        self.dirty.fill(true);
     }
 
     pub(crate) fn reset(&mut self) {
