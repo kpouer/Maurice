@@ -1,12 +1,10 @@
 mod color;
 
-use crate::dimension::Dimension;
 use crate::hardware::memory::Memory;
 use crate::hardware::screen::color::{Color, PALETTE};
 use crate::int;
 use crate::raw_image::RawImage;
 use rayon::prelude::*;
-use std::cmp;
 
 pub const WIDTH: usize = 320;
 pub const HEIGHT: usize = 200;
@@ -43,10 +41,10 @@ impl Screen {
     }
 
     #[cfg(feature = "resizable-api")]
-    pub(crate) fn new_size(&mut self, new_size: Dimension) {
+    pub(crate) fn new_size(&mut self, new_size: crate::dimension::Dimension) {
         let x_ratio = new_size.width / WIDTH;
         let y_ratio = new_size.height / HEIGHT;
-        self.set_ratio(cmp::min(x_ratio, y_ratio));
+        self.set_ratio(std::cmp::min(x_ratio, y_ratio));
     }
 
     #[cfg(feature = "resizable-api")]

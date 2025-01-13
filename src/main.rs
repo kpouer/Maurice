@@ -3,8 +3,6 @@ use maurice::args::Args;
 use maurice::gui::Gui;
 use maurice::hardware::machine::Machine;
 use maurice::hardware::screen::{HEIGHT, WIDTH};
-use maurice::raw_image::RawImage;
-use maurice::user_input::UserInput;
 use std::sync::mpsc::channel;
 use std::thread;
 
@@ -18,8 +16,8 @@ fn main() {
 
     let args = Args::parse();
 
-    let (image_data_sender, image_data_receiver) = channel::<RawImage>();
-    let (user_input_sender, user_input_receiver) = channel::<UserInput>();
+    let (image_data_sender, image_data_receiver) = channel();
+    let (user_input_sender, user_input_receiver) = channel();
 
     thread::spawn(move || {
         let mut machine = Machine::new(image_data_sender, user_input_receiver);

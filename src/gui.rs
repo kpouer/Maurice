@@ -1,5 +1,4 @@
 use crate::hardware::keyboard::vkey::MO5VirtualKeyCode;
-use crate::raw_image::RawImage;
 use crate::user_input::UserInput;
 use crate::user_input::UserInput::{HardReset, OpenK7File, RewindK7File, SoftReset, Start, Stop};
 #[cfg(feature = "speedy2d-display")]
@@ -9,35 +8,52 @@ use speedy2d::{
     window::{KeyScancode, ModifiersState, VirtualKeyCode, WindowHandler, WindowHelper},
     Graphics2D,
 };
+use std::sync::{Arc, Mutex};
 #[cfg(feature = "egui-display")]
 use {
     eframe::{epaint::TextureHandle, App, Frame},
-    egui::{
-        pos2, Color32, Context, Event, Key, Rect, TextureId, TextureOptions, Ui, ViewportCommand,
-    },
+    egui::{pos2, Color32, Context, Event, Key, Rect, TextureOptions, Ui, ViewportCommand},
 };
 
 use crate::hardware::screen::{HEIGHT, WIDTH};
+use crate::machine_snap_event::MachineSnapEvent;
 use log::info;
 use std::sync::mpsc::{Receiver, Sender};
 
+#[derive(Default)]
+enum DialogKind {
+    #[default]
+    None,
+    Debug,
+    About,
+}
+
+#[derive(Default)]
+struct Dialog {
+    current: DialogKind,
+}
+
 pub struct Gui {
     user_input_sender: Sender<UserInput>,
-    image_data_receiver: Receiver<RawImage>,
+    image_data_receiver: Receiver<MachineSnapEvent>,
     #[cfg(feature = "egui-display")]
     image: Option<TextureHandle>,
+    #[cfg(feature = "egui-display")]
+    dialog: Arc<Mutex<Dialog>>,
 }
 
 impl Gui {
     pub fn new(
         user_input_sender: Sender<UserInput>,
-        image_data_receiver: Receiver<RawImage>,
+        image_data_receiver: Receiver<MachineSnapEvent>,
     ) -> Self {
         Self {
             user_input_sender,
             image_data_receiver,
             #[cfg(feature = "egui-display")]
             image: None,
+            #[cfg(feature = "egui-display")]
+            dialog: Default::default(),
         }
     }
 }
@@ -80,9 +96,9 @@ impl Gui {
 
     fn update_texture(&mut self, ctx: &Context) {
         let mut current_raw_image = None;
-        while let Ok(buf) = self.image_data_receiver.try_recv() {
-            if !buf.data.is_empty() {
-                current_raw_image = Some(buf);
+        if let Ok(mut machine_event_snap) = self.image_data_receiver.try_recv() {
+            if let Some(raw_image) = machine_event_snap.raw_image.take() {
+                current_raw_image = Some(raw_image);
             }
         }
 
@@ -180,7 +196,8 @@ impl Gui {
     fn debug_menu(&mut self, ui: &mut Ui) {
         ui.menu_button("Debug", |ui| {
             if ui.button("Debug").clicked() {
-                //todo: implement
+                let mut dialog = self.dialog.lock().unwrap();
+                dialog.current = DialogKind::Debug;
             }
         });
     }
@@ -191,16 +208,87 @@ impl Gui {
     fn help_menu(&mut self, ui: &mut Ui) {
         ui.menu_button("Help", |ui| {
             if ui.button("About").clicked() {
-                //todo: implement
+                let mut dialog = self.dialog.lock().unwrap();
+                dialog.current = DialogKind::About;
             }
         });
+    }
+
+    fn eventually_show_dialog(&self, ctx: &Context) {
+        let dialog = self.dialog.lock().unwrap();
+        match dialog.current {
+            DialogKind::None => {}
+            DialogKind::Debug => self.show_debug(ctx),
+            DialogKind::About => self.show_about(ctx),
+        }
+    }
+
+    fn show_debug(&self, ctx: &Context) {
+        let dialog = self.dialog.clone();
+        ctx.show_viewport_deferred(
+            egui::ViewportId::from_hash_of("debug_viewport"),
+            egui::ViewportBuilder::default()
+                .with_title("Debug")
+                .with_inner_size([200.0, 100.0]),
+            move |ctx, class| {
+                assert!(
+                    class == egui::ViewportClass::Deferred,
+                    "This egui backend doesn't support multiple viewports"
+                );
+
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    ui.label("Hello from deferred viewport");
+                });
+                if ctx.input(|i| i.viewport().close_requested()) {
+                    // Tell parent to close us.
+                    dialog.lock().unwrap().current = DialogKind::None;
+                }
+            },
+        );
+    }
+
+    fn show_about(&self, ctx: &Context) {
+        let dialog = self.dialog.clone();
+        ctx.show_viewport_deferred(
+            egui::ViewportId::from_hash_of("about_viewport"),
+            egui::ViewportBuilder::default()
+                .with_title("About Maurice")
+                .with_inner_size([400.0, 200.0]),
+            move |ctx, class| {
+                assert!(
+                    class == egui::ViewportClass::Deferred,
+                    "This egui backend doesn't support multiple viewports"
+                );
+
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    ui.label(
+                        "
+                       Maurice
+
+            (C) G.Fetis 1997-1998-2006
+            (C) DevilMarkus http://cpc.devilmarkus.de 2006
+            (C) M.Le Goff 2014
+            (C) Matthieu Casanova 2023-2025
+
+            Rust conversion of Marcel o Cinq MO5 Emulator (Java version)
+            ",
+                    );
+                });
+                if ctx.input(|i| i.viewport().close_requested()) {
+                    // Tell parent to close us.
+                    dialog.lock().unwrap().current = DialogKind::None;
+                }
+            },
+        );
     }
 }
 
 #[cfg(feature = "egui-display")]
 impl App for Gui {
     fn update(&mut self, ctx: &Context, frame: &mut Frame) {
+        self.handle_input(ctx);
         self.build_menu_panel(ctx);
+        self.eventually_show_dialog(ctx);
         self.update_texture(ctx);
 
         if let Some(image) = &self.image {
@@ -214,13 +302,14 @@ impl App for Gui {
                 max: pos2(1.0, 1.0),
             };
 
-            egui::CentralPanel::default().show(ctx, |ui| {
-                ui.painter().image(image.into(), rect, uv, Color32::WHITE);
-            });
+            egui::CentralPanel::default()
+                .show(ctx, |ui| {
+                    ui.painter().image(image.into(), rect, uv, Color32::WHITE);
+                })
+                .response
+                .request_focus();
             ctx.request_repaint_after(std::time::Duration::from_millis(50));
         }
-
-        self.handle_input(ctx);
     }
 }
 

@@ -3433,7 +3433,7 @@ fn r_pile(m: int) -> String {
     output
 }
 
-pub(crate) fn unassemble(start: int, maxLines: int, mem: &mut Memory) -> String {
+pub(crate) fn unassemble(start: int, maxLines: int, mem: &Memory) -> String {
     let mut MNEMO = ["ILL -"; 256];
     let mut MNEMO10 = ["ILL -"; 256];
     let mut MNEMO11 = ["ILL -"; 256];

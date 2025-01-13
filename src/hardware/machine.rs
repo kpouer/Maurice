@@ -11,10 +11,10 @@ use crate::hardware::keyboard::Keyboard;
 use crate::hardware::memory::Memory;
 use crate::hardware::screen::Screen;
 use crate::hardware::sound::Sound;
-use crate::hardware::M6809::M6809;
-use crate::raw_image::RawImage;
+use crate::hardware::M6809::{unassemble, M6809};
+use crate::int;
+use crate::machine_snap_event::MachineSnapEvent;
 use crate::user_input::UserInput;
-use crate::{hardware, int};
 
 pub struct Machine {
     // Emulation Objects
@@ -31,13 +31,13 @@ pub struct Machine {
     pub(crate) keypos: usize,
     pub(crate) typetext: Option<String>,
     pub(crate) running: bool,
-    image_data_sender: Sender<RawImage>,
+    image_data_sender: Sender<MachineSnapEvent>,
     pub(crate) user_input_receiver: Receiver<UserInput>,
 }
 
 impl Machine {
     pub fn new(
-        image_data_sender: Sender<RawImage>,
+        image_data_sender: Sender<MachineSnapEvent>,
         user_input_receiver: Receiver<UserInput>,
     ) -> Self {
         info!("Machine::new()");
@@ -68,18 +68,23 @@ impl Machine {
     pub fn run_loop(&mut self) {
         loop {
             self.eventually_process_user_input();
-            if !self.running {
-                thread::sleep(std::time::Duration::from_millis(1000 / 60));
-                continue;
+            let pixels;
+            if self.running {
+                self.run();
+                self.screen.paint(&mut self.mem);
+                #[cfg(debug_assertions)]
+                let start = SystemTime::now();
+                pixels = Some(self.screen.get_pixels());
+                #[cfg(debug_assertions)]
+                log::debug!("Elapsed time: {:?}", start.elapsed());
+            } else {
+                pixels = None;
             }
-            self.run();
-            self.screen.paint(&mut self.mem);
-            #[cfg(debug_assertions)]
-            let start = SystemTime::now();
-            let pixels = self.screen.get_pixels();
-            #[cfg(debug_assertions)]
-            log::debug!("Elapsed time: {:?}", start.elapsed());
-            self.image_data_sender.send(pixels).ok();
+            let register_dump = self.dump_registers();
+            let unassembled = self.unassemble_from_pc(10, &self.mem);
+            self.image_data_sender
+                .send(MachineSnapEvent::new(pixels, register_dump, unassembled))
+                .ok();
         }
     }
 
@@ -240,18 +245,18 @@ impl Machine {
     }
 
     // Debug Methods
-    // fn dump_registers(&mut self) -> String {
-    //     self.micro.print_state()
-    // }
-    //
-    // fn unassemble_from_pc(&self, nblines: int, mem: &mut Memory) -> String {
-    //     unassemble(self.micro.PC, nblines, mem)
-    // }
+    fn dump_registers(&mut self) -> String {
+        self.micro.print_state()
+    }
+
+    fn unassemble_from_pc(&self, nblines: int, mem: &Memory) -> String {
+        unassemble(self.micro.PC, nblines, mem)
+    }
 }
 
 #[cfg(feature = "resizable-api")]
 fn get_ratio() -> usize {
-    hardware::screen::DEFAULT_PIXEL_SIZE
+    crate::hardware::screen::DEFAULT_PIXEL_SIZE
 }
 
 #[cfg(not(feature = "resizable-api"))]
