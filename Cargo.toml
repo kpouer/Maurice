@@ -25,10 +25,11 @@ clap = { version = "4.5.23", features = ["derive"] }
 cpal = "0.15.3"
 eframe = { version = "0.30.0", optional = true }
 egui = { version = "0.30.0", optional = true }
+egui-file-dialog = { version = "0.8.0", optional = true }
 env_logger = "0.11.5"
 log = "0.4.22"
 rayon = "1.10.0"
-rfd = "0.14.1"
+rfd = { version = "0.14.1", optional = true }
 rust-embed = "8.5.0"
 speedy2d = { version = "2.1.0", optional = true }
 
@@ -41,8 +42,8 @@ harness = false
 
 [features]
 default = ["speedy2d-display"]
-egui-display = ["eframe", "egui"]
-speedy2d-display = ["speedy2d", "resizable-api"]
+egui-display = ["eframe", "egui", "egui-file-dialog"]
+speedy2d-display = ["speedy2d", "resizable-api", "rfd"]
 resizable-api = []
 
 [profile.release]

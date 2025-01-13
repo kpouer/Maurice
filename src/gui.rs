@@ -1,6 +1,8 @@
 use crate::hardware::keyboard::vkey::MO5VirtualKeyCode;
 use crate::user_input::UserInput;
-use crate::user_input::UserInput::{HardReset, OpenK7File, RewindK7File, SoftReset, Start, Stop};
+#[cfg(feature = "speedy2d-display")]
+use crate::user_input::UserInput::OpenK7File;
+use crate::user_input::UserInput::{HardReset, RewindK7File, SoftReset, Start, Stop};
 #[cfg(feature = "speedy2d-display")]
 use speedy2d::{
     dimen::{UVec2, Vec2},
@@ -43,6 +45,8 @@ pub struct Gui {
     dialog: DialogKind,
     registers: String,
     unassemble: String,
+    #[cfg(feature = "egui-display")]
+    file_dialog: Option<egui_file_dialog::FileDialog>,
 }
 
 impl Gui {
@@ -59,6 +63,8 @@ impl Gui {
             dialog: DialogKind::None,
             registers: String::new(),
             unassemble: String::new(),
+            #[cfg(feature = "egui-display")]
+            file_dialog: None,
         }
     }
 }
@@ -85,6 +91,7 @@ impl Gui {
                         UserInput::KeyUp
                     };
                     let action = match key {
+                        #[cfg(feature = "speedy2d-display")]
                         Key::F2 => Some(OpenK7File),
                         Key::F7 => Some(SoftReset),
                         Key::F8 => Some(HardReset),
@@ -124,7 +131,7 @@ impl Gui {
     fn build_menu_panel(&mut self, ctx: &Context) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
-                self.file_menu(ui);
+                self.file_menu(ctx, ui);
                 self.run_menu(ui);
                 self.reset_menu(ui);
                 self.image_menu(ui, ctx);
@@ -134,9 +141,16 @@ impl Gui {
         });
     }
 
-    fn file_menu(&mut self, ui: &mut Ui) {
+    fn file_menu(&mut self, ctx: &Context, ui: &mut Ui) {
         ui.menu_button("File", |ui| {
             if ui.button("Select K7").clicked() {
+                #[cfg(feature = "egui-display")]
+                {
+                    let mut fd = egui_file_dialog::FileDialog::new();
+                    fd.pick_file();
+                    self.file_dialog = Some(fd);
+                }
+                #[cfg(feature = "speedy2d-display")]
                 self.user_input_sender.send(OpenK7File).ok();
             }
             if ui.button("Rewind Tape").clicked() {
@@ -299,6 +313,15 @@ impl App for Gui {
         self.build_menu_panel(ctx);
         self.eventually_show_dialog(ctx);
         self.update_texture(ctx);
+        if let Some(fd) = &mut self.file_dialog {
+            fd.update(ctx);
+            if let Some(path) = fd.take_picked() {
+                self.user_input_sender
+                    .send(UserInput::FileOpened(path.to_path_buf()))
+                    .ok();
+                self.file_dialog = None;
+            }
+        }
 
         if let Some(image) = &self.image {
             let available_rect = ctx.available_rect();

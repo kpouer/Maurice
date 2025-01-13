@@ -1,11 +1,10 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 use std::time::{Duration, SystemTime};
 
 use chrono::{DateTime, Local};
 use log::info;
-use rfd::FileDialog;
 
 use crate::hardware::keyboard::Keyboard;
 use crate::hardware::memory::Memory;
@@ -98,7 +97,10 @@ impl Machine {
         if let Ok(user_input) = self.user_input_receiver.try_recv() {
             match user_input {
                 UserInput::RewindK7File => self.mem.rewind_k7(),
+                #[cfg(feature = "speedy2d-display")]
                 UserInput::OpenK7File => self.open_file(),
+                #[cfg(feature = "egui-display")]
+                UserInput::FileOpened(path) => self.set_k7_file(&path),
                 UserInput::Stop => self.running = false,
                 UserInput::Start => self.running = true,
                 UserInput::SoftReset => self.reset_soft(),
@@ -112,8 +114,9 @@ impl Machine {
         }
     }
 
+    #[cfg(feature = "speedy2d-display")]
     fn open_file(&mut self) {
-        let files = FileDialog::new()
+        let files = rfd::FileDialog::new()
             .add_filter("k7", &["k7"])
             .set_directory("./")
             .pick_file();
