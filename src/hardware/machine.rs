@@ -97,9 +97,6 @@ impl Machine {
         if let Ok(user_input) = self.user_input_receiver.try_recv() {
             match user_input {
                 UserInput::RewindK7File => self.mem.rewind_k7(),
-                #[cfg(feature = "speedy2d-display")]
-                UserInput::OpenK7File => self.open_file(),
-                #[cfg(feature = "egui-display")]
                 UserInput::FileOpened(path) => self.set_k7_file(&path),
                 UserInput::Stop => self.running = false,
                 UserInput::Start => self.running = true,
@@ -108,21 +105,8 @@ impl Machine {
                 UserInput::KeyDown(vk) => self.keyboard.key_pressed(vk, &mut self.mem),
                 UserInput::KeyUp(vk) => self.keyboard.key_released(vk, &mut self.mem),
                 UserInput::KeyboardModifierChanged(state) => self.keyboard.modifiers = state,
-                #[cfg(feature = "resizable-api")]
                 UserInput::WindowResized(size) => self.screen.new_size(size),
             }
-        }
-    }
-
-    #[cfg(feature = "speedy2d-display")]
-    fn open_file(&mut self) {
-        let files = rfd::FileDialog::new()
-            .add_filter("k7", &["k7"])
-            .set_directory("./")
-            .pick_file();
-        if let Some(filename) = files {
-            info!("Machine::set_k7_file({:?})", filename);
-            self.mem.set_k7file(&filename);
         }
     }
 
@@ -258,12 +242,6 @@ impl Machine {
     }
 }
 
-#[cfg(feature = "resizable-api")]
 fn get_ratio() -> usize {
     crate::hardware::screen::DEFAULT_PIXEL_SIZE
-}
-
-#[cfg(not(feature = "resizable-api"))]
-fn get_ratio() -> usize {
-    5
 }

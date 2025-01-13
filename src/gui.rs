@@ -1,17 +1,7 @@
 use crate::hardware::keyboard::vkey::MO5VirtualKeyCode;
 use crate::user_input::UserInput;
-#[cfg(feature = "speedy2d-display")]
-use crate::user_input::UserInput::OpenK7File;
 use crate::user_input::UserInput::{HardReset, RewindK7File, SoftReset, Start, Stop};
-#[cfg(feature = "speedy2d-display")]
-use speedy2d::{
-    dimen::{UVec2, Vec2},
-    image::{ImageDataType::RGB, ImageSmoothingMode::NearestNeighbor},
-    window::{KeyScancode, ModifiersState, VirtualKeyCode, WindowHandler, WindowHelper},
-    Graphics2D,
-};
 use std::sync::{Arc, Mutex};
-#[cfg(feature = "egui-display")]
 use {
     eframe::{epaint::TextureHandle, App, Frame},
     egui::{pos2, Color32, Context, Event, Key, Rect, TextureOptions, Ui, ViewportCommand},
@@ -39,13 +29,10 @@ struct Dialog {
 pub struct Gui {
     user_input_sender: Sender<UserInput>,
     image_data_receiver: Receiver<MachineSnapEvent>,
-    #[cfg(feature = "egui-display")]
     image: Option<TextureHandle>,
-    #[cfg(feature = "egui-display")]
     dialog: DialogKind,
     registers: String,
     unassemble: String,
-    #[cfg(feature = "egui-display")]
     file_dialog: Option<egui_file_dialog::FileDialog>,
 }
 
@@ -57,19 +44,15 @@ impl Gui {
         Self {
             user_input_sender,
             image_data_receiver,
-            #[cfg(feature = "egui-display")]
             image: None,
-            #[cfg(feature = "egui-display")]
             dialog: DialogKind::None,
             registers: String::new(),
             unassemble: String::new(),
-            #[cfg(feature = "egui-display")]
             file_dialog: None,
         }
     }
 }
 
-#[cfg(feature = "egui-display")]
 impl Gui {
     fn handle_input(&mut self, ctx: &Context) {
         ctx.input(|input_state| {
@@ -91,8 +74,6 @@ impl Gui {
                         UserInput::KeyUp
                     };
                     let action = match key {
-                        #[cfg(feature = "speedy2d-display")]
-                        Key::F2 => Some(OpenK7File),
                         Key::F7 => Some(SoftReset),
                         Key::F8 => Some(HardReset),
                         _ => MO5VirtualKeyCode::try_from(*key).ok().map(evt),
@@ -144,14 +125,9 @@ impl Gui {
     fn file_menu(&mut self, ctx: &Context, ui: &mut Ui) {
         ui.menu_button("File", |ui| {
             if ui.button("Select K7").clicked() {
-                #[cfg(feature = "egui-display")]
-                {
-                    let mut fd = egui_file_dialog::FileDialog::new();
-                    fd.pick_file();
-                    self.file_dialog = Some(fd);
-                }
-                #[cfg(feature = "speedy2d-display")]
-                self.user_input_sender.send(OpenK7File).ok();
+                let mut fd = egui_file_dialog::FileDialog::new();
+                fd.pick_file();
+                self.file_dialog = Some(fd);
             }
             if ui.button("Rewind Tape").clicked() {
                 self.user_input_sender.send(RewindK7File).ok();
@@ -192,7 +168,7 @@ impl Gui {
         ui.menu_button("Image", |ui| {
             if ui.button("Zoom 1x").clicked() {
                 ctx.send_viewport_cmd(ViewportCommand::InnerSize(
-                    [(1 * WIDTH) as f32, (1 * HEIGHT) as f32].into(),
+                    [WIDTH as f32, HEIGHT as f32].into(),
                 ))
             }
             if ui.button("Zoom 2x").clicked() {
@@ -306,7 +282,6 @@ impl Gui {
     }
 }
 
-#[cfg(feature = "egui-display")]
 impl App for Gui {
     fn update(&mut self, ctx: &Context, frame: &mut Frame) {
         self.handle_input(ctx);
@@ -342,72 +317,5 @@ impl App for Gui {
                 .request_focus();
             ctx.request_repaint_after(std::time::Duration::from_millis(50));
         }
-    }
-}
-
-#[cfg(feature = "speedy2d-display")]
-impl WindowHandler for Gui {
-    fn on_resize(&mut self, _: &mut WindowHelper<()>, size_pixels: UVec2) {
-        self.user_input_sender
-            .send(UserInput::WindowResized(size_pixels.into()))
-            .ok();
-    }
-
-    fn on_draw(&mut self, helper: &mut WindowHelper<()>, graphics: &mut Graphics2D) {
-        if let Ok(buf) = self.image_data_receiver.recv() {
-            let image =
-                graphics.create_image_from_raw_pixels(RGB, NearestNeighbor, buf.size(), &buf.data);
-            match image {
-                Ok(image) => graphics.draw_image(Vec2::ZERO, &image),
-                Err(err) => log::error!("Error creating image from raw pixels {err:?}"),
-            }
-        } else {
-            println!("No image available");
-        }
-
-        helper.request_redraw();
-    }
-
-    fn on_key_down(
-        &mut self,
-        _: &mut WindowHelper<()>,
-        virtual_key_code: Option<VirtualKeyCode>,
-        scancode: KeyScancode,
-    ) {
-        let action = match virtual_key_code {
-            Some(VirtualKeyCode::F2) => Some(OpenK7File),
-            Some(VirtualKeyCode::F7) => Some(SoftReset),
-            Some(VirtualKeyCode::F8) => Some(HardReset),
-            Some(key) => MO5VirtualKeyCode::try_from(key)
-                .ok()
-                .map(UserInput::KeyDown),
-            _ => None,
-        };
-        if let Some(action) = action {
-            self.user_input_sender.send(action).ok();
-        }
-    }
-
-    fn on_key_up(
-        &mut self,
-        _: &mut WindowHelper<()>,
-        virtual_key_code: Option<VirtualKeyCode>,
-        scancode: KeyScancode,
-    ) {
-        if let Some(vk) = virtual_key_code {
-            MO5VirtualKeyCode::try_from(vk)
-                .ok()
-                .iter()
-                .map(|mo5virtual_key_code| UserInput::KeyDown(*mo5virtual_key_code))
-                .for_each(|user_input| {
-                    self.user_input_sender.send(user_input).ok();
-                });
-        }
-    }
-
-    fn on_keyboard_modifiers_changed(&mut self, _: &mut WindowHelper<()>, state: ModifiersState) {
-        self.user_input_sender
-            .send(UserInput::KeyboardModifierChanged(state.into()))
-            .ok();
     }
 }

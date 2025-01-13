@@ -9,7 +9,6 @@ use rayon::prelude::*;
 pub const WIDTH: usize = 320;
 pub const HEIGHT: usize = 200;
 
-#[cfg(feature = "resizable-api")]
 pub const DEFAULT_PIXEL_SIZE: usize = 3;
 
 #[derive(Debug)]
@@ -40,14 +39,12 @@ impl Screen {
         }
     }
 
-    #[cfg(feature = "resizable-api")]
     pub(crate) fn new_size(&mut self, new_size: crate::dimension::Dimension) {
         let x_ratio = new_size.width / WIDTH;
         let y_ratio = new_size.height / HEIGHT;
         self.set_ratio(std::cmp::min(x_ratio, y_ratio));
     }
 
-    #[cfg(feature = "resizable-api")]
     fn set_ratio(&mut self, mut ratio: usize) {
         if ratio == 0 {
             ratio = 1;
