@@ -79,6 +79,7 @@ impl Machine {
                 log::debug!("Elapsed time: {:?}", start.elapsed());
             } else {
                 pixels = None;
+                thread::sleep(std::time::Duration::from_millis(1000 / 60));
             }
             let register_dump = self.dump_registers();
             let unassembled = self.unassemble_from_pc(10, &self.mem);

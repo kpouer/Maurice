@@ -15,6 +15,7 @@ use {
     egui::{pos2, Color32, Context, Event, Key, Rect, TextureOptions, Ui, ViewportCommand},
 };
 
+use crate::gui::DialogKind::About;
 use crate::hardware::screen::{HEIGHT, WIDTH};
 use crate::machine_snap_event::MachineSnapEvent;
 use log::info;
@@ -39,7 +40,9 @@ pub struct Gui {
     #[cfg(feature = "egui-display")]
     image: Option<TextureHandle>,
     #[cfg(feature = "egui-display")]
-    dialog: Arc<Mutex<Dialog>>,
+    dialog: DialogKind,
+    registers: String,
+    unassemble: String,
 }
 
 impl Gui {
@@ -53,7 +56,9 @@ impl Gui {
             #[cfg(feature = "egui-display")]
             image: None,
             #[cfg(feature = "egui-display")]
-            dialog: Default::default(),
+            dialog: DialogKind::None,
+            registers: String::new(),
+            unassemble: String::new(),
         }
     }
 }
@@ -95,21 +100,23 @@ impl Gui {
     }
 
     fn update_texture(&mut self, ctx: &Context) {
-        let mut current_raw_image = None;
-        if let Ok(mut machine_event_snap) = self.image_data_receiver.try_recv() {
-            if let Some(raw_image) = machine_event_snap.raw_image.take() {
-                current_raw_image = Some(raw_image);
-            }
+        let mut current_event = None;
+        while let Ok(machine_event_snap) = self.image_data_receiver.try_recv() {
+            current_event = Some(machine_event_snap);
         }
 
-        if let Some(buf) = current_raw_image {
-            let image = egui::ColorImage::from_rgb([buf.width, buf.height], &buf.data);
-            match &mut self.image {
-                None => {
-                    self.image =
-                        Some(ctx.load_texture("my_texture", image, TextureOptions::default()))
+        if let Some(mut evt) = current_event.take() {
+            if let Some(buf) = evt.raw_image.take() {
+                self.registers = evt.registers;
+                self.unassemble = evt.unassembled;
+                let image = egui::ColorImage::from_rgb([buf.width, buf.height], &buf.data);
+                match &mut self.image {
+                    None => {
+                        self.image =
+                            Some(ctx.load_texture("my_texture", image, TextureOptions::default()))
+                    }
+                    Some(texture) => texture.set(image, TextureOptions::default()),
                 }
-                Some(texture) => texture.set(image, TextureOptions::default()),
             }
         }
     }
@@ -196,8 +203,7 @@ impl Gui {
     fn debug_menu(&mut self, ui: &mut Ui) {
         ui.menu_button("Debug", |ui| {
             if ui.button("Debug").clicked() {
-                let mut dialog = self.dialog.lock().unwrap();
-                dialog.current = DialogKind::Debug;
+                self.dialog = DialogKind::Debug;
             }
         });
     }
@@ -208,55 +214,58 @@ impl Gui {
     fn help_menu(&mut self, ui: &mut Ui) {
         ui.menu_button("Help", |ui| {
             if ui.button("About").clicked() {
-                let mut dialog = self.dialog.lock().unwrap();
-                dialog.current = DialogKind::About;
+                self.dialog = About;
             }
         });
     }
 
-    fn eventually_show_dialog(&self, ctx: &Context) {
-        let dialog = self.dialog.lock().unwrap();
-        match dialog.current {
+    fn eventually_show_dialog(&mut self, ctx: &Context) {
+        match self.dialog {
             DialogKind::None => {}
             DialogKind::Debug => self.show_debug(ctx),
             DialogKind::About => self.show_about(ctx),
         }
     }
 
-    fn show_debug(&self, ctx: &Context) {
-        let dialog = self.dialog.clone();
-        ctx.show_viewport_deferred(
-            egui::ViewportId::from_hash_of("debug_viewport"),
-            egui::ViewportBuilder::default()
-                .with_title("Debug")
-                .with_inner_size([200.0, 100.0]),
-            move |ctx, class| {
-                assert!(
-                    class == egui::ViewportClass::Deferred,
-                    "This egui backend doesn't support multiple viewports"
-                );
-
-                egui::CentralPanel::default().show(ctx, |ui| {
-                    ui.label("Hello from deferred viewport");
-                });
-                if ctx.input(|i| i.viewport().close_requested()) {
-                    // Tell parent to close us.
-                    dialog.lock().unwrap().current = DialogKind::None;
-                }
-            },
-        );
-    }
-
-    fn show_about(&self, ctx: &Context) {
-        let dialog = self.dialog.clone();
-        ctx.show_viewport_deferred(
+    fn show_debug(&mut self, ctx: &Context) {
+        let debug = self.registers.clone();
+        let unassemble = self.unassemble.clone();
+        ctx.show_viewport_immediate(
             egui::ViewportId::from_hash_of("about_viewport"),
             egui::ViewportBuilder::default()
                 .with_title("About Maurice")
                 .with_inner_size([400.0, 200.0]),
             move |ctx, class| {
                 assert!(
-                    class == egui::ViewportClass::Deferred,
+                    class == egui::ViewportClass::Immediate,
+                    "This egui backend doesn't support multiple viewports"
+                );
+
+                let dbg = debug.clone();
+                let unassemble = unassemble.clone();
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    ui.vertical(|ui| {
+                        ui.label(dbg);
+                        ui.label(unassemble);
+                    });
+                });
+                if ctx.input(|i| i.viewport().close_requested()) {
+                    // Tell parent to close us.
+                    self.dialog = DialogKind::None;
+                }
+            },
+        );
+    }
+
+    fn show_about(&mut self, ctx: &Context) {
+        ctx.show_viewport_immediate(
+            egui::ViewportId::from_hash_of("about_viewport"),
+            egui::ViewportBuilder::default()
+                .with_title("About Maurice")
+                .with_inner_size([400.0, 200.0]),
+            move |ctx, class| {
+                assert!(
+                    class == egui::ViewportClass::Immediate,
                     "This egui backend doesn't support multiple viewports"
                 );
 
@@ -276,7 +285,7 @@ impl Gui {
                 });
                 if ctx.input(|i| i.viewport().close_requested()) {
                     // Tell parent to close us.
-                    dialog.lock().unwrap().current = DialogKind::None;
+                    self.dialog = DialogKind::None;
                 }
             },
         );
