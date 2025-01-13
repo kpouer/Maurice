@@ -21,13 +21,15 @@ path = "src/lib.rs"
 
 [dependencies]
 chrono = "0.4.38"
+clap = { version = "4.5.23", features = ["derive"] }
 cpal = "0.15.3"
+eframe = "0.30.0"
+egui = "0.30.0"
+egui-file-dialog = "0.8.0"
 env_logger = "0.11.5"
 log = "0.4.22"
 rayon = "1.10.0"
-rfd = "0.14.1"
 rust-embed = "8.5.0"
-speedy2d = "2.1.0"
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["html_reports"] }

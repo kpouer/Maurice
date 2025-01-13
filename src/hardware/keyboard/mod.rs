@@ -1,13 +1,11 @@
 use std::collections::HashMap;
 
-use log::info;
-use speedy2d::window::{ModifiersState, VirtualKeyCode};
-
-use crate::hardware::keyboard::vkey::CustomVirtualKeyCode;
-use crate::hardware::keyboard::vkey::CustomVirtualKeyCode::Base;
+use crate::hardware::keyboard::modifiers::Modifiers;
+use crate::hardware::keyboard::vkey::MO5VirtualKeyCode;
 use crate::hardware::memory::Memory;
 use crate::int;
 
+pub(crate) mod modifiers;
 pub(crate) mod vkey;
 
 #[derive(Debug)]
@@ -15,7 +13,7 @@ pub(crate) struct Keyboard {
     // translation table from scancode to java keycodes VK_
     ftable: HashMap<char, Key>,
     shiftpressed: int,
-    pub(crate) modifiers: ModifiersState,
+    pub(crate) modifiers: Modifiers,
 }
 
 impl Default for Keyboard {
@@ -23,142 +21,137 @@ impl Default for Keyboard {
         Keyboard {
             ftable: build_ftable(),
             shiftpressed: 0,
-            modifiers: ModifiersState::default(),
+            modifiers: Modifiers::default(),
         }
     }
 }
 
 impl Keyboard {
-    fn key_translator(&mut self, vk: CustomVirtualKeyCode, press: bool, mem: &mut Memory) {
+    fn key_translator(&mut self, vk: MO5VirtualKeyCode, press: bool, mem: &mut Memory) {
         match vk {
-            Base(VirtualKeyCode::Backspace) => key_memory(0x6c, press, mem),
-            Base(VirtualKeyCode::Delete) => key_memory(0x12, press, mem),
-            Base(VirtualKeyCode::Return) => key_memory(0x68, press, mem),
-            Base(VirtualKeyCode::Insert) => key_memory(0x12, press, mem),
-            Base(VirtualKeyCode::Up) => key_memory(0x62, press, mem),
-            Base(VirtualKeyCode::Left) => key_memory(0x52, press, mem),
-            Base(VirtualKeyCode::Right) => key_memory(0x32, press, mem),
-            Base(VirtualKeyCode::Down) => key_memory(0x42, press, mem),
-            Base(VirtualKeyCode::LControl) => key_memory(0x6a, press, mem),
-            Base(VirtualKeyCode::Escape) => key_memory(0x66, press, mem),
-            Base(VirtualKeyCode::LShift) => key_memory(0x70, press, mem), //Sh
-            Base(VirtualKeyCode::F11) => key_memory(0x72, press, mem),    // Ba
-            Base(VirtualKeyCode::Key1) => {
-                if self.modifiers.shift() {
+            MO5VirtualKeyCode::Backspace => key_memory(0x6c, press, mem),
+            MO5VirtualKeyCode::Delete => key_memory(0x12, press, mem),
+            MO5VirtualKeyCode::Return => key_memory(0x68, press, mem),
+            MO5VirtualKeyCode::Insert => key_memory(0x12, press, mem),
+            MO5VirtualKeyCode::Up => key_memory(0x62, press, mem),
+            MO5VirtualKeyCode::Left => key_memory(0x52, press, mem),
+            MO5VirtualKeyCode::Right => key_memory(0x32, press, mem),
+            MO5VirtualKeyCode::Down => key_memory(0x42, press, mem),
+            MO5VirtualKeyCode::LControl => key_memory(0x6a, press, mem),
+            MO5VirtualKeyCode::Escape => key_memory(0x66, press, mem),
+            MO5VirtualKeyCode::LShift => key_memory(0x70, press, mem), //Sh
+            MO5VirtualKeyCode::F11 => key_memory(0x72, press, mem),    // Ba
+            MO5VirtualKeyCode::Key1 => {
+                if self.modifiers.shift {
                     key_memory(0x70, press, mem);
                 }
                 key_memory(0x5e, press, mem);
             }
-            Base(VirtualKeyCode::Key2) => {
-                if self.modifiers.shift() {
+            MO5VirtualKeyCode::Key2 => {
+                if self.modifiers.shift {
                     key_memory(0x70, press, mem);
                 }
                 key_memory(0x4e, press, mem);
             }
-            Base(VirtualKeyCode::Key3) => {
-                if self.modifiers.shift() {
+            MO5VirtualKeyCode::Key3 => {
+                if self.modifiers.shift {
                     key_memory(0x70, press, mem);
                 }
                 key_memory(0x3e, press, mem);
             }
-            Base(VirtualKeyCode::Key4) => {
-                if self.modifiers.shift() {
+            MO5VirtualKeyCode::Key4 => {
+                if self.modifiers.shift {
                     key_memory(0x70, press, mem);
                 }
                 key_memory(0x2e, press, mem);
             }
-            Base(VirtualKeyCode::Key5) => {
-                if self.modifiers.shift() {
+            MO5VirtualKeyCode::Key5 => {
+                if self.modifiers.shift {
                     key_memory(0x70, press, mem);
                 }
                 key_memory(0x1e, press, mem);
             }
-            Base(VirtualKeyCode::Key6) => {
-                if self.modifiers.shift() {
+            MO5VirtualKeyCode::Key6 => {
+                if self.modifiers.shift {
                     key_memory(0x70, press, mem);
                 }
                 key_memory(0x0e, press, mem);
             }
-            Base(VirtualKeyCode::Key7) => {
-                if self.modifiers.shift() {
+            MO5VirtualKeyCode::Key7 => {
+                if self.modifiers.shift {
                     key_memory(0x70, press, mem);
                 }
                 key_memory(0x0c, press, mem);
             }
-            Base(VirtualKeyCode::Key8) => {
-                if self.modifiers.shift() {
+            MO5VirtualKeyCode::Key8 => {
+                if self.modifiers.shift {
                     key_memory(0x70, press, mem);
                 }
                 key_memory(0x1c, press, mem);
             }
-            Base(VirtualKeyCode::Key9) => {
-                if self.modifiers.shift() {
+            MO5VirtualKeyCode::Key9 => {
+                if self.modifiers.shift {
                     key_memory(0x70, press, mem);
                 }
                 key_memory(0x2c, press, mem);
             }
-            Base(VirtualKeyCode::Key0) => {
-                if self.modifiers.shift() {
+            MO5VirtualKeyCode::Key0 => {
+                if self.modifiers.shift {
                     key_memory(0x70, press, mem);
                 }
                 key_memory(0x3c, press, mem);
             }
-            Base(VirtualKeyCode::Minus) => {
-                if self.modifiers.shift() {
+            MO5VirtualKeyCode::Minus => {
+                if self.modifiers.shift {
                     key_memory(0x70, press, mem);
                 }
                 key_memory(0x4c, press, mem);
             }
-            Base(VirtualKeyCode::A) => key_memory(0x5a, press, mem),
-            Base(VirtualKeyCode::Z) => key_memory(0x4a, press, mem),
-            Base(VirtualKeyCode::E) => key_memory(0x3a, press, mem),
-            Base(VirtualKeyCode::R) => key_memory(0x2a, press, mem),
-            Base(VirtualKeyCode::T) => key_memory(0x1a, press, mem),
-            Base(VirtualKeyCode::Y) => key_memory(0x0a, press, mem),
-            Base(VirtualKeyCode::U) => key_memory(0x08, press, mem),
-            Base(VirtualKeyCode::I) => key_memory(0x18, press, mem),
-            Base(VirtualKeyCode::O) => key_memory(0x28, press, mem),
-            Base(VirtualKeyCode::P) => key_memory(0x38, press, mem),
-            Base(VirtualKeyCode::Caret) => key_memory(0x48, press, mem),
+            MO5VirtualKeyCode::A => key_memory(0x5a, press, mem),
+            MO5VirtualKeyCode::Z => key_memory(0x4a, press, mem),
+            MO5VirtualKeyCode::E => key_memory(0x3a, press, mem),
+            MO5VirtualKeyCode::R => key_memory(0x2a, press, mem),
+            MO5VirtualKeyCode::T => key_memory(0x1a, press, mem),
+            MO5VirtualKeyCode::Y => key_memory(0x0a, press, mem),
+            MO5VirtualKeyCode::U => key_memory(0x08, press, mem),
+            MO5VirtualKeyCode::I => key_memory(0x18, press, mem),
+            MO5VirtualKeyCode::O => key_memory(0x28, press, mem),
+            MO5VirtualKeyCode::P => key_memory(0x38, press, mem),
+            MO5VirtualKeyCode::Caret => key_memory(0x48, press, mem),
             // Base(VirtualKeyCode::Dollar) => { key_memory(0x58, press, mem); }
-            Base(VirtualKeyCode::Q) => key_memory(0x56, press, mem),
-            Base(VirtualKeyCode::S) => key_memory(0x46, press, mem),
-            Base(VirtualKeyCode::D) => key_memory(0x36, press, mem),
-            Base(VirtualKeyCode::F) => key_memory(0x26, press, mem),
-            Base(VirtualKeyCode::G) => key_memory(0x16, press, mem),
-            Base(VirtualKeyCode::H) => key_memory(0x06, press, mem),
-            Base(VirtualKeyCode::J) => key_memory(0x04, press, mem),
-            Base(VirtualKeyCode::K) => key_memory(0x14, press, mem),
-            Base(VirtualKeyCode::L) => key_memory(0x24, press, mem),
-            Base(VirtualKeyCode::M) => key_memory(0x34, press, mem),
+            MO5VirtualKeyCode::Q => key_memory(0x56, press, mem),
+            MO5VirtualKeyCode::S => key_memory(0x46, press, mem),
+            MO5VirtualKeyCode::D => key_memory(0x36, press, mem),
+            MO5VirtualKeyCode::F => key_memory(0x26, press, mem),
+            MO5VirtualKeyCode::G => key_memory(0x16, press, mem),
+            MO5VirtualKeyCode::H => key_memory(0x06, press, mem),
+            MO5VirtualKeyCode::J => key_memory(0x04, press, mem),
+            MO5VirtualKeyCode::K => key_memory(0x14, press, mem),
+            MO5VirtualKeyCode::L => key_memory(0x24, press, mem),
+            MO5VirtualKeyCode::M => key_memory(0x34, press, mem),
             // Base(VirtualKeyCode::Asterisk) => { key_memory(0x58, press, mem); }
-            Base(VirtualKeyCode::W) => key_memory(0x60, press, mem),
-            Base(VirtualKeyCode::X) => key_memory(0x50, press, mem),
-            Base(VirtualKeyCode::C) => key_memory(0x64, press, mem),
-            Base(VirtualKeyCode::V) => key_memory(0x54, press, mem),
-            Base(VirtualKeyCode::B) => key_memory(0x44, press, mem),
-            Base(VirtualKeyCode::N) => key_memory(0x00, press, mem),
-            Base(VirtualKeyCode::Comma) => key_memory(0x10, press, mem),
-            Base(VirtualKeyCode::Period) => key_memory(0x20, press, mem),
-            Base(VirtualKeyCode::At) => key_memory(0x30, press, mem),
-            Base(VirtualKeyCode::Asterisk) => key_memory(0x58, press, mem),
-            Base(VirtualKeyCode::Space) => key_memory(0x40, press, mem),
-            _ => info!("Unknown virtual key code: {:?}", vk),
+            MO5VirtualKeyCode::W => key_memory(0x60, press, mem),
+            MO5VirtualKeyCode::X => key_memory(0x50, press, mem),
+            MO5VirtualKeyCode::C => key_memory(0x64, press, mem),
+            MO5VirtualKeyCode::V => key_memory(0x54, press, mem),
+            MO5VirtualKeyCode::B => key_memory(0x44, press, mem),
+            MO5VirtualKeyCode::N => key_memory(0x00, press, mem),
+            MO5VirtualKeyCode::Comma => key_memory(0x10, press, mem),
+            MO5VirtualKeyCode::Period => key_memory(0x20, press, mem),
+            MO5VirtualKeyCode::At => key_memory(0x30, press, mem),
+            MO5VirtualKeyCode::Asterisk => key_memory(0x58, press, mem),
+            MO5VirtualKeyCode::Space => key_memory(0x40, press, mem),
         }
     }
 
-    pub(crate) fn key_pressed(&mut self, virtual_key_code: CustomVirtualKeyCode, mem: &mut Memory) {
+    pub(crate) fn key_pressed(&mut self, virtual_key_code: MO5VirtualKeyCode, mem: &mut Memory) {
         for i in 0..127 {
             mem.rem_key(i);
         }
         self.key_translator(virtual_key_code, true, mem);
     }
 
-    pub(crate) fn key_released(
-        &mut self,
-        virtual_key_code: CustomVirtualKeyCode,
-        mem: &mut Memory,
-    ) {
+    pub(crate) fn key_released(&mut self, virtual_key_code: MO5VirtualKeyCode, mem: &mut Memory) {
         self.key_translator(virtual_key_code, false, mem);
     }
 

@@ -1,15 +1,16 @@
-use crate::dimension::Dimension;
-use crate::hardware::keyboard::vkey::CustomVirtualKeyCode;
-use speedy2d::window::ModifiersState;
+use crate::hardware::keyboard::modifiers::Modifiers;
+use crate::hardware::keyboard::vkey::MO5VirtualKeyCode;
+use std::path::PathBuf;
 
 pub enum UserInput {
-    OpenK7File,
+    FileOpened(PathBuf),
+    RewindK7File,
     Stop,
     Start,
     SoftReset,
     HardReset,
-    KeyDown(CustomVirtualKeyCode),
-    KeyUp(CustomVirtualKeyCode),
-    KeyboardModifierChanged(ModifiersState),
-    WindowResized(Dimension),
+    KeyDown(MO5VirtualKeyCode),
+    KeyUp(MO5VirtualKeyCode),
+    KeyboardModifierChanged(Modifiers),
+    WindowResized(crate::dimension::Dimension),
 }

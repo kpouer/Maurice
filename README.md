@@ -24,7 +24,6 @@ My goal was to learn Rust and I thought that porting this emulator would be a go
 
 ### Keyboard
 
-F2: Load a tape
 F7 : Soft Reset
 F8 : Hard Reset
 
@@ -56,4 +55,5 @@ This project depends on
 - rayon (https://crates.io/crates/rayon)
 - rfd (https://crates.io/crates/rfd)
 - rust-embed (https://crates.io/crates/rust-embed)
-- speedy2d (https://crates.io/crates/speedy2d)
+- egui (https://crates.io/crates/egui)
+- egui-file-dialog (https://crates.io/crates/egui-file-dialog)

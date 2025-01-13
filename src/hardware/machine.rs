@@ -1,19 +1,18 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 use std::time::{Duration, SystemTime};
 
 use chrono::{DateTime, Local};
 use log::info;
-use rfd::FileDialog;
 
 use crate::hardware::keyboard::Keyboard;
 use crate::hardware::memory::Memory;
 use crate::hardware::screen::Screen;
 use crate::hardware::sound::Sound;
-use crate::hardware::M6809::M6809;
+use crate::hardware::M6809::{unassemble, M6809};
 use crate::int;
-use crate::raw_image::RawImage;
+use crate::machine_snap_event::MachineSnapEvent;
 use crate::user_input::UserInput;
 
 pub struct Machine {
@@ -31,17 +30,17 @@ pub struct Machine {
     pub(crate) keypos: usize,
     pub(crate) typetext: Option<String>,
     pub(crate) running: bool,
-    image_data_sender: Sender<RawImage>,
+    image_data_sender: Sender<MachineSnapEvent>,
     pub(crate) user_input_receiver: Receiver<UserInput>,
 }
 
 impl Machine {
     pub fn new(
-        image_data_sender: Sender<RawImage>,
+        image_data_sender: Sender<MachineSnapEvent>,
         user_input_receiver: Receiver<UserInput>,
     ) -> Self {
         info!("Machine::new()");
-        let screen = Screen::new();
+        let screen = Screen::new(get_ratio());
         info!("Machine::screen()");
         let mut mem = Memory::default();
         mem.reset();
@@ -68,18 +67,24 @@ impl Machine {
     pub fn run_loop(&mut self) {
         loop {
             self.eventually_process_user_input();
-            if !self.running {
+            let pixels;
+            if self.running {
+                self.run();
+                self.screen.paint(&mut self.mem);
+                #[cfg(debug_assertions)]
+                let start = SystemTime::now();
+                pixels = Some(self.screen.get_pixels());
+                #[cfg(debug_assertions)]
+                log::debug!("Elapsed time: {:?}", start.elapsed());
+            } else {
+                pixels = None;
                 thread::sleep(std::time::Duration::from_millis(1000 / 60));
-                continue;
             }
-            self.run();
-            self.screen.paint(&mut self.mem);
-            #[cfg(debug_assertions)]
-            let start = SystemTime::now();
-            let pixels = self.screen.get_pixels();
-            #[cfg(debug_assertions)]
-            println!("Elapsed time: {:?}", start.elapsed());
-            self.image_data_sender.send(pixels).ok();
+            let register_dump = self.dump_registers();
+            let unassembled = self.unassemble_from_pc(10, &self.mem);
+            self.image_data_sender
+                .send(MachineSnapEvent::new(pixels, register_dump, unassembled))
+                .ok();
         }
     }
 
@@ -91,7 +96,8 @@ impl Machine {
     fn eventually_process_user_input(&mut self) {
         if let Ok(user_input) = self.user_input_receiver.try_recv() {
             match user_input {
-                UserInput::OpenK7File => self.open_file(),
+                UserInput::RewindK7File => self.mem.rewind_k7(),
+                UserInput::FileOpened(path) => self.set_k7_file(&path),
                 UserInput::Stop => self.running = false,
                 UserInput::Start => self.running = true,
                 UserInput::SoftReset => self.reset_soft(),
@@ -101,17 +107,6 @@ impl Machine {
                 UserInput::KeyboardModifierChanged(state) => self.keyboard.modifiers = state,
                 UserInput::WindowResized(size) => self.screen.new_size(size),
             }
-        }
-    }
-
-    fn open_file(&mut self) {
-        let files = FileDialog::new()
-            .add_filter("k7", &["k7"])
-            .set_directory("./")
-            .pick_file();
-        if let Some(filename) = files {
-            info!("Machine::set_k7_file({:?})", filename);
-            self.mem.set_k7file(&filename);
         }
     }
 
@@ -212,7 +207,8 @@ impl Machine {
         self.last_time = Local::now();
     }
 
-    pub(crate) fn set_k7_file(&mut self, k7: &Path) {
+    pub fn set_k7_file<P: AsRef<Path>>(&mut self, k7: P) {
+        let k7 = k7.as_ref();
         info!("Machine::set_k7_file({:?})", k7);
         self.mem.set_k7file(k7);
     }
@@ -237,11 +233,15 @@ impl Machine {
     }
 
     // Debug Methods
-    // fn dump_registers(&mut self) -> String {
-    //     self.micro.print_state()
-    // }
-    //
-    // fn unassemble_from_pc(&self, nblines: int, mem: &mut Memory) -> String {
-    //     unassemble(self.micro.PC, nblines, mem)
-    // }
+    fn dump_registers(&mut self) -> String {
+        self.micro.print_state()
+    }
+
+    fn unassemble_from_pc(&self, nblines: int, mem: &Memory) -> String {
+        unassemble(self.micro.PC, nblines, mem)
+    }
+}
+
+fn get_ratio() -> usize {
+    crate::hardware::screen::DEFAULT_PIXEL_SIZE
 }

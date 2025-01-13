@@ -1,15 +1,14 @@
 mod color;
 
-use crate::dimension::Dimension;
 use crate::hardware::memory::Memory;
 use crate::hardware::screen::color::{Color, PALETTE};
 use crate::int;
 use crate::raw_image::RawImage;
 use rayon::prelude::*;
-use std::cmp;
 
 pub const WIDTH: usize = 320;
 pub const HEIGHT: usize = 200;
+
 pub const DEFAULT_PIXEL_SIZE: usize = 3;
 
 #[derive(Debug)]
@@ -25,14 +24,8 @@ pub struct Screen {
     tmp_lines: Vec<Vec<u8>>,
 }
 
-impl Default for Screen {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Screen {
-    pub fn new() -> Self {
+    pub fn new(ratio: usize) -> Self {
         Screen {
             mouse_clic: false,
             mouse_x: -1,
@@ -41,15 +34,15 @@ impl Screen {
             filter: false,
             led: 0,
             show_led: 0,
-            ratio: DEFAULT_PIXEL_SIZE,
-            tmp_lines: vec![vec![0; WIDTH * DEFAULT_PIXEL_SIZE * 3]; HEIGHT],
+            ratio,
+            tmp_lines: vec![vec![0; WIDTH * ratio * 3]; HEIGHT],
         }
     }
 
-    pub(crate) fn new_size(&mut self, new_size: Dimension) {
+    pub(crate) fn new_size(&mut self, new_size: crate::dimension::Dimension) {
         let x_ratio = new_size.width / WIDTH;
         let y_ratio = new_size.height / HEIGHT;
-        self.set_ratio(cmp::min(x_ratio, y_ratio));
+        self.set_ratio(std::cmp::min(x_ratio, y_ratio));
     }
 
     fn set_ratio(&mut self, mut ratio: usize) {

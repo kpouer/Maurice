@@ -24,4 +24,8 @@ impl DataInputStream {
     pub fn len(&self) -> usize {
         self.bytes.len()
     }
+
+    pub fn reset(&mut self) {
+        self.pos = 0;
+    }
 }
