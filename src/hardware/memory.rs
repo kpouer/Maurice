@@ -3,6 +3,7 @@
 use std::fs;
 use std::fs::File;
 use std::io::{BufWriter, Write};
+use std::ops::RangeTo;
 use std::path::Path;
 
 use chrono::Local;
@@ -277,10 +278,15 @@ impl Memory {
     }
 
     pub(crate) fn rem_key(&mut self, i: usize) {
-        if self.key[i as usize] {
+        if self.key[i] {
             debug!("key up:{}", i);
             self.key[i] = false;
         }
+    }
+
+    pub(crate) fn rem_key_slice(&mut self, start: usize, end: usize) {
+        debug!("key up from {start} to {}", end - 1);
+        self.key[start..end].fill(false);
     }
 
     pub(crate) fn rewind_k7(&mut self) {

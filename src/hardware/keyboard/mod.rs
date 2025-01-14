@@ -145,9 +145,7 @@ impl Keyboard {
     }
 
     pub(crate) fn key_pressed(&mut self, virtual_key_code: MO5VirtualKeyCode, mem: &mut Memory) {
-        for i in 0..127 {
-            mem.rem_key(i);
-        }
+        mem.rem_key_slice(0, 127);
         self.key_translator(virtual_key_code, true, mem);
     }
 
