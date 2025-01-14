@@ -208,16 +208,16 @@ fn key_memory(key: usize, press: bool, mem: &mut Memory) {
  */
 #[derive(Debug)]
 struct Key {
-    key: int,
-    key2: Option<int>,
+    key: u8,
+    key2: Option<u8>,
 }
 
 impl Key {
-    fn new(key: int) -> Self {
+    fn new(key: u8) -> Self {
         Key { key, key2: None }
     }
 
-    fn new_with_key2(key: int, key2: int) -> Self {
+    fn new_with_2_keys(key: u8, key2: u8) -> Self {
         Key {
             key,
             key2: Some(key2),
@@ -230,15 +230,15 @@ fn build_ftable() -> HashMap<char, Key> {
     /* STOP */
     //ftable[0x6E]=0x29;
     /* 1 .. ACC */
-    ftable.insert('&', Key::new_with_key2(0x70, 0x5E));
-    ftable.insert('é', Key::new_with_key2(0x70, 0x4E));
-    ftable.insert('"', Key::new_with_key2(0x70, 0x3E));
-    ftable.insert('\'', Key::new_with_key2(0x70, 0x2E));
-    ftable.insert('(', Key::new_with_key2(0x70, 0x1E));
-    ftable.insert('è', Key::new_with_key2(0x70, 0x0C));
-    ftable.insert('_', Key::new_with_key2(0x70, 0x1C));
-    ftable.insert('ç', Key::new_with_key2(0x70, 0x2C));
-    ftable.insert('à', Key::new_with_key2(0x70, 0x3C));
+    ftable.insert('&', Key::new_with_2_keys(0x70, 0x5E));
+    ftable.insert('é', Key::new_with_2_keys(0x70, 0x4E));
+    ftable.insert('"', Key::new_with_2_keys(0x70, 0x3E));
+    ftable.insert('\'', Key::new_with_2_keys(0x70, 0x2E));
+    ftable.insert('(', Key::new_with_2_keys(0x70, 0x1E));
+    ftable.insert('è', Key::new_with_2_keys(0x70, 0x0C));
+    ftable.insert('_', Key::new_with_2_keys(0x70, 0x1C));
+    ftable.insert('ç', Key::new_with_2_keys(0x70, 0x2C));
+    ftable.insert('à', Key::new_with_2_keys(0x70, 0x3C));
 
     ftable.insert('1', Key::new(0x5E));
     ftable.insert('2', Key::new(0x4E));
