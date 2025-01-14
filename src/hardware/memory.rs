@@ -271,15 +271,15 @@ impl Memory {
         }
     }
 
-    pub(crate) fn set_key(&mut self, i: int) {
+    pub(crate) fn set_key(&mut self, i: usize) {
         debug!("key down:{}", i);
-        self.key[i as usize] = true;
+        self.key[i] = true;
     }
 
-    pub(crate) fn rem_key(&mut self, i: int) {
+    pub(crate) fn rem_key(&mut self, i: usize) {
         if self.key[i as usize] {
             debug!("key up:{}", i);
-            self.key[i as usize] = false;
+            self.key[i] = false;
         }
     }
 

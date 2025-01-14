@@ -170,9 +170,9 @@ impl Keyboard {
         }
 
         if let Some(index) = self.ftable.get(&(tmp as u8 as char)) {
-            mem.set_key(index.key);
+            mem.set_key(index.key as usize);
             if let Some(key2) = index.key2 {
-                mem.set_key(key2);
+                mem.set_key(key2 as usize);
             }
         }
     }
@@ -189,15 +189,15 @@ impl Keyboard {
             tmp = 50;
         }
         if let Some(index) = self.ftable.get(&(tmp as u8 as char)) {
-            mem.rem_key(index.key);
+            mem.rem_key(index.key as usize);
             if let Some(key2) = index.key2 {
-                mem.rem_key(key2);
+                mem.rem_key(key2 as usize);
             }
         }
     }
 }
 
-fn key_memory(key: int, press: bool, mem: &mut Memory) {
+fn key_memory(key: usize, press: bool, mem: &mut Memory) {
     if press {
         mem.set_key(key);
     } else {
