@@ -96,7 +96,11 @@ impl Gui {
             if let Some(buf) = evt.raw_image.take() {
                 self.registers = evt.registers;
                 self.unassemble = evt.unassembled;
-                let image = egui::ColorImage::from_rgb([buf.width, buf.height], &buf.data);
+                let image;
+                {
+                    let data = buf.data.lock().unwrap();
+                    image = egui::ColorImage::from_rgb([buf.width, buf.height], &data);
+                }
                 match &mut self.image {
                     None => {
                         self.image =

@@ -1,4 +1,5 @@
-pub(super) type Color = [u8; 3];
+pub(crate) const COLOR_DEPTH: usize = 3;
+pub(super) type Color = [u8; COLOR_DEPTH];
 
 pub(crate) static PALETTE: [Color; 16] = [
     [0x00, 0x00, 0x00],
