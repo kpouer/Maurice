@@ -407,7 +407,7 @@ impl Memory {
         }
         /* positionne l'octet dans la page 0 du moniteur */
         self.set(0x2045, octet & 0xFF);
-        screen.led = octet & 0xff;
+        screen.led = (octet & 0xff) as u8;
         screen.show_led = 10;
         self.k7_bit >>= 1;
         0
