@@ -17,7 +17,6 @@ pub struct Screen {
     pub(crate) mouse_x: int,
     pub(crate) mouse_y: int,
     pixels: Arc<Mutex<Vec<u8>>>,
-    filter: bool,
     pub(crate) led: int,
     pub(crate) show_led: int,
     ratio: usize,
@@ -33,7 +32,6 @@ impl Screen {
                 0;
                 WIDTH * ratio * HEIGHT * ratio * COLOR_DEPTH
             ])),
-            filter: false,
             led: 0,
             show_led: 0,
             ratio,

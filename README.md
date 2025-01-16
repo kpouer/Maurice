@@ -52,8 +52,6 @@ This project depends on
 - cpal (https://crates.io/crates/cpal)
 - env_logger (https://crates.io/crates/env_logger)
 - log (https://crates.io/crates/log)
-- rayon (https://crates.io/crates/rayon)
-- rfd (https://crates.io/crates/rfd)
 - rust-embed (https://crates.io/crates/rust-embed)
 - egui (https://crates.io/crates/egui)
 - egui-file-dialog (https://crates.io/crates/egui-file-dialog)

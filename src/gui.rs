@@ -179,9 +179,6 @@ impl Gui {
                     [(3 * WIDTH) as f32, (3 * HEIGHT) as f32].into(),
                 ))
             }
-            if ui.button("Filter").clicked() {
-                //todo: implement
-            }
         });
     }
 
