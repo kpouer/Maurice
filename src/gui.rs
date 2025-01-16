@@ -20,11 +20,6 @@ enum DialogKind {
     About,
 }
 
-#[derive(Default)]
-struct Dialog {
-    current: DialogKind,
-}
-
 pub struct Gui {
     user_input_sender: Sender<UserInput>,
     image_data_receiver: Receiver<MachineSnapEvent>,

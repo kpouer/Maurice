@@ -70,8 +70,8 @@ impl Machine {
             let pixels;
             if self.running {
                 self.run();
-                self.screen.paint(&mut self.mem);
                 #[cfg(debug_assertions)]
+                self.screen.paint(&mut self.mem);
                 let start = SystemTime::now();
                 pixels = Some(self.screen.get_pixels());
                 #[cfg(debug_assertions)]

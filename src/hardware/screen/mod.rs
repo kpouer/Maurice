@@ -1,10 +1,9 @@
 pub(crate) mod color;
 
 use crate::hardware::memory::Memory;
-use crate::hardware::screen::color::{Color, COLOR_DEPTH, PALETTE};
+use crate::hardware::screen::color::{COLOR_DEPTH, PALETTE};
 use crate::int;
 use crate::raw_image::RawImage;
-use rayon::prelude::*;
 use std::sync::{Arc, Mutex};
 
 pub const WIDTH: usize = 320;
@@ -17,12 +16,11 @@ pub struct Screen {
     pub(crate) mouse_clic: bool,
     pub(crate) mouse_x: int,
     pub(crate) mouse_y: int,
-    pixels: [&'static Color; WIDTH * HEIGHT],
+    pixels: Arc<Mutex<Vec<u8>>>,
     filter: bool,
     pub(crate) led: int,
     pub(crate) show_led: int,
     ratio: usize,
-    tmp_lines: Arc<Mutex<Vec<u8>>>,
 }
 
 impl Screen {
@@ -31,15 +29,14 @@ impl Screen {
             mouse_clic: false,
             mouse_x: -1,
             mouse_y: -1,
-            pixels: [&PALETTE[0]; WIDTH * HEIGHT],
+            pixels: Arc::new(Mutex::new(vec![
+                0;
+                WIDTH * ratio * HEIGHT * ratio * COLOR_DEPTH
+            ])),
             filter: false,
             led: 0,
             show_led: 0,
             ratio,
-            tmp_lines: Arc::new(Mutex::new(vec![
-                0;
-                HEIGHT * WIDTH * ratio * ratio * COLOR_DEPTH
-            ])),
         }
     }
 
@@ -54,7 +51,10 @@ impl Screen {
             ratio = 1;
         }
         self.ratio = ratio;
-        self.tmp_lines = Arc::new(Mutex::new(vec![0; HEIGHT * WIDTH * ratio * ratio * ratio]));
+        self.pixels = Arc::new(Mutex::new(vec![
+            0;
+            WIDTH * ratio * HEIGHT * ratio * COLOR_DEPTH
+        ]));
     }
 
     pub(crate) fn paint(&mut self, mem: &mut Memory) {
@@ -73,48 +73,19 @@ impl Screen {
     }
 
     pub fn get_pixels(&mut self) -> RawImage {
-        let pixel_size = self.ratio;
-        let line_length = WIDTH * pixel_size;
-        {
-            let mut tmp_lines = self.tmp_lines.lock().unwrap();
-            tmp_lines
-                .par_chunks_mut(line_length * pixel_size * COLOR_DEPTH)
-                .enumerate()
-                .for_each(|(line_index, line_buffer)| {
-                    // here line_buffer contains the pixels of pixel_size lines
-                    let range = ..line_length * COLOR_DEPTH;
-                    let line_target = &mut line_buffer[range];
-                    let line_source = &self.pixels[line_index * WIDTH..(line_index + 1) * WIDTH];
-                    Self::fill_line(line_source, line_target, pixel_size);
-                    for yy in 1..pixel_size {
-                        line_buffer.copy_within(range, line_length * COLOR_DEPTH * yy)
-                    }
-                });
-        }
-
-        RawImage::new_with_data(line_length, HEIGHT * pixel_size, self.tmp_lines.clone())
-    }
-
-    fn fill_line(pixel_source: &[&'static Color], line_buffer: &mut [u8], pixel_size: usize) {
-        let mut x_offset = 0;
-
-        for color in pixel_source {
-            for _ in 0..pixel_size {
-                line_buffer[x_offset..x_offset + 3].copy_from_slice(*color);
-                x_offset += 3;
-            }
-        }
+        RawImage::new_with_data(WIDTH * self.ratio, HEIGHT * self.ratio, self.pixels.clone())
     }
 
     pub(crate) fn dopaint(&mut self, mem: &mut Memory) {
         let mut i = 0;
 
+        let mut pixels = self.pixels.lock().unwrap();
         for y in 0..HEIGHT {
-            let offset: usize = y * WIDTH;
+            let offset = y * WIDTH * self.ratio * self.ratio * COLOR_DEPTH;
             if !mem.is_dirty(y) {
                 i += 40;
             } else {
-                let mut x: usize = 0;
+                let mut x = 0;
                 for _ in 0..40 {
                     let col = mem.COLOR(i);
                     let c2 = (col & 0x0F) as usize;
@@ -125,15 +96,25 @@ impl Screen {
                     let pt = mem.POINT(i);
                     const PATTERN: [int; 8] = [0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01];
                     for v in PATTERN {
-                        if (v & pt) != 0 {
-                            self.pixels[x + offset] = cc2;
-                        } else {
-                            self.pixels[x + offset] = cc1;
+                        for _ in 0..self.ratio {
+                            let range_start = x * COLOR_DEPTH + offset;
+                            let pixel_range = range_start..range_start + COLOR_DEPTH;
+                            if (v & pt) != 0 {
+                                pixels[pixel_range].copy_from_slice(cc2);
+                            } else {
+                                pixels[pixel_range].copy_from_slice(cc1);
+                            }
+                            x += 1;
                         }
-                        x += 1;
                     }
                     i += 1;
                 }
+            }
+            for a in 1..self.ratio {
+                pixels.copy_within(
+                    offset..offset + WIDTH * COLOR_DEPTH * self.ratio,
+                    offset + WIDTH * self.ratio * COLOR_DEPTH * a,
+                );
             }
         }
     }

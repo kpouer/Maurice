@@ -3,7 +3,6 @@
 use std::fs;
 use std::fs::File;
 use std::io::{BufWriter, Write};
-use std::ops::RangeTo;
 use std::path::Path;
 
 use chrono::Local;

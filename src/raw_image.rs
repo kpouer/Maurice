@@ -29,10 +29,6 @@ impl RawImage {
             height,
         }
     }
-
-    pub(crate) fn size(&self) -> Dimension {
-        Dimension::new(self.width, self.height)
-    }
 }
 
 impl From<Dimension> for RawImage {
