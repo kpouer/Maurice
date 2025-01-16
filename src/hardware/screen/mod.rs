@@ -56,18 +56,25 @@ impl Screen {
     }
 
     pub(crate) fn paint(&mut self, mem: &mut Memory) {
-        if self.show_led > 0 {
-            //todo : restore this
-            // self.show_led -= 1;
-            // let color = if self.led != 0 {
-            //     Color::from_rgb(255., 0., 0.)
-            // } else {
-            //     Color::from_rgb(0., 0., 0.)
-            // };
-            // let rectangle: Rectangle<f32> = Rectangle::new(Vector2::new(WIDTH as f32 - 16., 0.), Vector2::new(16., 8.));
-            //  graphics.draw_rectangle(rectangle, color);
-        }
         self.dopaint(mem);
+        if self.show_led > 0 {
+            self.show_led -= 1;
+            let sec = if self.led != 0 {
+                [0xFF, 0x00, 0x00]
+            } else {
+                [0x00, 0x00, 0x00]
+            };
+            let mut line = Vec::with_capacity(16 * self.ratio * sec.len());
+            for _ in 0..16 * self.ratio {
+                line.extend(sec);
+            }
+            let mut pixels = self.pixels.lock().unwrap();
+            for y in 1..17 {
+                let start = y * WIDTH * self.ratio * self.ratio * COLOR_DEPTH - line.len();
+                let slice = &mut pixels[start..start + line.len()];
+                slice.copy_from_slice(&line);
+            }
+        }
     }
 
     pub fn get_pixels(&mut self) -> RawImage {
