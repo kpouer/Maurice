@@ -166,9 +166,7 @@ impl Memory {
     }
 
     pub(crate) fn set_all_dirty(&mut self) {
-        for i in 0..200 {
-            self.dirty[i] = true;
-        }
+        self.dirty.fill(true);
     }
 
     pub(crate) fn reset(&mut self) {
@@ -273,16 +271,21 @@ impl Memory {
         }
     }
 
-    pub(crate) fn set_key(&mut self, i: int) {
+    pub(crate) fn set_key(&mut self, i: usize) {
         debug!("key down:{}", i);
-        self.key[i as usize] = true;
+        self.key[i] = true;
     }
 
-    pub(crate) fn rem_key(&mut self, i: int) {
-        if self.key[i as usize] {
+    pub(crate) fn rem_key(&mut self, i: usize) {
+        if self.key[i] {
             debug!("key up:{}", i);
-            self.key[i as usize] = false;
+            self.key[i] = false;
         }
+    }
+
+    pub(crate) fn rem_key_slice(&mut self, start: usize, end: usize) {
+        debug!("key up from {start} to {}", end - 1);
+        self.key[start..end].fill(false);
     }
 
     pub(crate) fn rewind_k7(&mut self) {
@@ -404,7 +407,7 @@ impl Memory {
         }
         /* positionne l'octet dans la page 0 du moniteur */
         self.set(0x2045, octet & 0xFF);
-        screen.led = octet & 0xff;
+        screen.led = (octet & 0xff) as u8;
         screen.show_led = 10;
         self.k7_bit >>= 1;
         0

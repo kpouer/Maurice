@@ -1,7 +1,6 @@
 use crate::hardware::keyboard::vkey::MO5VirtualKeyCode;
 use crate::user_input::UserInput;
 use crate::user_input::UserInput::{HardReset, RewindK7File, SoftReset, Start, Stop};
-use std::sync::{Arc, Mutex};
 use {
     eframe::{epaint::TextureHandle, App, Frame},
     egui::{pos2, Color32, Context, Event, Key, Rect, TextureOptions, Ui, ViewportCommand},
@@ -19,11 +18,6 @@ enum DialogKind {
     None,
     Debug,
     About,
-}
-
-#[derive(Default)]
-struct Dialog {
-    current: DialogKind,
 }
 
 pub struct Gui {
@@ -97,7 +91,11 @@ impl Gui {
             if let Some(buf) = evt.raw_image.take() {
                 self.registers = evt.registers;
                 self.unassemble = evt.unassembled;
-                let image = egui::ColorImage::from_rgb([buf.width, buf.height], &buf.data);
+                let image;
+                {
+                    let data = buf.data.lock().unwrap();
+                    image = egui::ColorImage::from_rgb([buf.width, buf.height], &data);
+                }
                 match &mut self.image {
                     None => {
                         self.image =
@@ -112,7 +110,7 @@ impl Gui {
     fn build_menu_panel(&mut self, ctx: &Context) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
-                self.file_menu(ctx, ui);
+                self.file_menu(ui);
                 self.run_menu(ui);
                 self.reset_menu(ui);
                 self.image_menu(ui, ctx);
@@ -122,7 +120,7 @@ impl Gui {
         });
     }
 
-    fn file_menu(&mut self, ctx: &Context, ui: &mut Ui) {
+    fn file_menu(&mut self, ui: &mut Ui) {
         ui.menu_button("File", |ui| {
             if ui.button("Select K7").clicked() {
                 let mut fd = egui_file_dialog::FileDialog::new();
@@ -180,9 +178,6 @@ impl Gui {
                 ctx.send_viewport_cmd(ViewportCommand::InnerSize(
                     [(3 * WIDTH) as f32, (3 * HEIGHT) as f32].into(),
                 ))
-            }
-            if ui.button("Filter").clicked() {
-                //todo: implement
             }
         });
     }

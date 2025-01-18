@@ -1,10 +1,10 @@
-mod color;
+pub(crate) mod color;
 
 use crate::hardware::memory::Memory;
-use crate::hardware::screen::color::{Color, PALETTE};
+use crate::hardware::screen::color::{COLOR_DEPTH, PALETTE};
 use crate::int;
 use crate::raw_image::RawImage;
-use rayon::prelude::*;
+use std::sync::{Arc, Mutex};
 
 pub const WIDTH: usize = 320;
 pub const HEIGHT: usize = 200;
@@ -16,12 +16,10 @@ pub struct Screen {
     pub(crate) mouse_clic: bool,
     pub(crate) mouse_x: int,
     pub(crate) mouse_y: int,
-    pixels: [&'static Color; WIDTH * HEIGHT],
-    filter: bool,
-    pub(crate) led: int,
-    pub(crate) show_led: int,
+    pixels: Arc<Mutex<Vec<u8>>>,
+    pub(crate) led: u8,
+    pub(crate) show_led: u8,
     ratio: usize,
-    tmp_lines: Vec<Vec<u8>>,
 }
 
 impl Screen {
@@ -30,12 +28,13 @@ impl Screen {
             mouse_clic: false,
             mouse_x: -1,
             mouse_y: -1,
-            pixels: [&PALETTE[0]; WIDTH * HEIGHT],
-            filter: false,
+            pixels: Arc::new(Mutex::new(vec![
+                0;
+                WIDTH * ratio * HEIGHT * ratio * COLOR_DEPTH
+            ])),
             led: 0,
             show_led: 0,
             ratio,
-            tmp_lines: vec![vec![0; WIDTH * ratio * 3]; HEIGHT],
         }
     }
 
@@ -50,75 +49,48 @@ impl Screen {
             ratio = 1;
         }
         self.ratio = ratio;
-        self.tmp_lines = vec![vec![0; WIDTH * ratio * 3]; HEIGHT];
+        self.pixels = Arc::new(Mutex::new(vec![
+            0;
+            WIDTH * ratio * HEIGHT * ratio * COLOR_DEPTH
+        ]));
     }
 
     pub(crate) fn paint(&mut self, mem: &mut Memory) {
-        if self.show_led > 0 {
-            //todo : restore this
-            // self.show_led -= 1;
-            // let color = if self.led != 0 {
-            //     Color::from_rgb(255., 0., 0.)
-            // } else {
-            //     Color::from_rgb(0., 0., 0.)
-            // };
-            // let rectangle: Rectangle<f32> = Rectangle::new(Vector2::new(WIDTH as f32 - 16., 0.), Vector2::new(16., 8.));
-            //  graphics.draw_rectangle(rectangle, color);
-        }
         self.dopaint(mem);
+        if self.show_led > 0 {
+            self.show_led -= 1;
+            let sec = if self.led != 0 {
+                [0xFF, 0x00, 0x00]
+            } else {
+                [0x00, 0x00, 0x00]
+            };
+            let mut line = Vec::with_capacity(16 * self.ratio * sec.len());
+            for _ in 0..16 * self.ratio {
+                line.extend(sec);
+            }
+            let mut pixels = self.pixels.lock().unwrap();
+            for y in 1..17 {
+                let start = y * WIDTH * self.ratio * self.ratio * COLOR_DEPTH - line.len();
+                let slice = &mut pixels[start..start + line.len()];
+                slice.copy_from_slice(&line);
+            }
+        }
     }
 
     pub fn get_pixels(&mut self) -> RawImage {
-        let pixel_size = self.ratio;
-
-        self.tmp_lines
-            .par_iter_mut()
-            .enumerate()
-            .for_each(|(y, line_buffer)| {
-                Self::fill_line(y, &self.pixels, line_buffer, pixel_size);
-            });
-
-        let mut raw_image = RawImage::new(WIDTH * pixel_size, HEIGHT * pixel_size);
-        let line_size = WIDTH * pixel_size * 3;
-        raw_image
-            .data
-            .par_chunks_mut(line_size)
-            .enumerate()
-            .for_each(|(y, line_buffer)| {
-                let real_y = y / pixel_size;
-                let line_data = &self.tmp_lines[real_y];
-                line_buffer.copy_from_slice(line_data);
-            });
-
-        raw_image
-    }
-
-    fn fill_line(
-        y: usize,
-        pixels: &[&'static Color; WIDTH * HEIGHT],
-        line_buffer: &mut [u8],
-        pixel_size: usize,
-    ) {
-        let mut x_offset = 0;
-
-        for x in 0..WIDTH {
-            let color = pixels[x + y * WIDTH];
-            for _ in 0..pixel_size {
-                line_buffer[x_offset..x_offset + 3].copy_from_slice(color);
-                x_offset += 3;
-            }
-        }
+        RawImage::new_with_data(WIDTH * self.ratio, HEIGHT * self.ratio, self.pixels.clone())
     }
 
     pub(crate) fn dopaint(&mut self, mem: &mut Memory) {
         let mut i = 0;
 
+        let mut pixels = self.pixels.lock().unwrap();
         for y in 0..HEIGHT {
-            let offset: usize = y * WIDTH;
+            let offset = y * WIDTH * self.ratio * self.ratio * COLOR_DEPTH;
             if !mem.is_dirty(y) {
                 i += 40;
             } else {
-                let mut x: usize = 0;
+                let mut x = 0;
                 for _ in 0..40 {
                     let col = mem.COLOR(i);
                     let c2 = (col & 0x0F) as usize;
@@ -129,15 +101,25 @@ impl Screen {
                     let pt = mem.POINT(i);
                     const PATTERN: [int; 8] = [0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01];
                     for v in PATTERN {
-                        if (v & pt) != 0 {
-                            self.pixels[x + offset] = cc2;
-                        } else {
-                            self.pixels[x + offset] = cc1;
+                        for _ in 0..self.ratio {
+                            let range_start = x * COLOR_DEPTH + offset;
+                            let pixel_range = range_start..range_start + COLOR_DEPTH;
+                            if (v & pt) != 0 {
+                                pixels[pixel_range].copy_from_slice(cc2);
+                            } else {
+                                pixels[pixel_range].copy_from_slice(cc1);
+                            }
+                            x += 1;
                         }
-                        x += 1;
                     }
                     i += 1;
                 }
+            }
+            for a in 1..self.ratio {
+                pixels.copy_within(
+                    offset..offset + WIDTH * COLOR_DEPTH * self.ratio,
+                    offset + WIDTH * self.ratio * COLOR_DEPTH * a,
+                );
             }
         }
     }

@@ -2,7 +2,7 @@ use clap::Parser;
 use maurice::args::Args;
 use maurice::gui::Gui;
 use maurice::hardware::machine::Machine;
-use maurice::hardware::screen::{HEIGHT, WIDTH};
+use maurice::hardware::screen::{DEFAULT_PIXEL_SIZE, HEIGHT, WIDTH};
 use std::sync::mpsc::channel;
 use std::thread;
 
@@ -25,7 +25,10 @@ fn main() {
         let native_options = eframe::NativeOptions {
             viewport: egui::ViewportBuilder::default()
                 .with_drag_and_drop(true)
-                .with_inner_size([(3 * WIDTH) as f32, (3 * HEIGHT) as f32]),
+                .with_inner_size([
+                    (DEFAULT_PIXEL_SIZE * WIDTH) as f32,
+                    (DEFAULT_PIXEL_SIZE * HEIGHT) as f32,
+                ]),
             ..Default::default()
         };
         let gui = Gui::new(user_input_sender, image_data_receiver);

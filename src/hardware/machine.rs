@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 use std::time::{Duration, SystemTime};
@@ -70,12 +70,12 @@ impl Machine {
             let pixels;
             if self.running {
                 self.run();
-                self.screen.paint(&mut self.mem);
                 #[cfg(debug_assertions)]
+                self.screen.paint(&mut self.mem);
                 let start = SystemTime::now();
                 pixels = Some(self.screen.get_pixels());
                 #[cfg(debug_assertions)]
-                log::debug!("Elapsed time: {:?}", start.elapsed());
+                println!("Elapsed time: {:?}", start.elapsed());
             } else {
                 pixels = None;
                 thread::sleep(std::time::Duration::from_millis(1000 / 60));
