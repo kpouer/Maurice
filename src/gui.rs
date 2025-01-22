@@ -1,16 +1,14 @@
 use crate::hardware::keyboard::vkey::MO5VirtualKeyCode;
 use crate::user_input::UserInput;
-use crate::user_input::UserInput::{HardReset, RewindK7File, SoftReset, Start, Stop};
 use {
     eframe::{epaint::TextureHandle, App, Frame},
     egui::{pos2, Color32, Context, Event, Key, Rect, TextureOptions, Ui, ViewportCommand},
 };
 
 use crate::gui::DialogKind::About;
+use crate::hardware::machine::Machine;
 use crate::hardware::screen::{HEIGHT, WIDTH};
-use crate::machine_snap_event::MachineSnapEvent;
 use log::info;
-use std::sync::mpsc::{Receiver, Sender};
 
 #[derive(Default)]
 enum DialogKind {
@@ -21,8 +19,7 @@ enum DialogKind {
 }
 
 pub struct Gui {
-    user_input_sender: Sender<UserInput>,
-    image_data_receiver: Receiver<MachineSnapEvent>,
+    machine: Machine,
     image: Option<TextureHandle>,
     dialog: DialogKind,
     registers: String,
@@ -30,14 +27,10 @@ pub struct Gui {
     file_dialog: Option<egui_file_dialog::FileDialog>,
 }
 
-impl Gui {
-    pub fn new(
-        user_input_sender: Sender<UserInput>,
-        image_data_receiver: Receiver<MachineSnapEvent>,
-    ) -> Self {
+impl Default for Gui {
+    fn default() -> Self {
         Self {
-            user_input_sender,
-            image_data_receiver,
+            machine: Machine::default(),
             image: None,
             dialog: DialogKind::None,
             registers: String::new(),
@@ -51,9 +44,7 @@ impl Gui {
     fn handle_input(&mut self, ctx: &Context) {
         ctx.input(|input_state| {
             let modifiers = input_state.modifiers;
-            self.user_input_sender
-                .send(UserInput::KeyboardModifierChanged(modifiers.into()))
-                .ok();
+            self.machine.keyboard.modifiers = modifiers.into();
             input_state.events.iter().for_each(|event| match event {
                 Event::Key {
                     key,
@@ -67,14 +58,21 @@ impl Gui {
                     } else {
                         UserInput::KeyUp
                     };
-                    let action = match key {
-                        Key::F7 => Some(SoftReset),
-                        Key::F8 => Some(HardReset),
-                        _ => MO5VirtualKeyCode::try_from(*key).ok().map(evt),
+                    match key {
+                        Key::F7 => self.machine.reset_soft(),
+                        Key::F8 => self.machine.reset_hard(),
+                        _ => {
+                            if let Ok(vk) = MO5VirtualKeyCode::try_from(*key) {
+                                let evt = if *pressed {
+                                    self.machine.keyboard.key_pressed(vk, &mut self.machine.mem);
+                                } else {
+                                    self.machine
+                                        .keyboard
+                                        .key_released(vk, &mut self.machine.mem);
+                                };
+                            }
+                        }
                     };
-                    if let Some(action) = action {
-                        self.user_input_sender.send(action).ok();
-                    }
                 }
                 _ => {}
             });
@@ -82,10 +80,8 @@ impl Gui {
     }
 
     fn update_texture(&mut self, ctx: &Context) {
-        let mut current_event = None;
-        while let Ok(machine_event_snap) = self.image_data_receiver.try_recv() {
-            current_event = Some(machine_event_snap);
-        }
+        let machine_event_snap = self.machine.run_loop();
+        let mut current_event = Some(machine_event_snap);
 
         if let Some(mut evt) = current_event.take() {
             if let Some(buf) = evt.raw_image.take() {
@@ -128,7 +124,7 @@ impl Gui {
                 self.file_dialog = Some(fd);
             }
             if ui.button("Rewind Tape").clicked() {
-                self.user_input_sender.send(RewindK7File).ok();
+                self.machine.rewind_k7();
             }
             if ui.button("Exit").clicked() {
                 info!("Exit");
@@ -140,10 +136,10 @@ impl Gui {
     fn run_menu(&mut self, ui: &mut Ui) {
         ui.menu_button("Run", |ui| {
             if ui.button("Stop").clicked() {
-                self.user_input_sender.send(Stop).ok();
+                self.machine.stop();
             }
             if ui.button("Go").clicked() {
-                self.user_input_sender.send(Start).ok();
+                self.machine.start();
             }
         });
     }
@@ -151,10 +147,10 @@ impl Gui {
     fn reset_menu(&mut self, ui: &mut Ui) {
         ui.menu_button("Reset", |ui| {
             if ui.button("Soft Reset").clicked() {
-                self.user_input_sender.send(SoftReset).ok();
+                self.machine.reset_soft();
             }
             if ui.button("Hard Reset").clicked() {
-                self.user_input_sender.send(HardReset).ok();
+                self.machine.reset_hard();
             }
         });
     }
@@ -286,9 +282,7 @@ impl App for Gui {
         if let Some(fd) = &mut self.file_dialog {
             fd.update(ctx);
             if let Some(path) = fd.take_picked() {
-                self.user_input_sender
-                    .send(UserInput::FileOpened(path.to_path_buf()))
-                    .ok();
+                self.machine.set_k7_file(path);
                 self.file_dialog = None;
             }
         }
@@ -310,7 +304,7 @@ impl App for Gui {
                 })
                 .response
                 .request_focus();
-            ctx.request_repaint_after(std::time::Duration::from_millis(50));
+            ctx.request_repaint_after(std::time::Duration::ZERO);
         }
     }
 }

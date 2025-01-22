@@ -30,15 +30,10 @@ pub struct Machine {
     pub(crate) keypos: usize,
     pub(crate) typetext: Option<String>,
     pub(crate) running: bool,
-    image_data_sender: Sender<MachineSnapEvent>,
-    pub(crate) user_input_receiver: Receiver<UserInput>,
 }
 
-impl Machine {
-    pub fn new(
-        image_data_sender: Sender<MachineSnapEvent>,
-        user_input_receiver: Receiver<UserInput>,
-    ) -> Self {
+impl Default for Machine {
+    fn default() -> Self {
         info!("Machine::new()");
         let screen = Screen::new(get_ratio());
         info!("Machine::screen()");
@@ -59,33 +54,28 @@ impl Machine {
             typetext: None,
             irq: false,
             running: true,
-            image_data_sender,
-            user_input_receiver,
         }
     }
+}
 
-    pub fn run_loop(&mut self) {
-        loop {
-            self.eventually_process_user_input();
-            let pixels;
-            if self.running {
-                self.run();
-                #[cfg(debug_assertions)]
-                self.screen.paint(&mut self.mem);
-                let start = SystemTime::now();
-                pixels = Some(self.screen.get_pixels());
-                #[cfg(debug_assertions)]
-                println!("Elapsed time: {:?}", start.elapsed());
-            } else {
-                pixels = None;
-                thread::sleep(std::time::Duration::from_millis(1000 / 60));
-            }
-            let register_dump = self.dump_registers();
-            let unassembled = self.unassemble_from_pc(10, &self.mem);
-            self.image_data_sender
-                .send(MachineSnapEvent::new(pixels, register_dump, unassembled))
-                .ok();
+impl Machine {
+    pub fn run_loop(&mut self) -> MachineSnapEvent {
+        let pixels;
+        if self.running {
+            self.run();
+            #[cfg(debug_assertions)]
+            self.screen.paint(&mut self.mem);
+            let start = SystemTime::now();
+            pixels = Some(self.screen.get_pixels());
+            #[cfg(debug_assertions)]
+            println!("Elapsed time: {:?}", start.elapsed());
+        } else {
+            pixels = None;
+            thread::sleep(std::time::Duration::from_millis(1000 / 60));
         }
+        let register_dump = self.dump_registers();
+        let unassembled = self.unassemble_from_pc(10, &self.mem);
+        MachineSnapEvent::new(pixels, register_dump, unassembled)
     }
 
     pub(crate) fn run(&mut self) {
@@ -93,20 +83,18 @@ impl Machine {
         self.synchronize();
     }
 
-    fn eventually_process_user_input(&mut self) {
-        if let Ok(user_input) = self.user_input_receiver.try_recv() {
-            match user_input {
-                UserInput::RewindK7File => self.mem.rewind_k7(),
-                UserInput::FileOpened(path) => self.set_k7_file(&path),
-                UserInput::Stop => self.running = false,
-                UserInput::Start => self.running = true,
-                UserInput::SoftReset => self.reset_soft(),
-                UserInput::HardReset => self.reset_hard(),
-                UserInput::KeyDown(vk) => self.keyboard.key_pressed(vk, &mut self.mem),
-                UserInput::KeyUp(vk) => self.keyboard.key_released(vk, &mut self.mem),
-                UserInput::KeyboardModifierChanged(state) => self.keyboard.modifiers = state,
-                UserInput::WindowResized(size) => self.screen.new_size(size),
-            }
+    pub(crate) fn eventually_process_user_input(&mut self, user_input: UserInput) {
+        match user_input {
+            UserInput::RewindK7File => self.mem.rewind_k7(),
+            UserInput::FileOpened(path) => self.set_k7_file(&path),
+            UserInput::Stop => self.running = false,
+            UserInput::Start => self.running = true,
+            UserInput::SoftReset => self.reset_soft(),
+            UserInput::HardReset => self.reset_hard(),
+            UserInput::KeyDown(vk) => self.keyboard.key_pressed(vk, &mut self.mem),
+            UserInput::KeyUp(vk) => self.keyboard.key_released(vk, &mut self.mem),
+            UserInput::KeyboardModifierChanged(state) => self.keyboard.modifiers = state,
+            UserInput::WindowResized(size) => self.screen.new_size(size),
         }
     }
 
@@ -211,6 +199,21 @@ impl Machine {
         let k7 = k7.as_ref();
         info!("Machine::set_k7_file({:?})", k7);
         self.mem.set_k7file(k7);
+    }
+
+    pub(crate) fn rewind_k7(&mut self) {
+        info!("Machine::rewind_k7()");
+        self.mem.rewind_k7();
+    }
+
+    pub(crate) fn stop(&mut self) {
+        info!("Machine::stop()");
+        self.running = false;
+    }
+
+    pub(crate) fn start(&mut self) {
+        info!("Machine::start()");
+        self.running = true;
     }
 
     // soft reset method ("reinit prog" button on original MO5)
