@@ -12,7 +12,7 @@ use crate::hardware::screen::Screen;
 use crate::hardware::sound::Sound;
 use crate::hardware::M6809::{unassemble, M6809};
 use crate::int;
-use crate::machine_snap_event::MachineSnapEvent;
+use crate::raw_image::RawImage;
 use crate::user_input::UserInput;
 
 pub struct Machine {
@@ -59,7 +59,7 @@ impl Default for Machine {
 }
 
 impl Machine {
-    pub fn run_loop(&mut self) -> MachineSnapEvent {
+    pub fn run_loop(&mut self) -> Option<RawImage> {
         let pixels;
         if self.running {
             self.run();
@@ -75,7 +75,7 @@ impl Machine {
         }
         let register_dump = self.dump_registers();
         let unassembled = self.unassemble_from_pc(10, &self.mem);
-        MachineSnapEvent::new(pixels, register_dump, unassembled)
+        pixels
     }
 
     pub(crate) fn run(&mut self) {
@@ -236,11 +236,11 @@ impl Machine {
     }
 
     // Debug Methods
-    fn dump_registers(&mut self) -> String {
+    pub(crate) fn dump_registers(&mut self) -> String {
         self.micro.print_state()
     }
 
-    fn unassemble_from_pc(&self, nblines: int, mem: &Memory) -> String {
+    pub(crate) fn unassemble_from_pc(&self, nblines: int, mem: &Memory) -> String {
         unassemble(self.micro.PC, nblines, mem)
     }
 }

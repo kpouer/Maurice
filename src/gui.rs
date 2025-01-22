@@ -22,8 +22,6 @@ pub struct Gui {
     machine: Machine,
     image: Option<TextureHandle>,
     dialog: DialogKind,
-    registers: String,
-    unassemble: String,
     file_dialog: Option<egui_file_dialog::FileDialog>,
 }
 
@@ -33,8 +31,6 @@ impl Default for Gui {
             machine: Machine::default(),
             image: None,
             dialog: DialogKind::None,
-            registers: String::new(),
-            unassemble: String::new(),
             file_dialog: None,
         }
     }
@@ -80,25 +76,20 @@ impl Gui {
     }
 
     fn update_texture(&mut self, ctx: &Context) {
-        let machine_event_snap = self.machine.run_loop();
-        let mut current_event = Some(machine_event_snap);
+        let pixels = self.machine.run_loop();
 
-        if let Some(mut evt) = current_event.take() {
-            if let Some(buf) = evt.raw_image.take() {
-                self.registers = evt.registers;
-                self.unassemble = evt.unassembled;
-                let image;
-                {
-                    let data = buf.data.lock().unwrap();
-                    image = egui::ColorImage::from_rgb([buf.width, buf.height], &data);
+        if let Some(buf) = pixels {
+            let image;
+            {
+                let data = buf.data.lock().unwrap();
+                image = egui::ColorImage::from_rgb([buf.width, buf.height], &data);
+            }
+            match &mut self.image {
+                None => {
+                    self.image =
+                        Some(ctx.load_texture("my_texture", image, TextureOptions::default()))
                 }
-                match &mut self.image {
-                    None => {
-                        self.image =
-                            Some(ctx.load_texture("my_texture", image, TextureOptions::default()))
-                    }
-                    Some(texture) => texture.set(image, TextureOptions::default()),
-                }
+                Some(texture) => texture.set(image, TextureOptions::default()),
             }
         }
     }
@@ -209,8 +200,6 @@ impl Gui {
     }
 
     fn show_debug(&mut self, ctx: &Context) {
-        let debug = self.registers.clone();
-        let unassemble = self.unassemble.clone();
         ctx.show_viewport_immediate(
             egui::ViewportId::from_hash_of("about_viewport"),
             egui::ViewportBuilder::default()
@@ -222,8 +211,8 @@ impl Gui {
                     "This egui backend doesn't support multiple viewports"
                 );
 
-                let dbg = debug.clone();
-                let unassemble = unassemble.clone();
+                let dbg = self.machine.dump_registers();
+                let unassemble = self.machine.unassemble_from_pc(10, &self.machine.mem);
                 egui::CentralPanel::default().show(ctx, |ui| {
                     ui.vertical(|ui| {
                         ui.label(dbg);
