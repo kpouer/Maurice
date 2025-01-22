@@ -1,19 +1,17 @@
 use std::path::Path;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
-use std::time::{Duration, SystemTime};
-
-use chrono::{DateTime, Local};
-use log::info;
 
 use crate::hardware::keyboard::Keyboard;
+
 use crate::hardware::memory::Memory;
 use crate::hardware::screen::Screen;
 use crate::hardware::sound::Sound;
 use crate::hardware::M6809::{unassemble, M6809};
 use crate::int;
 use crate::raw_image::RawImage;
-use crate::user_input::UserInput;
+use chrono::{DateTime, Local};
+use log::info;
 
 pub struct Machine {
     // Emulation Objects
@@ -30,16 +28,22 @@ pub struct Machine {
     pub(crate) keypos: usize,
     pub(crate) typetext: Option<String>,
     pub(crate) running: bool,
+    #[cfg(target_arch = "wasm32")]
+    waiting: web_time::Instant,
+    #[cfg(target_arch = "wasm32")]
+    sleeptime: u128,
 }
 
 impl Default for Machine {
     fn default() -> Self {
-        info!("Machine::new()");
+        info!("Machine created");
         let screen = Screen::new(get_ratio());
-        info!("Machine::screen()");
+        info!("Machine created");
         let mut mem = Memory::default();
+        info!("Memory created");
         mem.reset();
         let micro = M6809::new(&mem);
+        info!("CPU created");
         Self {
             mem,
             micro,
@@ -54,18 +58,23 @@ impl Default for Machine {
             typetext: None,
             irq: false,
             running: true,
+            #[cfg(target_arch = "wasm32")]
+            waiting: web_time::Instant::now(),
+            #[cfg(target_arch = "wasm32")]
+            sleeptime: 0,
         }
     }
 }
 
 impl Machine {
     pub fn run_loop(&mut self) -> Option<RawImage> {
+        info!("run_loop");
         let pixels;
         if self.running {
-            self.run();
             #[cfg(debug_assertions)]
+            let start = web_time::SystemTime::now();
+            self.run();
             self.screen.paint(&mut self.mem);
-            let start = SystemTime::now();
             pixels = Some(self.screen.get_pixels());
             #[cfg(debug_assertions)]
             println!("Elapsed time: {:?}", start.elapsed());
@@ -73,28 +82,23 @@ impl Machine {
             pixels = None;
             thread::sleep(std::time::Duration::from_millis(1000 / 60));
         }
-        let register_dump = self.dump_registers();
-        let unassembled = self.unassemble_from_pc(10, &self.mem);
         pixels
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn run(&mut self) {
         self.full_speed();
         self.synchronize();
     }
 
-    pub(crate) fn eventually_process_user_input(&mut self, user_input: UserInput) {
-        match user_input {
-            UserInput::RewindK7File => self.mem.rewind_k7(),
-            UserInput::FileOpened(path) => self.set_k7_file(&path),
-            UserInput::Stop => self.running = false,
-            UserInput::Start => self.running = true,
-            UserInput::SoftReset => self.reset_soft(),
-            UserInput::HardReset => self.reset_hard(),
-            UserInput::KeyDown(vk) => self.keyboard.key_pressed(vk, &mut self.mem),
-            UserInput::KeyUp(vk) => self.keyboard.key_released(vk, &mut self.mem),
-            UserInput::KeyboardModifierChanged(state) => self.keyboard.modifiers = state,
-            UserInput::WindowResized(size) => self.screen.new_size(size),
+    #[cfg(target_arch = "wasm32")]
+    pub(crate) fn run(&mut self) {
+        if self.waiting.elapsed().as_millis() > self.sleeptime {
+            info!("running");
+            self.full_speed();
+            self.synchronize();
+        } else {
+            info!("still waiting");
         }
     }
 
@@ -191,7 +195,14 @@ impl Machine {
             return;
         }
 
-        thread::sleep(Duration::from_millis(sleep_millis as u64));
+        #[cfg(target_arch = "wasm32")]
+        {
+            self.sleeptime = sleep_millis as u128;
+            self.waiting = web_time::Instant::now();
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        thread::sleep(std::time::Duration::from_millis(sleep_millis as u64));
         self.last_time = Local::now();
     }
 

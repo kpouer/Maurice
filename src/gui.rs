@@ -49,17 +49,12 @@ impl Gui {
                     repeat: false,
                     modifiers: _,
                 } => {
-                    let evt = if *pressed {
-                        UserInput::KeyDown
-                    } else {
-                        UserInput::KeyUp
-                    };
                     match key {
                         Key::F7 => self.machine.reset_soft(),
                         Key::F8 => self.machine.reset_hard(),
                         _ => {
                             if let Ok(vk) = MO5VirtualKeyCode::try_from(*key) {
-                                let evt = if *pressed {
+                                if *pressed {
                                     self.machine.keyboard.key_pressed(vk, &mut self.machine.mem);
                                 } else {
                                     self.machine
@@ -293,6 +288,7 @@ impl App for Gui {
                 })
                 .response
                 .request_focus();
+            #[cfg(not(target_arch = "wasm32"))]
             ctx.request_repaint_after(std::time::Duration::ZERO);
         }
     }

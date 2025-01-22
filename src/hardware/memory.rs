@@ -5,13 +5,15 @@ use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
 
-use chrono::Local;
-use log::{debug, error, info};
-
 use crate::bios::Bios;
+
 use crate::data_input_stream::DataInputStream;
 use crate::hardware::screen::Screen;
 use crate::int;
+use chrono::Local;
+use log::{debug, error, info};
+#[cfg(target_arch = "wasm32")]
+use rust_embed_for_web::EmbedableFile;
 
 #[derive(Debug)]
 pub(crate) struct Memory {
@@ -187,6 +189,7 @@ impl Memory {
         self.patch_k7();
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     fn load_rom(&mut self) {
         let embedded_bios = Bios::get("mo5.rom").unwrap();
         let starting_address = 0xC000;
@@ -195,6 +198,29 @@ impl Memory {
                 i,
                 embedded_bios.data[(i - starting_address) as usize] as int,
             );
+        }
+        //
+        // let u = "bios/mo5.rom";
+        // match fs::read(u) {
+        //     Ok(bytes) => {
+        //         let starting_address = 0xC000;
+        //         for i in starting_address..0x10000 {
+        //             self.write_p(i, bytes[(i - starting_address) as usize] as int);
+        //         }
+        //     }
+        //     Err(error) => {
+        //         //todo : dialog
+        //         eprintln!("Error : mo5.rom file is missing {}", error);
+        //     }
+        // }
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn load_rom(&mut self) {
+        let data = crate::bios::load_bios("/mo5.rom");
+        let starting_address = 0xC000;
+        for i in starting_address..0x10000 {
+            self.write_p(i, data[(i - starting_address) as usize] as int);
         }
         //
         // let u = "bios/mo5.rom";
