@@ -44,9 +44,12 @@ fn main() {
             .expect("Failed to find the_canvas_id")
             .dyn_into::<web_sys::HtmlCanvasElement>()
             .expect("the_canvas_id was not a HtmlCanvasElement");
-        let gui = Gui::default();
         let start_result = eframe::WebRunner::new()
-            .start(canvas, web_options, Box::new(|cc| Ok(Box::new(gui))))
+            .start(
+                canvas,
+                web_options,
+                Box::new(|cc| Ok(Box::<Gui>::default())),
+            )
             .await;
 
         // Remove the loading text and spinner:

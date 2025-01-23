@@ -1,5 +1,6 @@
 use crate::dimension::Dimension;
 use crate::hardware::screen::color::COLOR_DEPTH;
+use std::fmt::Display;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug)]
@@ -7,6 +8,12 @@ pub struct RawImage {
     pub(crate) data: Arc<Mutex<Vec<u8>>>,
     pub(crate) width: usize,
     pub(crate) height: usize,
+}
+
+impl Display for RawImage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "RawImage(width={}, height={})", self.width, self.height)
+    }
 }
 
 impl RawImage {

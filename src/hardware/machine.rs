@@ -1,5 +1,4 @@
 use std::path::Path;
-use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 
 use crate::hardware::keyboard::Keyboard;
@@ -11,7 +10,7 @@ use crate::hardware::M6809::{unassemble, M6809};
 use crate::int;
 use crate::raw_image::RawImage;
 use chrono::{DateTime, Local};
-use log::info;
+use log::{debug, info};
 
 pub struct Machine {
     // Emulation Objects
@@ -68,19 +67,21 @@ impl Default for Machine {
 
 impl Machine {
     pub fn run_loop(&mut self) -> Option<RawImage> {
-        info!("run_loop");
+        #[cfg(debug_assertions)]
+        debug!("run_loop");
         let pixels;
         if self.running {
             #[cfg(debug_assertions)]
             let start = web_time::SystemTime::now();
             self.run();
             self.screen.paint(&mut self.mem);
-            pixels = Some(self.screen.get_pixels());
+            let raw_image = self.screen.get_pixels();
+            pixels = Some(raw_image);
             #[cfg(debug_assertions)]
             println!("Elapsed time: {:?}", start.elapsed());
         } else {
             pixels = None;
-            thread::sleep(std::time::Duration::from_millis(1000 / 60));
+            // thread::sleep(std::time::Duration::from_millis(1000 / 60));
         }
         pixels
     }
@@ -94,11 +95,8 @@ impl Machine {
     #[cfg(target_arch = "wasm32")]
     pub(crate) fn run(&mut self) {
         if self.waiting.elapsed().as_millis() > self.sleeptime {
-            info!("running");
             self.full_speed();
             self.synchronize();
-        } else {
-            info!("still waiting");
         }
     }
 
@@ -206,11 +204,14 @@ impl Machine {
         self.last_time = Local::now();
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn set_k7_file<P: AsRef<Path>>(&mut self, k7: P) {
         let k7 = k7.as_ref();
         info!("Machine::set_k7_file({:?})", k7);
         self.mem.set_k7file(k7);
     }
+
+    pub(crate) fn open_url_k7(&self) {}
 
     pub(crate) fn rewind_k7(&mut self) {
         info!("Machine::rewind_k7()");

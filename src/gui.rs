@@ -1,5 +1,5 @@
 use crate::hardware::keyboard::vkey::MO5VirtualKeyCode;
-use crate::user_input::UserInput;
+use egui::Pos2;
 use {
     eframe::{epaint::TextureHandle, App, Frame},
     egui::{pos2, Color32, Context, Event, Key, Rect, TextureOptions, Ui, ViewportCommand},
@@ -22,6 +22,7 @@ pub struct Gui {
     machine: Machine,
     image: Option<TextureHandle>,
     dialog: DialogKind,
+    #[cfg(not(target_arch = "wasm32"))]
     file_dialog: Option<egui_file_dialog::FileDialog>,
 }
 
@@ -31,6 +32,7 @@ impl Default for Gui {
             machine: Machine::default(),
             image: None,
             dialog: DialogKind::None,
+            #[cfg(not(target_arch = "wasm32"))]
             file_dialog: None,
         }
     }
@@ -77,6 +79,7 @@ impl Gui {
             let image;
             {
                 let data = buf.data.lock().unwrap();
+                println!("width {} height {}", buf.width, buf.height);
                 image = egui::ColorImage::from_rgb([buf.width, buf.height], &data);
             }
             match &mut self.image {
@@ -104,6 +107,7 @@ impl Gui {
 
     fn file_menu(&mut self, ui: &mut Ui) {
         ui.menu_button("File", |ui| {
+            #[cfg(not(target_arch = "wasm32"))]
             if ui.button("Select K7").clicked() {
                 let mut fd = egui_file_dialog::FileDialog::new();
                 fd.pick_file();
@@ -258,11 +262,12 @@ impl Gui {
 }
 
 impl App for Gui {
-    fn update(&mut self, ctx: &Context, frame: &mut Frame) {
+    fn update(&mut self, ctx: &Context, _: &mut Frame) {
         self.handle_input(ctx);
         self.build_menu_panel(ctx);
         self.eventually_show_dialog(ctx);
         self.update_texture(ctx);
+        #[cfg(not(target_arch = "wasm32"))]
         if let Some(fd) = &mut self.file_dialog {
             fd.update(ctx);
             if let Some(path) = fd.take_picked() {
@@ -278,7 +283,7 @@ impl App for Gui {
                 max: pos2(available_rect.width(), available_rect.height()),
             };
             let uv = Rect {
-                min: pos2(0.0, 0.0),
+                min: Pos2::ZERO,
                 max: pos2(1.0, 1.0),
             };
 
@@ -288,8 +293,7 @@ impl App for Gui {
                 })
                 .response
                 .request_focus();
-            #[cfg(not(target_arch = "wasm32"))]
-            ctx.request_repaint_after(std::time::Duration::ZERO);
+            ctx.request_repaint();
         }
     }
 }
