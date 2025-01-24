@@ -1,45 +1,26 @@
-use crate::dimension::Dimension;
 use crate::hardware::screen::color::COLOR_DEPTH;
 use std::fmt::Display;
-use std::sync::{Arc, Mutex};
 
 #[derive(Debug)]
-pub struct RawImage {
-    pub(crate) data: Arc<Mutex<Vec<u8>>>,
+pub struct RawImage<'a> {
+    pub(crate) data: &'a Vec<u8>,
     pub(crate) width: usize,
     pub(crate) height: usize,
 }
 
-impl Display for RawImage {
+impl Display for RawImage<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "RawImage(width={}, height={})", self.width, self.height)
     }
 }
 
-impl RawImage {
-    pub(crate) fn new_with_data(width: usize, height: usize, data: Arc<Mutex<Vec<u8>>>) -> Self {
-        {
-            let data = data.lock().unwrap();
-            assert_eq!(data.len(), width * height * COLOR_DEPTH);
-        }
+impl<'a> RawImage<'a> {
+    pub(crate) fn new_with_data(width: usize, height: usize, data: &'a Vec<u8>) -> Self {
+        assert_eq!(data.len(), width * height * COLOR_DEPTH);
         Self {
             data,
             width,
             height,
         }
-    }
-
-    pub(crate) fn new(width: usize, height: usize) -> Self {
-        Self {
-            data: Arc::new(Mutex::new(vec![0; width * height * COLOR_DEPTH])),
-            width,
-            height,
-        }
-    }
-}
-
-impl From<Dimension> for RawImage {
-    fn from(size: Dimension) -> Self {
-        Self::new(size.width, size.height)
     }
 }

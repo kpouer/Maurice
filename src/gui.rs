@@ -76,12 +76,7 @@ impl Gui {
         let pixels = self.machine.run_loop();
 
         if let Some(buf) = pixels {
-            let image;
-            {
-                let data = buf.data.lock().unwrap();
-                println!("width {} height {}", buf.width, buf.height);
-                image = egui::ColorImage::from_rgb([buf.width, buf.height], &data);
-            }
+            let image = egui::ColorImage::from_rgb([buf.width, buf.height], &buf.data);
             match &mut self.image {
                 None => {
                     self.image =
@@ -98,6 +93,7 @@ impl Gui {
                 self.file_menu(ui);
                 self.run_menu(ui);
                 self.reset_menu(ui);
+                #[cfg(not(target_arch = "wasm32"))]
                 self.image_menu(ui, ctx);
                 self.debug_menu(ui);
                 self.help_menu(ui);
@@ -145,9 +141,7 @@ impl Gui {
         });
     }
 
-    //Reset
-    //     Soft Reset
-    // Hard Reset
+    #[cfg(not(target_arch = "wasm32"))]
     fn image_menu(&mut self, ui: &mut Ui, ctx: &Context) {
         ui.menu_button("Image", |ui| {
             if ui.button("Zoom 1x").clicked() {
