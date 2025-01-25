@@ -1,5 +1,5 @@
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::Path;
-use std::thread;
 
 use crate::hardware::keyboard::Keyboard;
 
@@ -81,7 +81,6 @@ impl Machine {
             println!("Elapsed time: {:?}", start.elapsed());
         } else {
             pixels = None;
-            // thread::sleep(std::time::Duration::from_millis(1000 / 60));
         }
         pixels
     }
@@ -200,7 +199,7 @@ impl Machine {
         }
 
         #[cfg(not(target_arch = "wasm32"))]
-        thread::sleep(std::time::Duration::from_millis(sleep_millis as u64));
+        std::thread::sleep(std::time::Duration::from_millis(sleep_millis as u64));
         self.last_time = Local::now();
     }
 
@@ -247,7 +246,6 @@ impl Machine {
         self.running = true;
     }
 
-    // Debug Methods
     pub(crate) fn dump_registers(&mut self) -> String {
         self.micro.print_state()
     }

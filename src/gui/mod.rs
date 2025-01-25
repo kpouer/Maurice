@@ -1,3 +1,7 @@
+mod about;
+mod debug;
+mod dialogs;
+
 use crate::hardware::keyboard::vkey::MO5VirtualKeyCode;
 use egui::Pos2;
 use {
@@ -5,37 +9,18 @@ use {
     egui::{pos2, Color32, Context, Event, Key, Rect, TextureOptions, Ui, ViewportCommand},
 };
 
-use crate::gui::DialogKind::About;
+use crate::gui::dialogs::Dialogs;
 use crate::hardware::machine::Machine;
 use crate::hardware::screen::{HEIGHT, WIDTH};
 use log::info;
 
 #[derive(Default)]
-enum DialogKind {
-    #[default]
-    None,
-    Debug,
-    About,
-}
-
 pub struct Gui {
     machine: Machine,
     image: Option<TextureHandle>,
-    dialog: DialogKind,
+    dialogs: Dialogs,
     #[cfg(not(target_arch = "wasm32"))]
     file_dialog: Option<egui_file_dialog::FileDialog>,
-}
-
-impl Default for Gui {
-    fn default() -> Self {
-        Self {
-            machine: Machine::default(),
-            image: None,
-            dialog: DialogKind::None,
-            #[cfg(not(target_arch = "wasm32"))]
-            file_dialog: None,
-        }
-    }
 }
 
 impl Gui {
@@ -76,7 +61,7 @@ impl Gui {
         let pixels = self.machine.run_loop();
 
         if let Some(buf) = pixels {
-            let image = egui::ColorImage::from_rgb([buf.width, buf.height], &buf.data);
+            let image = egui::ColorImage::from_rgb([buf.width, buf.height], buf.data);
             match &mut self.image {
                 None => {
                     self.image =
@@ -94,8 +79,11 @@ impl Gui {
                 self.run_menu(ui);
                 self.reset_menu(ui);
                 #[cfg(not(target_arch = "wasm32"))]
-                self.image_menu(ui, ctx);
-                self.debug_menu(ui);
+                {
+                    self.image_menu(ui, ctx);
+                    // todo debug the debug dialog
+                    self.debug_menu(ui);
+                }
                 self.help_menu(ui);
             });
         });
@@ -168,7 +156,7 @@ impl Gui {
     fn debug_menu(&mut self, ui: &mut Ui) {
         ui.menu_button("Debug", |ui| {
             if ui.button("Debug").clicked() {
-                self.dialog = DialogKind::Debug;
+                self.dialogs.set_show_debug();
             }
         });
     }
@@ -179,79 +167,9 @@ impl Gui {
     fn help_menu(&mut self, ui: &mut Ui) {
         ui.menu_button("Help", |ui| {
             if ui.button("About").clicked() {
-                self.dialog = About;
+                self.dialogs.set_show_about();
             }
         });
-    }
-
-    fn eventually_show_dialog(&mut self, ctx: &Context) {
-        match self.dialog {
-            DialogKind::None => {}
-            DialogKind::Debug => self.show_debug(ctx),
-            DialogKind::About => self.show_about(ctx),
-        }
-    }
-
-    fn show_debug(&mut self, ctx: &Context) {
-        ctx.show_viewport_immediate(
-            egui::ViewportId::from_hash_of("about_viewport"),
-            egui::ViewportBuilder::default()
-                .with_title("About Maurice")
-                .with_inner_size([400.0, 200.0]),
-            move |ctx, class| {
-                assert!(
-                    class == egui::ViewportClass::Immediate,
-                    "This egui backend doesn't support multiple viewports"
-                );
-
-                let dbg = self.machine.dump_registers();
-                let unassemble = self.machine.unassemble_from_pc(10, &self.machine.mem);
-                egui::CentralPanel::default().show(ctx, |ui| {
-                    ui.vertical(|ui| {
-                        ui.label(dbg);
-                        ui.label(unassemble);
-                    });
-                });
-                if ctx.input(|i| i.viewport().close_requested()) {
-                    // Tell parent to close us.
-                    self.dialog = DialogKind::None;
-                }
-            },
-        );
-    }
-
-    fn show_about(&mut self, ctx: &Context) {
-        ctx.show_viewport_immediate(
-            egui::ViewportId::from_hash_of("about_viewport"),
-            egui::ViewportBuilder::default()
-                .with_title("About Maurice")
-                .with_inner_size([400.0, 200.0]),
-            move |ctx, class| {
-                assert!(
-                    class == egui::ViewportClass::Immediate,
-                    "This egui backend doesn't support multiple viewports"
-                );
-
-                egui::CentralPanel::default().show(ctx, |ui| {
-                    ui.label(
-                        "
-                       Maurice
-
-            (C) G.Fetis 1997-1998-2006
-            (C) DevilMarkus http://cpc.devilmarkus.de 2006
-            (C) M.Le Goff 2014
-            (C) Matthieu Casanova 2023-2025
-
-            Rust conversion of Marcel o Cinq MO5 Emulator (Java version)
-            ",
-                    );
-                });
-                if ctx.input(|i| i.viewport().close_requested()) {
-                    // Tell parent to close us.
-                    self.dialog = DialogKind::None;
-                }
-            },
-        );
     }
 }
 
@@ -259,7 +177,7 @@ impl App for Gui {
     fn update(&mut self, ctx: &Context, _: &mut Frame) {
         self.handle_input(ctx);
         self.build_menu_panel(ctx);
-        self.eventually_show_dialog(ctx);
+        self.dialogs.eventually_show_dialogs(ctx, &mut self.machine);
         self.update_texture(ctx);
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(fd) = &mut self.file_dialog {
