@@ -6,6 +6,7 @@ use std::io::{BufWriter, Write};
 use std::path::Path;
 
 use crate::data_input_stream::DataInputStream;
+use crate::hardware::k7::K7;
 use crate::hardware::screen::Screen;
 use crate::{bios, int};
 use chrono::Local;
@@ -50,7 +51,7 @@ pub(crate) struct Memory {
     k7_bit: u8,
     k7_char: u8,
 
-    k7_fis: Option<DataInputStream>,
+    k7_fis: Option<K7>,
     k7_fos: Option<BufWriter<File>>,
     is_file_opened: bool,
     is_file_opened_out: bool,
@@ -303,52 +304,17 @@ impl Memory {
         }
     }
 
-    pub(crate) fn set_k7_data(&mut self, data: DataInputStream) {
-        self.k7_fis = Some(data);
+    // pub(crate) fn set_k7(&mut self, k7: K7) {
+    //     self.k7_fis = Some(k7);
+    //     self.is_file_opened = true;
+    // }
+
+    pub(crate) fn set_k7(&mut self, k7: K7) {
+        info!("Opened K7 {} of length {}", k7.name(), k7.len());
+        self.k7_fis = Some(k7);
         self.is_file_opened = true;
-    }
-
-    pub(crate) fn set_k7file(&mut self, name: &Path) -> bool {
-        info!("opening:{}", name.to_str().unwrap());
-        if self.k7_fis.is_none() {
-            self.is_file_opened = false;
-        }
-
-        if Path::new(name).exists() {
-            let metadata = fs::metadata(name).unwrap();
-            if metadata.len() == 0 {
-                error!("Error : file is empty");
-                return false;
-            }
-            if metadata.len() > 1000000 {
-                error!("Error : file is too big {}", metadata.len());
-                return false;
-            }
-
-            match DataInputStream::new(name) {
-                Ok(data) => {
-                    println!(
-                        "Opened K7 {} of length {}",
-                        name.file_name().unwrap().to_str().unwrap(),
-                        data.len()
-                    );
-                    self.k7_fis = Some(data);
-                    self.is_file_opened = true;
-                    self.k7_bit = 0;
-                    self.k7_char = 0;
-
-                    self.is_file_opened
-                }
-                Err(error) => {
-                    error!("Error : file is missing {}", error);
-                    false
-                }
-            }
-        } else {
-            // todo : dialog
-            // JOptionPane.showMessageDialog(null, "Error : file is missing " + e);
-            self.is_file_opened
-        }
+        self.k7_bit = 0;
+        self.k7_char = 0;
     }
 
     fn create_k7file(&mut self) -> bool {
@@ -398,7 +364,7 @@ impl Memory {
             if self.k7_in.is_some() {
                 self.k7_char = self.k7_in.as_mut().unwrap().read();
             } else if self.k7_fis.is_some() {
-                self.k7_char = self.k7_fis.as_mut().unwrap().read();
+                self.k7_char = self.k7_fis.as_mut().unwrap().read().unwrap();
             } else {
                 return 0;
             }

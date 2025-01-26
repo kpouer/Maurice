@@ -41,72 +41,17 @@ impl Keyboard {
             MO5VirtualKeyCode::Escape => key_memory(0x66, press, mem),
             MO5VirtualKeyCode::LShift => key_memory(0x70, press, mem), //Sh
             MO5VirtualKeyCode::F11 => key_memory(0x72, press, mem),    // Ba
-            MO5VirtualKeyCode::Key1 => {
-                if self.modifiers.shift {
-                    key_memory(0x70, press, mem);
-                }
-                key_memory(0x5e, press, mem);
-            }
-            MO5VirtualKeyCode::Key2 => {
-                if self.modifiers.shift {
-                    key_memory(0x70, press, mem);
-                }
-                key_memory(0x4e, press, mem);
-            }
-            MO5VirtualKeyCode::Key3 => {
-                if self.modifiers.shift {
-                    key_memory(0x70, press, mem);
-                }
-                key_memory(0x3e, press, mem);
-            }
-            MO5VirtualKeyCode::Key4 => {
-                if self.modifiers.shift {
-                    key_memory(0x70, press, mem);
-                }
-                key_memory(0x2e, press, mem);
-            }
-            MO5VirtualKeyCode::Key5 => {
-                if self.modifiers.shift {
-                    key_memory(0x70, press, mem);
-                }
-                key_memory(0x1e, press, mem);
-            }
-            MO5VirtualKeyCode::Key6 => {
-                if self.modifiers.shift {
-                    key_memory(0x70, press, mem);
-                }
-                key_memory(0x0e, press, mem);
-            }
-            MO5VirtualKeyCode::Key7 => {
-                if self.modifiers.shift {
-                    key_memory(0x70, press, mem);
-                }
-                key_memory(0x0c, press, mem);
-            }
-            MO5VirtualKeyCode::Key8 => {
-                if self.modifiers.shift {
-                    key_memory(0x70, press, mem);
-                }
-                key_memory(0x1c, press, mem);
-            }
-            MO5VirtualKeyCode::Key9 => {
-                if self.modifiers.shift {
-                    key_memory(0x70, press, mem);
-                }
-                key_memory(0x2c, press, mem);
-            }
-            MO5VirtualKeyCode::Key0 => {
-                if self.modifiers.shift {
-                    key_memory(0x70, press, mem);
-                }
-                key_memory(0x3c, press, mem);
-            }
-            MO5VirtualKeyCode::Minus => {
-                if self.modifiers.shift {
-                    key_memory(0x70, press, mem);
-                }
-                key_memory(0x4c, press, mem);
-            }
+            MO5VirtualKeyCode::Key1 => self.handle_shiftable_key(0x5e, press, mem),
+            MO5VirtualKeyCode::Key2 => self.handle_shiftable_key(0x4e, press, mem),
+            MO5VirtualKeyCode::Key3 => self.handle_shiftable_key(0x3e, press, mem),
+            MO5VirtualKeyCode::Key4 => self.handle_shiftable_key(0x2e, press, mem),
+            MO5VirtualKeyCode::Key5 => self.handle_shiftable_key(0x1e, press, mem),
+            MO5VirtualKeyCode::Key6 => self.handle_shiftable_key(0x0e, press, mem),
+            MO5VirtualKeyCode::Key7 => self.handle_shiftable_key(0x0c, press, mem),
+            MO5VirtualKeyCode::Key8 => self.handle_shiftable_key(0x1c, press, mem),
+            MO5VirtualKeyCode::Key9 => self.handle_shiftable_key(0x2c, press, mem),
+            MO5VirtualKeyCode::Key0 => self.handle_shiftable_key(0x3c, press, mem),
+            MO5VirtualKeyCode::Minus => self.handle_shiftable_key(0x4c, press, mem),
             MO5VirtualKeyCode::A => key_memory(0x5a, press, mem),
             MO5VirtualKeyCode::Z => key_memory(0x4a, press, mem),
             MO5VirtualKeyCode::E => key_memory(0x3a, press, mem),
@@ -142,6 +87,13 @@ impl Keyboard {
             MO5VirtualKeyCode::Asterisk => key_memory(0x58, press, mem),
             MO5VirtualKeyCode::Space => key_memory(0x40, press, mem),
         }
+    }
+
+    fn handle_shiftable_key(&mut self, key: usize, press: bool, mem: &mut Memory) {
+        if self.modifiers.shift {
+            key_memory(0x70, press, mem);
+        }
+        key_memory(key, press, mem);
     }
 
     pub(crate) fn key_pressed(&mut self, virtual_key_code: MO5VirtualKeyCode, mem: &mut Memory) {

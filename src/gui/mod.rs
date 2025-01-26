@@ -10,9 +10,10 @@ use {
 };
 
 use crate::gui::dialogs::Dialogs;
+use crate::hardware::k7::K7;
 use crate::hardware::machine::Machine;
 use crate::hardware::screen::{HEIGHT, WIDTH};
-use log::info;
+use log::{info, warn};
 
 #[derive(Default)]
 pub struct Gui {
@@ -62,9 +63,9 @@ impl Gui {
 
     fn handle_dropped_files(&mut self, dropped_files: &[DroppedFile]) {
         for file in dropped_files.iter() {
-            if let Some(path) = &file.path {
-                info!("Dropped file: {}", path.to_str().unwrap());
-                self.machine.set_k7_file(path);
+            match K7::try_from(file) {
+                Ok(k7) => self.machine.set_k7(k7),
+                Err(e) => warn!("{}", e),
             }
         }
     }
@@ -195,7 +196,10 @@ impl App for Gui {
         if let Some(fd) = &mut self.file_dialog {
             fd.update(ctx);
             if let Some(path) = fd.take_picked() {
-                self.machine.set_k7_file(path);
+                match K7::try_from(path) {
+                    Ok(k7) => self.machine.set_k7(k7),
+                    Err(e) => warn!("{e}"),
+                }
                 self.file_dialog = None;
             }
         }

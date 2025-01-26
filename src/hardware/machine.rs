@@ -1,9 +1,6 @@
-#[cfg(not(target_arch = "wasm32"))]
-use std::path::Path;
-
 use crate::hardware::keyboard::Keyboard;
 
-use crate::data_input_stream::DataInputStream;
+use crate::hardware::k7::K7;
 use crate::hardware::memory::Memory;
 use crate::hardware::screen::Screen;
 use crate::hardware::sound::Sound;
@@ -204,19 +201,10 @@ impl Machine {
         self.last_time = Local::now();
     }
 
-    pub fn set_k7_data(&mut self, data: DataInputStream) {
+    pub fn set_k7(&mut self, k7: K7) {
         info!("Machine::set_k7_data()");
-        self.mem.set_k7_data(data);
+        self.mem.set_k7(k7);
     }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn set_k7_file<P: AsRef<Path>>(&mut self, k7: P) {
-        let k7 = k7.as_ref();
-        info!("Machine::set_k7_file({:?})", k7);
-        self.mem.set_k7file(k7);
-    }
-
-    pub(crate) fn open_url_k7(&self) {}
 
     pub(crate) fn rewind_k7(&mut self) {
         info!("Machine::rewind_k7()");
