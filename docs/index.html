@@ -21,10 +21,21 @@
         }
     </style>
     <meta charset="utf-8"/>
-    <link data-trunk rel="rust" data-bin="maurice" />
+    
+<script type="module">
+import init, * as bindings from '/Maurice/maurice.js';
+const wasm = await init({ module_or_path: '/Maurice/maurice_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script>
 <!--    <link data-trunk rel="copy-file" href="bios/mo5.rom" data-target-path="bios"/>-->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-</head>
+<link rel="modulepreload" href="/Maurice/maurice.js" crossorigin="anonymous" integrity="sha384-hHYDx0O8u3kXL6n4qQ9AQem2Kfw/D66IBNAvL3d6s9qpYJ9rAeP8Jiuis9NMHlId"><link rel="preload" href="/Maurice/maurice_bg.wasm" crossorigin="anonymous" integrity="sha384-tdtnWti9G6iJ97zL7HIrlZ/oNzxYPz3TdbYGX7XBEYhCD/wltAvccQaqJw/tyLAi" as="fetch" type="application/wasm"></head>
 <body>
     <canvas id="the_canvas_id"></canvas>
 <script>

@@ -1,3 +1,4 @@
 [build]
 filehash = false
-dist = "my_custom_dist"
+dist = "docs"
+public_url = "/Maurice"
