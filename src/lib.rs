@@ -1,6 +1,5 @@
 pub mod args;
 pub(crate) mod bios;
-mod data_input_stream;
 mod dimension;
 pub mod gui;
 pub mod hardware;

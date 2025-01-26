@@ -5,7 +5,6 @@ use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
 
-use crate::data_input_stream::DataInputStream;
 use crate::hardware::k7::K7;
 use crate::hardware::screen::Screen;
 use crate::{bios, int};
@@ -51,12 +50,9 @@ pub(crate) struct Memory {
     k7_bit: u8,
     k7_char: u8,
 
-    k7_fis: Option<K7>,
-    k7_fos: Option<BufWriter<File>>,
-    is_file_opened: bool,
+    k7_in: Option<K7>,
+    k7_out: Option<BufWriter<File>>,
     is_file_opened_out: bool,
-    k7_in: Option<DataInputStream>,
-    k7_out: Option<DataInputStream>,
     k7_out_name: Option<String>,
 }
 
@@ -83,12 +79,9 @@ impl Default for Memory {
             GA3: 0,
             k7_bit: 0,
             k7_char: 0,
-            k7_fis: None,
-            k7_fos: None,
-            is_file_opened: false,
-            is_file_opened_out: false,
             k7_in: None,
             k7_out: None,
+            is_file_opened_out: false,
             k7_out_name: None,
         }
     }
@@ -297,7 +290,7 @@ impl Memory {
 
     pub(crate) fn rewind_k7(&mut self) {
         info!("rewind");
-        if let Some(k7fis) = self.k7_fis.as_mut() {
+        if let Some(k7fis) = self.k7_in.as_mut() {
             k7fis.reset();
             self.k7_bit = 0;
             self.k7_char = 0;
@@ -311,8 +304,7 @@ impl Memory {
 
     pub(crate) fn set_k7(&mut self, k7: K7) {
         info!("Opened K7 {} of length {}", k7.name(), k7.len());
-        self.k7_fis = Some(k7);
-        self.is_file_opened = true;
+        self.k7_in = Some(k7);
         self.k7_bit = 0;
         self.k7_char = 0;
     }
@@ -327,7 +319,7 @@ impl Memory {
         let kout_name = aujourdhui.format("%Y-%m-%d-%H_%M_%S.k7").to_string();
         println!("Creating:{}", &kout_name);
         self.k7_out_name = Some(kout_name);
-        if self.k7_fos.is_none() {
+        if self.k7_out.is_none() {
             self.is_file_opened_out = false;
         }
         if self.is_file_opened_out {
@@ -338,7 +330,7 @@ impl Memory {
         let k7out_name = &self.k7_out_name.clone().unwrap();
         if let Ok(k7fos) = File::open(k7out_name) {
             let buf = BufWriter::new(k7fos);
-            self.k7_fos = Some(buf);
+            self.k7_out = Some(buf);
             self.is_file_opened_out = true;
             // todo : dialog
             // JOptionPane.showMessageDialog(null, "Information : new file " + k7out_name);
@@ -355,16 +347,14 @@ impl Memory {
     }
 
     fn readbit(&mut self, screen: &mut Screen) -> int {
-        if !self.is_file_opened {
+        if self.k7_in.is_none() {
             return 0;
         }
 
         /* doit_on lire un caractere ? */
         if self.k7_bit == 0x00 {
             if self.k7_in.is_some() {
-                self.k7_char = self.k7_in.as_mut().unwrap().read();
-            } else if self.k7_fis.is_some() {
-                self.k7_char = self.k7_fis.as_mut().unwrap().read().unwrap();
+                self.k7_char = self.k7_in.as_mut().unwrap().read().unwrap();
             } else {
                 return 0;
             }
@@ -404,7 +394,7 @@ impl Memory {
             }
 
             let data_out = [A as u8];
-            if let Some(k7fos) = &mut self.k7_fos {
+            if let Some(k7fos) = &mut self.k7_out {
                 if let Err(result) = k7fos.write(&data_out) {
                     eprintln!("Error writing to file: {}", result);
                 }
