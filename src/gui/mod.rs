@@ -3,7 +3,7 @@ mod debug;
 mod dialogs;
 
 use crate::hardware::keyboard::vkey::MO5VirtualKeyCode;
-use egui::Pos2;
+use egui::{DroppedFile, Pos2};
 use {
     eframe::{epaint::TextureHandle, App, Frame},
     egui::{pos2, Color32, Context, Event, Key, Rect, TextureOptions, Ui, ViewportCommand},
@@ -28,6 +28,9 @@ impl Gui {
         ctx.input(|input_state| {
             let modifiers = input_state.modifiers;
             self.machine.keyboard.modifiers = modifiers.into();
+            if !input_state.raw.dropped_files.is_empty() {
+                self.handle_dropped_files(&input_state.raw.dropped_files);
+            }
             input_state.events.iter().for_each(|event| match event {
                 Event::Key {
                     key,
@@ -55,6 +58,15 @@ impl Gui {
                 _ => {}
             });
         });
+    }
+
+    fn handle_dropped_files(&mut self, dropped_files: &[DroppedFile]) {
+        for file in dropped_files.iter() {
+            if let Some(path) = &file.path {
+                info!("Dropped file: {}", path.to_str().unwrap());
+                self.machine.set_k7_file(path);
+            }
+        }
     }
 
     fn update_texture(&mut self, ctx: &Context) {

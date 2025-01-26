@@ -3,6 +3,7 @@ use std::path::Path;
 
 use crate::hardware::keyboard::Keyboard;
 
+use crate::data_input_stream::DataInputStream;
 use crate::hardware::memory::Memory;
 use crate::hardware::screen::Screen;
 use crate::hardware::sound::Sound;
@@ -201,6 +202,11 @@ impl Machine {
         #[cfg(not(target_arch = "wasm32"))]
         std::thread::sleep(std::time::Duration::from_millis(sleep_millis as u64));
         self.last_time = Local::now();
+    }
+
+    pub fn set_k7_data(&mut self, data: DataInputStream) {
+        info!("Machine::set_k7_data()");
+        self.mem.set_k7_data(data);
     }
 
     #[cfg(not(target_arch = "wasm32"))]

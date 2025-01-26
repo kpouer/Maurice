@@ -1,4 +1,5 @@
 use crate::gui::about::About;
+#[cfg(not(target_arch = "wasm32"))]
 use crate::gui::debug::Debug;
 use crate::hardware::machine::Machine;
 use egui::{Context, Widget};

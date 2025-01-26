@@ -303,6 +303,11 @@ impl Memory {
         }
     }
 
+    pub(crate) fn set_k7_data(&mut self, data: DataInputStream) {
+        self.k7_fis = Some(data);
+        self.is_file_opened = true;
+    }
+
     pub(crate) fn set_k7file(&mut self, name: &Path) -> bool {
         info!("opening:{}", name.to_str().unwrap());
         if self.k7_fis.is_none() {
