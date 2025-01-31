@@ -1,4 +1,6 @@
+use log::warn;
 use maurice_lib::gui::Gui;
+use maurice_lib::hardware::k7::K7;
 #[cfg(not(target_family = "wasm"))]
 use {
     clap::Parser,
@@ -18,8 +20,19 @@ fn main() {
             ]),
         ..Default::default()
     };
-    let gui = Gui::default();
-    let _ = eframe::run_native("Maurice", native_options, Box::new(|_cc| Ok(Box::new(gui))));
+    let args = Args::parse();
+    let mut gui = Gui::default();
+    if let Some(k7_file) = args.k7 {
+        match K7::try_from(k7_file) {
+            Ok(k7) => gui.set_k7(k7),
+            Err(e) => warn!("Unable to open tape {e}"),
+        }
+    }
+    let _ = eframe::run_native(
+        "Maurice",
+        native_options,
+        Box::new(|_cc| Ok(Box::default())),
+    );
 }
 
 #[cfg(target_arch = "wasm32")]

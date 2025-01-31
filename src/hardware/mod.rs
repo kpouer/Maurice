@@ -1,5 +1,5 @@
 pub(crate) mod M6809;
-pub(crate) mod k7;
+pub mod k7;
 pub(crate) mod keyboard;
 pub mod machine;
 pub(crate) mod memory;

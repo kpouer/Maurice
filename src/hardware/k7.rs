@@ -5,7 +5,7 @@ use std::io::{Cursor, Read};
 use std::path::PathBuf;
 
 #[derive(Debug)]
-pub(crate) struct K7 {
+pub struct K7 {
     name: String,
     len: u32,
     bytes: Cursor<Vec<u8>>,
@@ -31,6 +31,19 @@ impl K7 {
     }
 }
 
+impl TryFrom<String> for K7 {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let bytes = fs::read(&value).map_err(|e| e.to_string())?;
+        Ok(K7 {
+            name: value,
+            len: bytes.len() as u32,
+            bytes: Cursor::new(bytes),
+        })
+    }
+}
+
 impl TryFrom<PathBuf> for K7 {
     type Error = String;
 
@@ -41,12 +54,7 @@ impl TryFrom<PathBuf> for K7 {
             .flatten()
             .unwrap_or_default()
             .to_string();
-        let bytes = fs::read(value).map_err(|e| e.to_string())?;
-        Ok(K7 {
-            name,
-            len: bytes.len() as u32,
-            bytes: Cursor::new(bytes),
-        })
+        Self::try_from(name)
     }
 }
 

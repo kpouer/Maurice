@@ -61,6 +61,10 @@ impl Gui {
         });
     }
 
+    pub fn set_k7(&mut self, k7: K7) {
+        self.machine.set_k7(k7);
+    }
+
     fn handle_dropped_files(&mut self, dropped_files: &[DroppedFile]) {
         for file in dropped_files.iter() {
             match K7::try_from(file) {
