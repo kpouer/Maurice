@@ -181,7 +181,7 @@ impl Memory {
         self.patch_k7();
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(not(target_family = "wasm"))]
     fn load_rom(&mut self) {
         let embedded_bios = bios::BIOS;
         let starting_address = 0xC000;

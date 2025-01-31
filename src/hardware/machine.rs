@@ -83,7 +83,7 @@ impl Machine {
         pixels
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(not(target_family = "wasm"))]
     pub(crate) fn run(&mut self) {
         self.full_speed();
         self.synchronize();
@@ -196,7 +196,7 @@ impl Machine {
             self.waiting = web_time::Instant::now();
         }
 
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(not(target_family = "wasm"))]
         std::thread::sleep(std::time::Duration::from_millis(sleep_millis as u64));
         self.last_time = Local::now();
     }

@@ -20,7 +20,7 @@ pub struct Gui {
     machine: Machine,
     image: Option<TextureHandle>,
     dialogs: Dialogs,
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(not(target_family = "wasm"))]
     file_dialog: Option<egui_file_dialog::FileDialog>,
 }
 
@@ -91,7 +91,7 @@ impl Gui {
                 self.file_menu(ui);
                 self.run_menu(ui);
                 self.reset_menu(ui);
-                #[cfg(not(target_arch = "wasm32"))]
+                #[cfg(not(target_family = "wasm"))]
                 {
                     self.image_menu(ui, ctx);
                     // todo debug the debug dialog
@@ -104,7 +104,7 @@ impl Gui {
 
     fn file_menu(&mut self, ui: &mut Ui) {
         ui.menu_button("File", |ui| {
-            #[cfg(not(target_arch = "wasm32"))]
+            #[cfg(not(target_family = "wasm"))]
             if ui.button("Select K7").clicked() {
                 let mut fd = egui_file_dialog::FileDialog::new();
                 fd.pick_file();
@@ -142,7 +142,7 @@ impl Gui {
         });
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(not(target_family = "wasm"))]
     fn image_menu(&mut self, ui: &mut Ui, ctx: &Context) {
         ui.menu_button("Image", |ui| {
             if ui.button("Zoom 1x").clicked() {
@@ -192,7 +192,7 @@ impl App for Gui {
         self.build_menu_panel(ctx);
         self.dialogs.eventually_show_dialogs(ctx, &mut self.machine);
         self.update_texture(ctx);
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(not(target_family = "wasm"))]
         if let Some(fd) = &mut self.file_dialog {
             fd.update(ctx);
             if let Some(path) = fd.take_picked() {

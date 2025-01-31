@@ -1,5 +1,5 @@
 use crate::gui::about::About;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(target_family = "wasm"))]
 use crate::gui::debug::Debug;
 use crate::hardware::machine::Machine;
 use egui::{Context, Widget};
@@ -40,7 +40,7 @@ impl Dialogs {
         //         .show(ctx, |ui| Debug::new(machine).ui(ui));
         // }
 
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(not(target_family = "wasm"))]
         ctx.show_viewport_immediate(
             egui::ViewportId::from_hash_of("about_viewport"),
             egui::ViewportBuilder::default()
@@ -75,7 +75,7 @@ impl Dialogs {
                 .show(ctx, |ui| About::new().ui(ui));
         }
 
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(not(target_family = "wasm"))]
         ctx.show_viewport_immediate(
             egui::ViewportId::from_hash_of("about_viewport"),
             egui::ViewportBuilder::default()

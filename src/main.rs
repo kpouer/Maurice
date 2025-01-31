@@ -1,12 +1,12 @@
 use maurice_lib::gui::Gui;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(target_family = "wasm"))]
 use {
     clap::Parser,
     maurice_lib::args::Args,
     maurice_lib::hardware::screen::{DEFAULT_PIXEL_SIZE, HEIGHT, WIDTH},
 };
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(target_family = "wasm"))]
 fn main() {
     env_logger::init();
     {
