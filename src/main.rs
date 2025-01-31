@@ -9,19 +9,17 @@ use {
 #[cfg(not(target_family = "wasm"))]
 fn main() {
     env_logger::init();
-    {
-        let native_options = eframe::NativeOptions {
-            viewport: egui::ViewportBuilder::default()
-                .with_drag_and_drop(true)
-                .with_inner_size([
-                    (DEFAULT_PIXEL_SIZE * WIDTH) as f32,
-                    (DEFAULT_PIXEL_SIZE * HEIGHT) as f32,
-                ]),
-            ..Default::default()
-        };
-        let gui = Gui::default();
-        let _ = eframe::run_native("Maurice", native_options, Box::new(|_cc| Ok(Box::new(gui))));
-    }
+    let native_options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default()
+            .with_drag_and_drop(true)
+            .with_inner_size([
+                (DEFAULT_PIXEL_SIZE * WIDTH) as f32,
+                (DEFAULT_PIXEL_SIZE * HEIGHT) as f32,
+            ]),
+        ..Default::default()
+    };
+    let gui = Gui::default();
+    let _ = eframe::run_native("Maurice", native_options, Box::new(|_cc| Ok(Box::new(gui))));
 }
 
 #[cfg(target_arch = "wasm32")]
