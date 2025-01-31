@@ -1,15 +1,13 @@
 #![allow(non_snake_case)]
 
-use std::fs;
 use std::fs::File;
 use std::io::{BufWriter, Write};
-use std::path::Path;
 
 use crate::hardware::k7::K7;
 use crate::hardware::screen::Screen;
 use crate::{bios, int};
 use chrono::Local;
-use log::{debug, error, info};
+use log::{debug, info};
 #[cfg(target_arch = "wasm32")]
 use rust_embed_for_web::EmbedableFile;
 

@@ -26,7 +26,7 @@ impl K7 {
 
     pub(crate) fn read(&mut self) -> Option<u8> {
         let mut b = [0];
-        self.bytes.read_exact(&mut b);
+        self.bytes.read_exact(&mut b).ok();
         Some(b[0])
     }
 }
@@ -50,8 +50,7 @@ impl TryFrom<PathBuf> for K7 {
     fn try_from(value: PathBuf) -> Result<Self, Self::Error> {
         let name = value
             .file_name()
-            .map(|s| s.to_str())
-            .flatten()
+            .and_then(|s| s.to_str())
             .unwrap_or_default()
             .to_string();
         Self::try_from(name)

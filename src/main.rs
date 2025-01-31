@@ -28,11 +28,7 @@ fn main() {
             Err(e) => warn!("Unable to open tape {e}"),
         }
     }
-    let _ = eframe::run_native(
-        "Maurice",
-        native_options,
-        Box::new(|_cc| Ok(Box::default())),
-    );
+    let _ = eframe::run_native("Maurice", native_options, Box::new(|_cc| Ok(Box::new(gui))));
 }
 
 #[cfg(target_arch = "wasm32")]
