@@ -1,10 +1,10 @@
-use log::warn;
 use maurice_lib::gui::Gui;
-use maurice_lib::hardware::k7::K7;
 #[cfg(not(target_family = "wasm"))]
 use {
     clap::Parser,
+    log::warn,
     maurice_lib::args::Args,
+    maurice_lib::hardware::k7::K7,
     maurice_lib::hardware::screen::{DEFAULT_PIXEL_SIZE, HEIGHT, WIDTH},
 };
 
