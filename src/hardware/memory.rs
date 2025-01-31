@@ -270,8 +270,10 @@ impl Memory {
     }
 
     pub(crate) fn set_key(&mut self, i: usize) {
-        debug!("key down:{}", i);
-        self.key[i] = true;
+        if !self.key[i] {
+            debug!("key down:{}", i);
+            self.key[i] = true;
+        }
     }
 
     pub(crate) fn rem_key(&mut self, i: usize) {
