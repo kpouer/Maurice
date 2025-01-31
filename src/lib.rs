@@ -1,3 +1,4 @@
+#[cfg(not(target_family = "wasm"))]
 pub mod args;
 pub(crate) mod bios;
 mod dimension;
