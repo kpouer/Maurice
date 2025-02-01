@@ -69,14 +69,10 @@ impl Machine {
         debug!("run_loop");
         let pixels;
         if self.running {
-            #[cfg(debug_assertions)]
-            let start = web_time::SystemTime::now();
             self.run();
             self.screen.paint(&mut self.mem);
             let raw_image = self.screen.get_pixels();
             pixels = Some(raw_image);
-            #[cfg(debug_assertions)]
-            println!("Elapsed time: {:?}", start.elapsed());
         } else {
             pixels = None;
         }
