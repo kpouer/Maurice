@@ -17,13 +17,9 @@ pub struct Machine {
     pub(crate) screen: Screen,
     sound: Sound,
     pub(crate) keyboard: Keyboard,
-    pub(crate) testtimer: int,
     pub(crate) irq: bool,
     pub(crate) last_time: DateTime<Local>,
     pub(crate) keys: Vec<int>,
-    pub(crate) keytimer: int,
-    pub(crate) keypos: usize,
-    pub(crate) typetext: Option<String>,
     pub(crate) running: bool,
     #[cfg(target_arch = "wasm32")]
     waiting: web_time::Instant,
@@ -47,12 +43,8 @@ impl Default for Machine {
             screen,
             sound: Sound::new(),
             keyboard: Keyboard::default(),
-            testtimer: 0,
             last_time: Local::now(),
             keys: Vec::new(),
-            keytimer: 0,
-            keypos: 0,
-            typetext: None,
             irq: false,
             running: true,
             #[cfg(target_arch = "wasm32")]
@@ -67,16 +59,14 @@ impl Machine {
     pub fn run_loop(&mut self) -> Option<RawImage> {
         #[cfg(debug_assertions)]
         debug!("run_loop");
-        let pixels;
         if self.running {
             self.run();
             self.screen.paint(&mut self.mem);
             let raw_image = self.screen.get_pixels();
-            pixels = Some(raw_image);
+            Some(raw_image)
         } else {
-            pixels = None;
+            None
         }
-        pixels
     }
 
     #[cfg(not(target_family = "wasm"))]
@@ -142,41 +132,7 @@ impl Machine {
         }
     }
 
-    fn auto_type(&mut self, input: &str) {
-        let input = input.replace('"', "zxz");
-
-        self.keys = Vec::new();
-        for c in input.chars() {
-            self.keys.push(c as int);
-        }
-        self.keytimer = 1;
-    }
-
     fn synchronize(&mut self) {
-        if self.testtimer != 0 && self.typetext.is_some() {
-            self.testtimer += 1;
-            if self.testtimer == 100 {
-                let typetext = self.typetext.clone().unwrap();
-                self.auto_type(&typetext);
-                self.testtimer = 0;
-            }
-        }
-        if self.keytimer != 0 {
-            self.keytimer += 1;
-            if self.keytimer == 2 {
-                self.keyboard.press(self.keys[self.keypos], &mut self.mem);
-            }
-            if self.keytimer == 3 {
-                self.keyboard.release(self.keys[self.keypos], &mut self.mem);
-                self.keypos += 1;
-                self.keytimer = 1;
-                if self.keypos >= self.keys.len() {
-                    self.keypos = 0;
-                    self.keytimer = 0;
-                    self.keys = Vec::new();
-                }
-            }
-        }
         let real_time_millis: i64 =
             Local::now().timestamp_millis() - self.last_time.timestamp_millis();
 

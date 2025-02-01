@@ -32,14 +32,15 @@ impl Gui {
             if !input_state.raw.dropped_files.is_empty() {
                 self.handle_dropped_files(&input_state.raw.dropped_files);
             }
-            input_state.events.iter().for_each(|event| match event {
-                Event::Key {
+            input_state.events.iter().for_each(|event| {
+                if let Event::Key {
                     key,
                     physical_key: _,
                     pressed,
                     repeat: false,
                     modifiers: _,
-                } => {
+                } = event
+                {
                     match key {
                         Key::F7 => self.machine.reset_soft(),
                         Key::F8 => self.machine.reset_hard(),
@@ -56,7 +57,6 @@ impl Gui {
                         }
                     };
                 }
-                _ => {}
             });
         });
     }
