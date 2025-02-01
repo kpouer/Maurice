@@ -51,6 +51,7 @@ impl Keyboard {
             MO5VirtualKeyCode::Key8 => self.handle_shiftable_key(0x1c, press, mem),
             MO5VirtualKeyCode::Key9 => self.handle_shiftable_key(0x2c, press, mem),
             MO5VirtualKeyCode::Key0 => self.handle_shiftable_key(0x3c, press, mem),
+            MO5VirtualKeyCode::Quote => key_memory(0x2e, press, mem),
             MO5VirtualKeyCode::Minus => self.handle_shiftable_key(0x4c, press, mem),
             MO5VirtualKeyCode::A => key_memory(0x5a, press, mem),
             MO5VirtualKeyCode::Z => key_memory(0x4a, press, mem),
