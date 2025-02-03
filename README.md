@@ -48,10 +48,14 @@ Then usually you have to type "load" and press enter. Then "run" and press enter
 ## Dependencies
 
 This project depends on
+- console_error_panic_hook (https://crates.io/crates/console_error_panic_hook)
 - chrono (https://crates.io/crates/chrono)
+- clap (https://crates.io/crates/clap)
 - cpal (https://crates.io/crates/cpal)
-- env_logger (https://crates.io/crates/env_logger)
-- log (https://crates.io/crates/log)
-- rust-embed (https://crates.io/crates/rust-embed)
 - egui (https://crates.io/crates/egui)
 - egui-file-dialog (https://crates.io/crates/egui-file-dialog)
+- env_logger (https://crates.io/crates/env_logger)
+- log (https://crates.io/crates/log)
+- rust-embed-for-web (https://crates.io/crates/rust-embed-for-web)
+- web-sys (https://crates.io/crates/web-sys)
+- web-time (https://crates.io/crates/web-time)
