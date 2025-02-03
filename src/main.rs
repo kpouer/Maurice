@@ -1,37 +1,77 @@
-use clap::Parser;
-use maurice::args::Args;
-use maurice::gui::Gui;
-use maurice::hardware::machine::Machine;
-use maurice::hardware::screen::{DEFAULT_PIXEL_SIZE, HEIGHT, WIDTH};
-use std::sync::mpsc::channel;
-use std::thread;
+use maurice_lib::gui::Gui;
+#[cfg(not(target_family = "wasm"))]
+use {
+    clap::Parser,
+    log::warn,
+    maurice_lib::args::Args,
+    maurice_lib::hardware::k7::K7,
+    maurice_lib::hardware::screen::{DEFAULT_PIXEL_SIZE, HEIGHT, WIDTH},
+};
 
+#[cfg(not(target_family = "wasm"))]
 fn main() {
     env_logger::init();
-
+    let native_options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default()
+            .with_drag_and_drop(true)
+            .with_inner_size([
+                (DEFAULT_PIXEL_SIZE * WIDTH) as f32,
+                (DEFAULT_PIXEL_SIZE * HEIGHT) as f32,
+            ]),
+        ..Default::default()
+    };
     let args = Args::parse();
-
-    let (image_data_sender, image_data_receiver) = channel();
-    let (user_input_sender, user_input_receiver) = channel();
-
-    thread::spawn(move || {
-        let mut machine = Machine::new(image_data_sender, user_input_receiver);
-        if let Some(k7) = &args.k7 {
-            machine.set_k7_file(k7);
+    let mut gui = Gui::default();
+    if let Some(k7_file) = args.k7 {
+        match K7::try_from(k7_file) {
+            Ok(k7) => gui.set_k7(k7),
+            Err(e) => warn!("Unable to open tape {e}"),
         }
-        machine.run_loop()
-    });
-    {
-        let native_options = eframe::NativeOptions {
-            viewport: egui::ViewportBuilder::default()
-                .with_drag_and_drop(true)
-                .with_inner_size([
-                    (DEFAULT_PIXEL_SIZE * WIDTH) as f32,
-                    (DEFAULT_PIXEL_SIZE * HEIGHT) as f32,
-                ]),
-            ..Default::default()
-        };
-        let gui = Gui::new(user_input_sender, image_data_receiver);
-        let _ = eframe::run_native("Maurice", native_options, Box::new(|_cc| Ok(Box::new(gui))));
     }
+    let _ = eframe::run_native("Maurice", native_options, Box::new(|_cc| Ok(Box::new(gui))));
+}
+
+#[cfg(target_arch = "wasm32")]
+fn main() {
+    use eframe::wasm_bindgen::JsCast as _;
+
+    // Redirect `log` message to `console.log` and friends:
+    eframe::WebLogger::init(log::LevelFilter::Debug).ok();
+
+    let web_options = eframe::WebOptions::default();
+
+    wasm_bindgen_futures::spawn_local(async {
+        let document = web_sys::window()
+            .expect("No window")
+            .document()
+            .expect("No document");
+
+        let canvas = document
+            .get_element_by_id("the_canvas_id")
+            .expect("Failed to find the_canvas_id")
+            .dyn_into::<web_sys::HtmlCanvasElement>()
+            .expect("the_canvas_id was not a HtmlCanvasElement");
+        let start_result = eframe::WebRunner::new()
+            .start(
+                canvas,
+                web_options,
+                Box::new(|_cc| Ok(Box::<Gui>::default())),
+            )
+            .await;
+
+        // Remove the loading text and spinner:
+        if let Some(loading_text) = document.get_element_by_id("loading_text") {
+            match start_result {
+                Ok(_) => {
+                    loading_text.remove();
+                }
+                Err(e) => {
+                    loading_text.set_inner_html(
+                        "<p> The app has crashed. See the developer console for details. </p>",
+                    );
+                    panic!("Failed to start eframe: {e:?}");
+                }
+            }
+        }
+    });
 }

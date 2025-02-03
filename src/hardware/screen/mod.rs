@@ -4,7 +4,6 @@ use crate::hardware::memory::Memory;
 use crate::hardware::screen::color::{COLOR_DEPTH, PALETTE};
 use crate::int;
 use crate::raw_image::RawImage;
-use std::sync::{Arc, Mutex};
 
 pub const WIDTH: usize = 320;
 pub const HEIGHT: usize = 200;
@@ -16,7 +15,7 @@ pub struct Screen {
     pub(crate) mouse_clic: bool,
     pub(crate) mouse_x: int,
     pub(crate) mouse_y: int,
-    pixels: Arc<Mutex<Vec<u8>>>,
+    pixels: Vec<u8>,
     pub(crate) led: u8,
     pub(crate) show_led: u8,
     ratio: usize,
@@ -28,10 +27,7 @@ impl Screen {
             mouse_clic: false,
             mouse_x: -1,
             mouse_y: -1,
-            pixels: Arc::new(Mutex::new(vec![
-                0;
-                WIDTH * ratio * HEIGHT * ratio * COLOR_DEPTH
-            ])),
+            pixels: vec![0; WIDTH * ratio * HEIGHT * ratio * COLOR_DEPTH],
             led: 0,
             show_led: 0,
             ratio,
@@ -49,10 +45,7 @@ impl Screen {
             ratio = 1;
         }
         self.ratio = ratio;
-        self.pixels = Arc::new(Mutex::new(vec![
-            0;
-            WIDTH * ratio * HEIGHT * ratio * COLOR_DEPTH
-        ]));
+        self.pixels = vec![0; WIDTH * ratio * HEIGHT * ratio * COLOR_DEPTH];
     }
 
     pub(crate) fn paint(&mut self, mem: &mut Memory) {
@@ -68,7 +61,7 @@ impl Screen {
             for _ in 0..16 * self.ratio {
                 line.extend(sec);
             }
-            let mut pixels = self.pixels.lock().unwrap();
+            let pixels = &mut self.pixels;
             for y in 1..17 {
                 let start = y * WIDTH * self.ratio * self.ratio * COLOR_DEPTH - line.len();
                 let slice = &mut pixels[start..start + line.len()];
@@ -78,13 +71,13 @@ impl Screen {
     }
 
     pub fn get_pixels(&mut self) -> RawImage {
-        RawImage::new_with_data(WIDTH * self.ratio, HEIGHT * self.ratio, self.pixels.clone())
+        RawImage::new_with_data(WIDTH * self.ratio, HEIGHT * self.ratio, &self.pixels)
     }
 
     pub(crate) fn dopaint(&mut self, mem: &mut Memory) {
         let mut i = 0;
 
-        let mut pixels = self.pixels.lock().unwrap();
+        let pixels = &mut self.pixels;
         for y in 0..HEIGHT {
             let offset = y * WIDTH * self.ratio * self.ratio * COLOR_DEPTH;
             if !mem.is_dirty(y) {

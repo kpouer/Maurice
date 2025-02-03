@@ -1,0 +1,4 @@
+[build]
+filehash = false
+dist = "docs"
+public_url = "/Maurice"
