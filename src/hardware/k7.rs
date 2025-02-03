@@ -61,7 +61,14 @@ impl TryFrom<&DroppedFile> for K7 {
     type Error = String;
 
     fn try_from(file: &DroppedFile) -> Result<Self, Self::Error> {
-        let name = file.name.clone();
+        let name = if let Some(path) = &file.path {
+            path.file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or_default()
+                .to_string()
+        } else {
+            file.name.clone()
+        };
         let bytes;
         if let Some(path) = &file.path {
             info!("Dropped file: {name} reading path");
