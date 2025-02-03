@@ -88,12 +88,15 @@ impl Gui {
         for file in dropped_files.iter() {
             match K7::try_from(file) {
                 Ok(k7) => {
-                    self.message = Some(Message::new(format!("Opened tape {}", k7.name())));
+                    let message = format!("Opened tape {}", k7.name());
+                    info!("{message}");
+                    self.message = Some(Message::new(message));
                     self.machine.set_k7(k7);
                 }
                 Err(e) => {
-                    self.message = Some(Message::new(format!("Failed to open tape: {}", e)));
-                    warn!("{}", e)
+                    let message = format!("Failed to open tape: {e}");
+                    warn!("{message}");
+                    self.message = Some(Message::new(message));
                 }
             }
         }
@@ -142,6 +145,7 @@ impl Gui {
             if ui.button("Rewind Tape").clicked() {
                 self.machine.rewind_k7();
             }
+            #[cfg(not(target_family = "wasm"))]
             if ui.button("Exit").clicked() {
                 info!("Exit");
                 ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);

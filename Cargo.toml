@@ -28,13 +28,13 @@ egui = "0.30.0"
 log = "0.4.25"
 web-time = "1.1.0"
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
 clap = { version = "4.5.26", features = ["derive"] }
 env_logger = "0.11.6"
 rust-embed = "8.5.0"
 egui-file-dialog = "0.8.0"
 
-[target.'cfg(target_arch = "wasm32")'.dependencies]
+[target.'cfg(target_family = "wasm")'.dependencies]
 console_error_panic_hook = "0.1.7"
 rust-embed-for-web = "11.2.1"
 wasm-bindgen = "0.2.100"
