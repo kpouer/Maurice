@@ -4,9 +4,7 @@ mod dialogs;
 mod message;
 
 use crate::hardware::keyboard::vkey::MO5VirtualKeyCode;
-use egui::{
-    DroppedFile, FontFamily, FontId, HoveredFile, InputState, Label, Pos2, RichText, Widget,
-};
+use egui::{DroppedFile, FontFamily, FontId, HoveredFile, Pos2, RichText};
 use {
     eframe::{epaint::TextureHandle, App, Frame},
     egui::{pos2, Color32, Context, Event, Key, Rect, TextureOptions, Ui, ViewportCommand},
@@ -75,7 +73,7 @@ impl Gui {
         self.machine.set_k7(k7);
     }
 
-    fn handle_hovered_files(&mut self, hovered_files: &Vec<HoveredFile>) -> bool {
+    fn handle_hovered_files(&mut self, hovered_files: &[HoveredFile]) -> bool {
         if hovered_files.is_empty() {
             return false;
         }

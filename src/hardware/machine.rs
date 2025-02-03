@@ -19,7 +19,6 @@ pub struct Machine {
     pub(crate) keyboard: Keyboard,
     pub(crate) irq: bool,
     pub(crate) last_time: DateTime<Local>,
-    pub(crate) keys: Vec<int>,
     pub(crate) running: bool,
     #[cfg(target_arch = "wasm32")]
     waiting: web_time::Instant,
@@ -44,7 +43,6 @@ impl Default for Machine {
             sound: Sound::new(),
             keyboard: Keyboard::default(),
             last_time: Local::now(),
-            keys: Vec::new(),
             irq: false,
             running: true,
             #[cfg(target_arch = "wasm32")]
