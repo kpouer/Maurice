@@ -20,6 +20,11 @@ My goal was to learn Rust and I thought that porting this emulator would be a go
 
 1. Some compiled binaries are available in Github releases
 
+# Web version
+
+This version runs using WASM32 and is available online at https://kpouer.github.io/Maurice/ and runs in any browsers (tested Chrome and derived browsers, Firefox and Safari).
+However, while it is starting on a mobile browser you cannot really use it because of limitations of the touchscreen.
+
 ## Commands
 
 ### Keyboard
