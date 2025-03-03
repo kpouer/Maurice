@@ -29,7 +29,7 @@ log = "0.4.25"
 web-time = "1.1.0"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-clap = { version = "4.5.28", features = ["derive"] }
+clap = { version = "4.5.31", features = ["derive"] }
 env_logger = "0.11.6"
 egui-file-dialog = "0.9.0"
 
