@@ -21,7 +21,7 @@ crate-type = ["cdylib", "rlib"]
 path = "src/lib.rs"
 
 [dependencies]
-chrono = "0.4.39"
+chrono = "0.4.40"
 cpal = "0.15.3"
 eframe = "0.31.0"
 egui = "0.31.0"
