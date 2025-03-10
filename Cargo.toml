@@ -24,7 +24,7 @@ path = "src/lib.rs"
 chrono = "0.4.39"
 cpal = "0.15.3"
 eframe = "0.31.0"
-egui = "0.31.0"
+egui = "0.31.1"
 log = "0.4.25"
 web-time = "1.1.0"
 
