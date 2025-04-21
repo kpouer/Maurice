@@ -70,7 +70,7 @@ impl Screen {
         }
     }
 
-    pub fn get_pixels(&mut self) -> RawImage {
+    pub fn get_pixels(&self) -> RawImage {
         RawImage::new_with_data(WIDTH * self.ratio, HEIGHT * self.ratio, &self.pixels)
     }
 
