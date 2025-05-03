@@ -4,14 +4,14 @@ use crate::hardware::memory::Memory;
 use crate::hardware::screen::Screen;
 use crate::hardware::sound::Sound;
 use crate::int;
+use std::ops::Index;
 
 const SOUND_SIZE: usize = 1024;
 
 #[derive(Debug)]
 pub(crate) struct M6809 {
     // Sound emulation parameters
-    pub(crate) sound_buffer: [u8; SOUND_SIZE],
-    sound_addr: usize,
+    pub(crate) sound_buffer: SoundBuffer,
 
     cl: int,
 
@@ -43,8 +43,7 @@ pub(crate) struct M6809 {
 impl M6809 {
     pub(crate) fn new(mem: &Memory) -> Self {
         let mut m6809 = M6809 {
-            sound_buffer: [0u8; SOUND_SIZE],
-            sound_addr: 0,
+            sound_buffer: Default::default(),
             cl: 0,
             A: 0,
             B: 0,
@@ -2334,9 +2333,7 @@ impl M6809 {
         let opcode = mem.read(self.PC);
         self.PC += 1;
         // 	Sound emulation process
-        self.sound_buffer[self.sound_addr] = mem.sound_mem;
-        self.sound_addr = (self.sound_addr + 1) % SOUND_SIZE;
-        if self.sound_addr == 0 {
+        if self.sound_buffer.push(mem.sound_mem) {
             sound.play_sound(self);
         }
 
@@ -4153,4 +4150,35 @@ pub(crate) fn unassemble(start: int, maxLines: int, mem: &Memory) -> String {
         output.push('\n');
     } // of for ... maxLines
     output
+}
+
+#[derive(Debug)]
+pub(crate) struct SoundBuffer {
+    buffer: [u8; SOUND_SIZE],
+    pos: usize,
+}
+
+impl Default for SoundBuffer {
+    fn default() -> Self {
+        Self {
+            buffer: [0; SOUND_SIZE],
+            pos: 0,
+        }
+    }
+}
+
+impl SoundBuffer {
+    fn push(&mut self, value: u8) -> bool {
+        self.buffer[self.pos] = value;
+        self.pos = (self.pos + 1) % SOUND_SIZE;
+        self.pos == 0
+    }
+}
+
+impl Index<usize> for SoundBuffer {
+    type Output = u8;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        self.buffer.index(index)
+    }
 }
