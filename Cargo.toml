@@ -38,6 +38,7 @@ wasm-bindgen-futures = "0.4.50"
 web-sys = { version = "0.3.77", features = ["Request", "RequestInit", "RequestMode", "Window", "Response"] }
 
 [dev-dependencies]
+rstest = "0.25.0"
 wasm-bindgen-test = "0.3"
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 criterion = { version = "0.5.1", features = ["html_reports"] }

@@ -4182,3 +4182,25 @@ impl Index<usize> for SoundBuffer {
         self.buffer.index(index)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case(0, 0)]
+    // Valeurs positives dans les limites de 16 bits signés
+    #[case(1, 1)]
+    #[case(127, 127)]
+    #[case(32767, 32767)] // 2^15 - 1, valeur max positive
+    // Valeurs négatives représentées en 16 bits signés
+    #[case(0xFFFF, -1)] // Tous les bits à 1 = -1 en complément à 2
+    #[case(0xFFFE, -2)]
+    #[case(0xFF00, -256)]
+    #[case(0x8000, -32768)] // 2^15, valeur min négative
+    fn test_signed16bits_zero(#[case] input: u16, #[case] expected: i16) {
+        // Le zéro devrait rester zéro après conversion
+        assert_eq!(signed16bits(input as int), expected.into());
+    }
+}
