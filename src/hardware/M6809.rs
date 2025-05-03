@@ -10,7 +10,7 @@ const SOUND_SIZE: usize = 1024;
 #[derive(Debug)]
 pub(crate) struct M6809 {
     // Sound emulation parameters
-    pub(crate) sound_buffer: Vec<u8>,
+    pub(crate) sound_buffer: [u8; SOUND_SIZE],
     sound_addr: usize,
 
     cl: int,
@@ -43,7 +43,7 @@ pub(crate) struct M6809 {
 impl M6809 {
     pub(crate) fn new(mem: &Memory) -> Self {
         let mut m6809 = M6809 {
-            sound_buffer: vec![0u8; SOUND_SIZE],
+            sound_buffer: [0u8; SOUND_SIZE],
             sound_addr: 0,
             cl: 0,
             A: 0,
