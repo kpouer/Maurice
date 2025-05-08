@@ -26,11 +26,6 @@ jobs:
             artifact_name: Maurice-rs
             asset_name: Maurice-macos-aarch64
             friendly_name: Maurice.app
-#          - os: macos-13
-#            target: x86_64-apple-darwin
-#            artifact_name: Maurice-rs
-#            asset_name: Maurice-macos-x86_64
-#            friendly_name: Maurice
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             artifact_name: Maurice-rs.exe
@@ -138,7 +133,6 @@ jobs:
         with:
           files: |
             artifacts/Maurice-${{ github.ref_name }}-Maurice-linux-amd64/Maurice-${{ github.ref_name }}-Maurice-linux-amd64.tar.gz
-#            artifacts/Maurice-${{ github.ref_name }}-Maurice-macos-x86_64/Maurice-${{ github.ref_name }}-Maurice-macos-x86_64.dmg
             artifacts/Maurice-${{ github.ref_name }}-Maurice-macos-aarch64/Maurice-${{ github.ref_name }}-Maurice-macos-aarch64.dmg
             artifacts/Maurice-${{ github.ref_name }}-Maurice-windows-amd64.exe/Maurice-${{ github.ref_name }}-Maurice-windows-amd64.exe.zip
           name: Maurice ${{ github.ref_name }}
