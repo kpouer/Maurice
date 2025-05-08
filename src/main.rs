@@ -14,6 +14,7 @@ fn main() {
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_drag_and_drop(true)
+            .with_icon(icon_data())
             .with_inner_size([
                 (DEFAULT_PIXEL_SIZE * WIDTH) as f32,
                 (DEFAULT_PIXEL_SIZE * HEIGHT) as f32,
@@ -29,6 +30,16 @@ fn main() {
         }
     }
     let _ = eframe::run_native("Maurice", native_options, Box::new(|_cc| Ok(Box::new(gui))));
+}
+
+#[cfg(not(target_family = "wasm"))]
+fn icon_data() -> egui::IconData {
+    let app_icon_png_bytes = include_bytes!("../media/icon.png");
+
+    match eframe::icon_data::from_png_bytes(app_icon_png_bytes) {
+        Ok(icon_data) => icon_data,
+        Err(err) => panic!("Failed to load app icon: {err}"),
+    }
 }
 
 #[cfg(target_arch = "wasm32")]

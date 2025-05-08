@@ -1,58 +1,152 @@
 name: Release
-
-permissions:
-  contents: write
-
 on:
   push:
     tags:
-      - v[0-9]+.*
+      - "v*.*.*"
+  workflow_dispatch:
+
 
 jobs:
-  create-release:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: taiki-e/create-gh-release-action@v1
-        with:
-          # (optional) Path to changelog.
-#          changelog: CHANGELOG.md
-          # (required) GitHub token for creating GitHub Releases.
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-  upload-assets:
-    needs: create-release
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - target: aarch64-unknown-linux-gnu
-            os: ubuntu-latest
-          - target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
-          - target: aarch64-unknown-linux-musl
-            os: ubuntu-latest
-          - target: x86_64-unknown-linux-musl
-            os: ubuntu-latest
-          - target: aarch64-apple-darwin
-            os: macos-latest
-          - target: x86_64-apple-darwin
-            os: macos-latest
-          - target: x86_64-pc-windows-msvc
-            os: windows-latest
-    runs-on: ${{ matrix.os }}
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: Maurice-rs
+            asset_name: Maurice-linux-amd64
+            friendly_name: Maurice
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: Maurice-rs
+            asset_name: Maurice-macos-aarch64
+            friendly_name: Maurice.app
+#          - os: macos-13
+#            target: x86_64-apple-darwin
+#            artifact_name: Maurice-rs
+#            asset_name: Maurice-macos-x86_64
+#            friendly_name: Maurice
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: Maurice-rs.exe
+            asset_name: Maurice-windows-amd64.exe
+            friendly_name: Maurice.exe
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Install cross-compilation tools
-        uses: taiki-e/setup-cross-toolchain-action@v1
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
         with:
+          toolchain: stable
           target: ${{ matrix.target }}
-        if: startsWith(matrix.os, 'ubuntu')
-      - uses: taiki-e/upload-rust-binary-action@v1
+          override: true
+          profile: minimal
+
+      - name: Install cargo-bundle dependencies (macOS)
+        if: matrix.os == 'macos-latest' || matrix.os == 'macos-13'
+        run: |
+          brew install librsvg pango pkg-config
+          # Install cargo-bundle and cargo-bundle-licenses
+          cargo install cargo-bundle cargo-bundle-licenses --locked
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
         with:
-          # (required) Comma-separated list of binary names (non-extension portion of filename) to build and upload.
-          # Note that glob pattern is not supported yet.
-          bin: maurice
-          # (optional) Target triple, default is host triple.
-          target: ${{ matrix.target }}
-          # (required) GitHub token for uploading assets to GitHub Releases.
-          token: ${{ secrets.GITHUB_TOKEN }}
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Generate licenses (macOS)
+        if: matrix.os == 'macos-latest' || matrix.os == 'macos-13'
+        run: cargo bundle-licenses --format yaml --output THIRDPARTY.yml
+
+      - name: Build release binary/bundle
+        uses: actions-rs/cargo@v1
+        with:
+          command: ${{ (matrix.os == 'macos-latest' || matrix.os == 'macos-13') && 'bundle' || 'build' }}
+          args: --release --target ${{ matrix.target }}
+
+      - name: Prepare artifact (Linux/Windows)
+        if: matrix.os != 'macos-latest'
+        shell: bash
+        run: |
+          mkdir -p release/Maurice
+          # Copy binary and rename to friendly name
+          cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} release/Maurice/${{ matrix.friendly_name }}
+          # Copy assets
+          # Copy license and readme
+          cp LICENSE release/Maurice/ || cp LICENCE release/Maurice/ || echo "No license file found"
+          cp README.md release/Maurice/ || echo "No README.md file found"
+
+          # Create archive based on OS
+          cd release
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            7z a -tzip Maurice-${{ github.ref_name }}-${{ matrix.asset_name }}.zip Maurice
+          else
+            tar -czf Maurice-${{ github.ref_name }}-${{ matrix.asset_name }}.tar.gz Maurice
+          fi
+          cd ..
+      - name: Prepare artifact (macOS)
+        if: matrix.os == 'macos-latest' || matrix.os == 'macos-13'
+        shell: bash
+        run: |
+          APP_DIR="target/${{ matrix.target }}/release/bundle/osx/${{ matrix.friendly_name }}"
+          DMG_NAME="Maurice-${{ github.ref_name }}-${{ matrix.asset_name }}.dmg"
+          VOL_NAME="Maurice ${{ github.ref_name }}"
+          mkdir -p release
+          hdiutil create -volname "$VOL_NAME" -srcfolder "$APP_DIR" -ov -format UDZO "release/$DMG_NAME"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Maurice-${{ github.ref_name }}-${{ matrix.asset_name }}
+          # Adjust path glob to include .dmg, .zip, .tar.gz
+          path: release/Maurice-${{ github.ref_name }}-${{ matrix.asset_name }}.*
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List downloaded artifacts
+        run: find artifacts -type f | sort
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/Maurice-${{ github.ref_name }}-Maurice-linux-amd64/Maurice-${{ github.ref_name }}-Maurice-linux-amd64.tar.gz
+#            artifacts/Maurice-${{ github.ref_name }}-Maurice-macos-x86_64/Maurice-${{ github.ref_name }}-Maurice-macos-x86_64.dmg
+            artifacts/Maurice-${{ github.ref_name }}-Maurice-macos-aarch64/Maurice-${{ github.ref_name }}-Maurice-macos-aarch64.dmg
+            artifacts/Maurice-${{ github.ref_name }}-Maurice-windows-amd64.exe/Maurice-${{ github.ref_name }}-Maurice-windows-amd64.exe.zip
+          name: Maurice ${{ github.ref_name }}
+          body: |
+            # Maurice ${{ github.ref_name }}
+
+            Maurice is a utility tool that helps you visually identify how your disk space is used and where.
+          draft: true
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
