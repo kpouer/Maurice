@@ -20,6 +20,11 @@ name = "maurice_lib"
 crate-type = ["cdylib", "rlib"]
 path = "src/lib.rs"
 
+[package.metadata.bundle]
+name = "Maurice"
+identifier = "com.kpouer.maurice"
+icon = ["media/icon.png", "media/AppIcon.icns"]
+
 [dependencies]
 chrono = "0.4"
 cpal = "0.16.0"
