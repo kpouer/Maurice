@@ -41,7 +41,7 @@ web-sys = { version = "0.3.77", features = ["Request", "RequestInit", "RequestMo
 rstest = "0.25.0"
 wasm-bindgen-test = "0.3"
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-criterion = { version = "0.5.1", features = ["html_reports"] }
+criterion = { version = "0.6.0", features = ["html_reports"] }
 
 [[bench]]
 name = "bench"
