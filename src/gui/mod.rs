@@ -6,8 +6,8 @@ mod message;
 use crate::hardware::keyboard::vkey::MO5VirtualKeyCode;
 use egui::{DroppedFile, FontFamily, FontId, HoveredFile, Pos2, RichText};
 use {
-    eframe::{epaint::TextureHandle, App, Frame},
-    egui::{pos2, Color32, Context, Event, Key, Rect, TextureOptions, Ui, ViewportCommand},
+    eframe::{App, Frame, epaint::TextureHandle},
+    egui::{Color32, Context, Event, Key, Rect, TextureOptions, Ui, ViewportCommand, pos2},
 };
 
 use crate::gui::dialogs::Dialogs;
@@ -73,7 +73,7 @@ impl Gui {
         self.machine.set_k7(k7);
     }
 
-    fn handle_hovered_files(&mut self, hovered_files: &[HoveredFile]) -> bool {
+    const fn handle_hovered_files(&mut self, hovered_files: &[HoveredFile]) -> bool {
         if hovered_files.is_empty() {
             return false;
         }

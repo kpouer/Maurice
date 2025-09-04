@@ -12,7 +12,7 @@ pub struct K7 {
 }
 
 impl K7 {
-    pub(crate) fn len(&self) -> u32 {
+    pub(crate) const fn len(&self) -> u32 {
         self.len
     }
 
@@ -20,7 +20,7 @@ impl K7 {
         &self.name
     }
 
-    pub(crate) fn reset(&mut self) {
+    pub(crate) const fn reset(&mut self) {
         self.bytes.set_position(0);
     }
 

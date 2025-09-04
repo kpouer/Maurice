@@ -77,23 +77,23 @@ impl M6809 {
     }
 
     // recalculate A and B or D
-    fn CALCD(&mut self) {
+    const fn CALCD(&mut self) {
         self.D = (self.A << 8) | self.B;
     }
 
-    fn CALCAB(&mut self) {
+    const fn CALCAB(&mut self) {
         self.A = self.D >> 8;
         self.B = self.D & 0xFF;
     }
 
     // basic 6809 addressing modes
-    fn IMMED8(&mut self) -> int {
+    const fn IMMED8(&mut self) -> int {
         let M = self.PC;
         self.PC += 1;
         M
     }
 
-    fn IMMED16(&mut self) -> int {
+    const fn IMMED16(&mut self) -> int {
         let M = self.PC;
         self.PC += 2;
         M
@@ -720,7 +720,7 @@ impl M6809 {
     }
 
     // cc register recalculate from separate bits
-    fn getcc(&mut self) -> int {
+    const fn getcc(&mut self) -> int {
         if (self.res & 0xff) == 0 {
             self.CC = ((((self.h1 & 15) + (self.h2 & 15)) & 16) << 1)
                 | ((self.sign & 0x80) >> 4)
@@ -740,7 +740,7 @@ impl M6809 {
     }
 
     // calculate CC fast bits from CC register
-    fn setcc(&mut self, i: int) {
+    const fn setcc(&mut self, i: int) {
         self.m1 = 0;
         self.m2 = 0;
         self.res = ((i & 1) << 8) | (4 - (i & 4));
@@ -751,7 +751,7 @@ impl M6809 {
         self.ccrest = i & 0xd0;
     }
 
-    pub(crate) fn readCC(&mut self) -> int {
+    pub(crate) const fn readCC(&mut self) -> int {
         self.getcc();
         self.CC
     }
@@ -1188,7 +1188,7 @@ impl M6809 {
         self.cl += 5;
     }
 
-    fn INCA(&mut self) {
+    const fn INCA(&mut self) {
         self.m1 = self.A;
         self.m2 = 0;
         self.A = (self.A + 1) & 0xFF;
@@ -1198,7 +1198,7 @@ impl M6809 {
         self.cl += 2;
     }
 
-    fn INCB(&mut self) {
+    const fn INCB(&mut self) {
         self.m1 = self.B;
         self.m2 = 0;
         self.B = (self.B + 1) & 0xFF;
@@ -1221,7 +1221,7 @@ impl M6809 {
     }
 
     // DEC
-    fn DECA(&mut self) {
+    const fn DECA(&mut self) {
         self.m1 = self.A;
         self.m2 = 0x80;
         self.A = (self.A - 1) & 0xFF;
@@ -1231,7 +1231,7 @@ impl M6809 {
         self.cl += 2;
     }
 
-    fn DECB(&mut self) {
+    const fn DECB(&mut self) {
         self.m1 = self.B;
         self.m2 = 0x80;
         self.B = (self.B - 1) & 0xFF;
@@ -1283,14 +1283,14 @@ impl M6809 {
     }
 
     // TST
-    fn TSTAi(&mut self) {
+    const fn TSTAi(&mut self) {
         self.m1 = self.ovfl;
         self.sign = self.A;
         self.res = (self.res & 0x100) | self.sign;
         self.cl += 2;
     }
 
-    fn TSTBi(&mut self) {
+    const fn TSTBi(&mut self) {
         self.m1 = self.ovfl;
         self.sign = self.B;
         self.res = (self.res & 0x100) | self.sign;
@@ -1375,7 +1375,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn COMA(&mut self) {
+    const fn COMA(&mut self) {
         self.m1 = self.ovfl;
         self.A = (!self.A) & 0xFF;
         self.sign = self.A;
@@ -1383,7 +1383,7 @@ impl M6809 {
         self.cl += 2;
     }
 
-    fn COMB(&mut self) {
+    const fn COMB(&mut self) {
         self.m1 = self.ovfl;
         self.B = (!self.B) & 0xFF;
         self.sign = self.B;
@@ -1401,7 +1401,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn NEGA(&mut self) {
+    const fn NEGA(&mut self) {
         self.m1 = self.A;
         self.m2 = -self.A;
         self.A = -self.A;
@@ -1412,7 +1412,7 @@ impl M6809 {
         self.cl += 2;
     }
 
-    fn NEGB(&mut self) {
+    const fn NEGB(&mut self) {
         self.m1 = self.B;
         self.m2 = -self.B;
         self.B = -self.B;
@@ -1435,7 +1435,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn ABX(&mut self) {
+    const fn ABX(&mut self) {
         self.X = (self.X + self.B) & 0xFFFF;
         self.cl += 3;
     }
@@ -1511,7 +1511,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn MUL(&mut self) {
+    const fn MUL(&mut self) {
         let k = self.A * self.B;
         self.A = (k >> 8) & 0xFF;
         self.B = k & 0xFF;
@@ -1582,7 +1582,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn SEX(&mut self) {
+    const fn SEX(&mut self) {
         if (self.B & 0x80) == 0x80 {
             self.A = 0xFF;
         } else {
@@ -1593,7 +1593,7 @@ impl M6809 {
         self.cl += 2;
     }
 
-    fn ASLA(&mut self) {
+    const fn ASLA(&mut self) {
         self.m1 = self.A;
         self.m2 = self.A;
         self.A <<= 1;
@@ -1604,7 +1604,7 @@ impl M6809 {
         self.cl += 2;
     }
 
-    fn ASLB(&mut self) {
+    const fn ASLB(&mut self) {
         self.m1 = self.B;
         self.m2 = self.B;
         self.B <<= 1;
@@ -1627,7 +1627,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn ASRA(&mut self) {
+    const fn ASRA(&mut self) {
         self.res = (self.A & 1) << 8;
         self.A = (self.A >> 1) | (self.A & 0x80);
         self.sign = self.A;
@@ -1635,7 +1635,7 @@ impl M6809 {
         self.cl += 2;
     }
 
-    fn ASRB(&mut self) {
+    const fn ASRB(&mut self) {
         self.res = (self.B & 1) << 8;
         self.B = (self.B >> 1) | (self.B & 0x80);
         self.sign = self.B;
@@ -1653,7 +1653,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn LSRA(&mut self) {
+    const fn LSRA(&mut self) {
         self.res = (self.A & 1) << 8;
         self.A >>= 1;
         self.sign = 0;
@@ -1661,7 +1661,7 @@ impl M6809 {
         self.cl += 2;
     }
 
-    fn LSRB(&mut self) {
+    const fn LSRB(&mut self) {
         self.res = (self.B & 1) << 8;
         self.B >>= 1;
         self.sign = 0;
@@ -1679,7 +1679,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn ROLA(&mut self) {
+    const fn ROLA(&mut self) {
         self.m1 = self.A;
         self.m2 = self.A;
         self.A = (self.A << 1) | ((self.res & 0x100) >> 8);
@@ -1690,7 +1690,7 @@ impl M6809 {
         self.cl += 2;
     }
 
-    fn ROLB(&mut self) {
+    const fn ROLB(&mut self) {
         self.m1 = self.B;
         self.m2 = self.B;
         self.B = (self.B << 1) | ((self.res & 0x100) >> 8);
@@ -1713,7 +1713,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn RORA(&mut self) {
+    const fn RORA(&mut self) {
         let i = self.A;
         self.A = (self.A | (self.res & 0x100)) >> 1;
         self.sign = self.A;
@@ -1721,7 +1721,7 @@ impl M6809 {
         self.cl += 2;
     }
 
-    fn RORB(&mut self) {
+    const fn RORB(&mut self) {
         let i = self.B;
         self.B = (self.B | (self.res & 0x100)) >> 1;
         self.sign = self.B;
@@ -1846,7 +1846,7 @@ impl M6809 {
         self.cl += 5;
     }
 
-    fn NOP(&mut self) {
+    const fn NOP(&mut self) {
         self.cl += 2;
     }
 
@@ -2293,7 +2293,7 @@ impl M6809 {
         self.cl += 19;
     }
 
-    fn DAA(&mut self) {
+    const fn DAA(&mut self) {
         let mut i = self.A + (self.res & 0x100);
         if ((self.A & 15) > 9) || ((self.h1 & 15) + (self.h2 & 15) > 15) {
             i += 6;
@@ -3335,7 +3335,7 @@ fn hex(val: int, size: int) -> String {
 }
 
 // force sign extension in a portable but ugly maneer
-fn signedChar(v: int) -> int {
+const fn signedChar(v: int) -> int {
     if (v & 0x80) == 0 {
         return v & 0xFF;
     }
@@ -3345,7 +3345,7 @@ fn signedChar(v: int) -> int {
 }
 
 // force sign extension in a portable but ugly maneer
-fn signed16bits(v: int) -> int {
+const fn signed16bits(v: int) -> int {
     if (v & 0x8000) == 0 {
         return v & 0xFFFF;
     }
@@ -4168,7 +4168,7 @@ impl Default for SoundBuffer {
 }
 
 impl SoundBuffer {
-    fn push(&mut self, value: u8) -> bool {
+    const fn push(&mut self, value: u8) -> bool {
         self.buffer[self.pos] = value;
         self.pos = (self.pos + 1) % SOUND_SIZE;
         self.pos == 0

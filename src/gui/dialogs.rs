@@ -20,11 +20,11 @@ impl Dialogs {
         }
     }
 
-    pub(crate) fn set_show_about(&mut self) {
+    pub(crate) const fn set_show_about(&mut self) {
         self.about = true;
     }
 
-    pub(crate) fn set_show_debug(&mut self) {
+    pub(crate) const fn set_show_debug(&mut self) {
         self.debug = true;
     }
 
