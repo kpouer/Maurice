@@ -34,12 +34,6 @@ impl Screen {
         }
     }
 
-    pub(crate) fn new_size(&mut self, new_size: crate::dimension::Dimension) {
-        let x_ratio = new_size.width / WIDTH;
-        let y_ratio = new_size.height / HEIGHT;
-        self.set_ratio(std::cmp::min(x_ratio, y_ratio));
-    }
-
     fn set_ratio(&mut self, mut ratio: usize) {
         if ratio == 0 {
             ratio = 1;
