@@ -54,7 +54,7 @@ impl Default for Machine {
 }
 
 impl Machine {
-    pub fn run_loop(&mut self) -> Option<RawImage> {
+    pub fn run_loop(&mut self) -> Option<RawImage<'_>> {
         #[cfg(debug_assertions)]
         debug!("run_loop");
         if self.running {

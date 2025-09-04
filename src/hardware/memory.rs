@@ -392,10 +392,10 @@ impl Memory {
             }
 
             let data_out = [A as u8];
-            if let Some(k7fos) = &mut self.k7_out {
-                if let Err(result) = k7fos.write(&data_out) {
-                    eprintln!("Error writing to file: {}", result);
-                }
+            if let Some(k7fos) = &mut self.k7_out
+                && let Err(result) = k7fos.write(&data_out)
+            {
+                eprintln!("Error writing to file: {}", result);
             }
         }
 
