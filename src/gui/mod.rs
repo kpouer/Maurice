@@ -119,7 +119,7 @@ impl Gui {
 
     fn build_menu_panel(&mut self, ctx: &Context) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
                 self.file_menu(ui);
                 self.run_menu(ui);
                 self.reset_menu(ui);
