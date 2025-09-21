@@ -450,3 +450,15 @@ impl Memory {
 
     fn unpatch_k7(&mut self) {}
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_set_key() {
+        let mut memory = Memory::default();
+        memory.set_key(3);
+        memory.key[3] = true;
+    }
+}
