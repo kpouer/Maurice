@@ -10,14 +10,14 @@ const DESIRED_CHANNELS: u16 = 2;
 const DESIRED_SAMPLE_FORMAT: cpal::SampleFormat = cpal::SampleFormat::F32;
 const DESIRED_SAMPLE_RATE: cpal::SampleRate = cpal::SampleRate(44100);
 
-pub(crate) struct Sound {
+pub struct Sound {
     pub buffer: Arc<Mutex<Vec<u8>>>,
     audio_stream: Option<cpal::Stream>,
     audio: [u8; N_BYTES / 4],
 }
 
 impl Sound {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         let buffer = Arc::new(Mutex::new(Vec::new()));
         let audio_stream = if let Some((stream, _)) = get_audio_stream(buffer.clone()) {
             // let rate = sample_rate.0;
@@ -35,7 +35,7 @@ impl Sound {
 
     // Copie du buffer de son provenant du 6809 vers le buffer de la carte son
     // Cette fonction est lancée lorsque le buffer 6809 est plein
-    pub(crate) fn play_sound(&mut self, cpu: &M6809) {
+    pub fn play_sound(&mut self, cpu: &M6809) {
         for i in 0..N_BYTES {
             self.audio[i / 4] = cpu.sound_buffer[i];
         }

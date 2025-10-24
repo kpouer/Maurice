@@ -10,7 +10,7 @@ use chrono::Local;
 use log::{debug, info};
 
 #[derive(Debug)]
-pub(crate) struct Memory {
+pub struct Memory {
     // Lightpen parameters
     pub(crate) light_pen_clic: bool,
     pub(crate) light_pen_x: int,

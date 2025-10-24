@@ -1,7 +1,18 @@
 use criterion::{Criterion, criterion_group, criterion_main};
+use maurice_lib::hardware::M6809;
+use maurice_lib::hardware::memory::Memory;
 use maurice_lib::hardware::screen::Screen;
+use maurice_lib::hardware::sound::Sound;
 
 fn criterion_benchmark(c: &mut Criterion) {
+    // bench_get_pixels(c);
+    let mut sound = Sound::new();
+    let mut memory = Memory::default();
+    let cpu = M6809::M6809::new(&mut memory);
+    c.bench_function("play_sound", |b| b.iter(|| sound.play_sound(&cpu)));
+}
+
+fn bench_get_pixels(c: &mut Criterion) {
     let screen = Screen::new(1);
 
     c.bench_function("get_pixels1", |b| b.iter(|| screen.get_pixels()));

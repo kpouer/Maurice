@@ -9,7 +9,7 @@ use std::ops::Index;
 const SOUND_SIZE: usize = 1024;
 
 #[derive(Debug)]
-pub(crate) struct M6809 {
+pub struct M6809 {
     // Sound emulation parameters
     pub(crate) sound_buffer: SoundBuffer,
 
@@ -41,7 +41,7 @@ pub(crate) struct M6809 {
 }
 
 impl M6809 {
-    pub(crate) fn new(mem: &Memory) -> Self {
+    pub fn new(mem: &Memory) -> Self {
         let mut m6809 = M6809 {
             sound_buffer: Default::default(),
             cl: 0,

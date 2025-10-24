@@ -29,8 +29,8 @@ icon = ["media/icon.png", "media/AppIcon.icns"]
 [dependencies]
 chrono = "0.4"
 cpal = "0.16.0"
-eframe = "0.32"
-egui = "0.32"
+eframe = "0.33"
+egui = "0.33"
 log = "0.4"
 web-time = "1.1.0"
 embed-resource = "3.0.5"
@@ -38,7 +38,7 @@ embed-resource = "3.0.5"
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 clap = { version = "4.5", features = ["derive"] }
 env_logger = "0.11"
-egui-file-dialog = "0.11.0"
+egui-file-dialog = "0.12.0"
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 wasm-bindgen-futures = "0.4.50"
