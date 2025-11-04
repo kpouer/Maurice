@@ -6,7 +6,7 @@ use maurice_lib::hardware::sound::Sound;
 
 fn criterion_benchmark(c: &mut Criterion) {
     // bench_get_pixels(c);
-    let mut sound = Sound::new();
+    let mut sound = Sound::default();
     let mut memory = Memory::default();
     let cpu = M6809::M6809::new(&mut memory);
     c.bench_function("play_sound", |b| b.iter(|| sound.play_sound(&cpu)));

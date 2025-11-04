@@ -16,10 +16,10 @@ pub struct Sound {
     audio: [u8; N_BYTES / 4],
 }
 
-impl Sound {
-    pub fn new() -> Self {
+impl Default for Sound {
+    fn default() -> Self {
         let buffer = Arc::new(Mutex::new(Vec::new()));
-        let audio_stream = if let Some((stream, _)) = get_audio_stream(buffer.clone()) {
+        let audio_stream = if let Some((stream, _)) = get_audio_stream(Arc::clone(&buffer)) {
             // let rate = sample_rate.0;
             stream.play().ok();
             Some(stream)
@@ -32,7 +32,9 @@ impl Sound {
             audio: [0; N_BYTES / 4],
         }
     }
+}
 
+impl Sound {
     // Copie du buffer de son provenant du 6809 vers le buffer de la carte son
     // Cette fonction est lancée lorsque le buffer 6809 est plein
     pub fn play_sound(&mut self, cpu: &M6809) {
@@ -40,6 +42,7 @@ impl Sound {
             self.audio[i / 4] = cpu.sound_buffer[i];
         }
         let mut buffer = self.buffer.lock().unwrap();
+        // buffer.copy_from_slice(&self.audio[..N_BYTES / 4]);
         for i in 0..N_BYTES / 4 {
             buffer.push(self.audio[i]);
         }

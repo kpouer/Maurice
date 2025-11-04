@@ -40,7 +40,7 @@ impl Default for Machine {
             mem,
             micro,
             screen,
-            sound: Sound::new(),
+            sound: Sound::default(),
             keyboard: Keyboard::default(),
             last_time: Local::now(),
             irq: false,
