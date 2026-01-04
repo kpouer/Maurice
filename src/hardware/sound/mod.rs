@@ -8,7 +8,7 @@ const N_BYTES: usize = 1024; // Buffer size
 
 const DESIRED_CHANNELS: u16 = 2;
 const DESIRED_SAMPLE_FORMAT: cpal::SampleFormat = cpal::SampleFormat::F32;
-const DESIRED_SAMPLE_RATE: cpal::SampleRate = cpal::SampleRate(44100);
+const DESIRED_SAMPLE_RATE: cpal::SampleRate = 44100;
 
 pub struct Sound {
     pub buffer: Arc<Mutex<Vec<u8>>>,
