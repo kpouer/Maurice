@@ -46,21 +46,25 @@ impl Screen {
         self.dopaint(mem);
         if self.show_led > 0 {
             self.show_led -= 1;
-            let sec = if self.led != 0 {
-                [0xFF, 0x00, 0x00]
-            } else {
-                [0x00, 0x00, 0x00]
-            };
-            let mut line = Vec::with_capacity(16 * self.ratio * sec.len());
-            for _ in 0..16 * self.ratio {
-                line.extend(sec);
-            }
-            let pixels = &mut self.pixels;
-            for y in 1..17 {
-                let start = y * WIDTH * self.ratio * self.ratio * COLOR_DEPTH - line.len();
-                let slice = &mut pixels[start..start + line.len()];
-                slice.copy_from_slice(&line);
-            }
+            self.draw_led();
+        }
+    }
+
+    fn draw_led(&mut self) {
+        let sec = if self.led != 0 {
+            [0xFF, 0x00, 0x00]
+        } else {
+            [0x00, 0x00, 0x00]
+        };
+        let mut line = Vec::with_capacity(16 * self.ratio * sec.len());
+        for _ in 0..16 * self.ratio {
+            line.extend(sec);
+        }
+        let pixels = &mut self.pixels;
+        for y in 1..17 {
+            let start = y * WIDTH * self.ratio * self.ratio * COLOR_DEPTH - line.len();
+            let slice = &mut pixels[start..start + line.len()];
+            slice.copy_from_slice(&line);
         }
     }
 
