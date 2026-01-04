@@ -1,5 +1,6 @@
 use web_time::Instant;
 
+#[derive(Debug)]
 pub(crate) struct Message {
     message: String,
     time: Instant,

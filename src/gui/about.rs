@@ -1,5 +1,6 @@
 use egui::{Response, Ui, Widget};
 
+#[derive(Debug)]
 pub(super) struct About;
 
 impl About {
