@@ -16,7 +16,7 @@ impl Display for RawImage<'_> {
 
 impl<'a> RawImage<'a> {
     pub(crate) fn new_with_data(width: usize, height: usize, data: &'a Vec<u8>) -> Self {
-        assert_eq!(data.len(), width * height * COLOR_DEPTH);
+        debug_assert_eq!(data.len(), width * height * COLOR_DEPTH);
         Self {
             data,
             width,
