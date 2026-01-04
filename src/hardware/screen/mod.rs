@@ -50,7 +50,7 @@ impl Screen {
         }
     }
 
-    fn draw_led(&mut self) {
+    pub fn draw_led(&mut self) {
         let sec = if self.led != 0 {
             [0xFF, 0x00, 0x00]
         } else {
