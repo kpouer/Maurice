@@ -115,3 +115,84 @@ impl Screen {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_draw_led_with_led_on() {
+        let mut screen = Screen::new(1);
+        screen.led = 1;
+        screen.draw_led();
+
+        // Check that the LED area (top-right corner, lines 1-16, last 16 pixels) is red
+        for y in 1..17 {
+            let line_offset = y * WIDTH * COLOR_DEPTH;
+            let led_start = line_offset - 16 * COLOR_DEPTH;
+            for x in 0..16 {
+                let pixel_offset = led_start + x * COLOR_DEPTH;
+                assert_eq!(screen.pixels[pixel_offset], 0xFF, "Red channel should be 0xFF at y={}, x={}", y, x);
+                assert_eq!(screen.pixels[pixel_offset + 1], 0x00, "Green channel should be 0x00 at y={}, x={}", y, x);
+                assert_eq!(screen.pixels[pixel_offset + 2], 0x00, "Blue channel should be 0x00 at y={}, x={}", y, x);
+            }
+        }
+    }
+
+    #[test]
+    fn test_draw_led_with_led_off() {
+        let mut screen = Screen::new(1);
+        screen.led = 0;
+        screen.draw_led();
+
+        // Check that the LED area is black
+        for y in 1..17 {
+            let line_offset = y * WIDTH * COLOR_DEPTH;
+            let led_start = line_offset - 16 * COLOR_DEPTH;
+            for x in 0..16 {
+                let pixel_offset = led_start + x * COLOR_DEPTH;
+                assert_eq!(screen.pixels[pixel_offset], 0x00, "Red channel should be 0x00 at y={}, x={}", y, x);
+                assert_eq!(screen.pixels[pixel_offset + 1], 0x00, "Green channel should be 0x00 at y={}, x={}", y, x);
+                assert_eq!(screen.pixels[pixel_offset + 2], 0x00, "Blue channel should be 0x00 at y={}, x={}", y, x);
+            }
+        }
+    }
+
+    #[test]
+    fn test_draw_led_with_ratio_3() {
+        let mut screen = Screen::new(3);
+        screen.led = 1;
+        screen.draw_led();
+
+        // Check that the LED area is properly scaled (16*3 = 48 pixels wide)
+        for y in 1..17 {
+            let line_offset = y * WIDTH * 3 * 3 * COLOR_DEPTH;
+            let led_start = line_offset - 16 * 3 * COLOR_DEPTH;
+            for x in 0..(16 * 3) {
+                let pixel_offset = led_start + x * COLOR_DEPTH;
+                assert_eq!(screen.pixels[pixel_offset], 0xFF, "Red channel should be 0xFF at y={}, x={}", y, x);
+                assert_eq!(screen.pixels[pixel_offset + 1], 0x00, "Green channel should be 0x00 at y={}, x={}", y, x);
+                assert_eq!(screen.pixels[pixel_offset + 2], 0x00, "Blue channel should be 0x00 at y={}, x={}", y, x);
+            }
+        }
+    }
+
+    #[test]
+    fn test_draw_led_does_not_affect_other_pixels() {
+        let mut screen = Screen::new(1);
+
+        // Set some pixels outside the LED area
+        let test_offset = 20 * WIDTH * COLOR_DEPTH;
+        screen.pixels[test_offset] = 0xAA;
+        screen.pixels[test_offset + 1] = 0xBB;
+        screen.pixels[test_offset + 2] = 0xCC;
+
+        screen.led = 1;
+        screen.draw_led();
+
+        // Verify that pixels outside the LED area are unchanged
+        assert_eq!(screen.pixels[test_offset], 0xAA);
+        assert_eq!(screen.pixels[test_offset + 1], 0xBB);
+        assert_eq!(screen.pixels[test_offset + 2], 0xCC);
+    }
+}
