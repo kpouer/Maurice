@@ -51,20 +51,31 @@ impl Screen {
     }
 
     pub fn draw_led(&mut self) {
-        let sec = if self.led != 0 {
-            [0xFF, 0x00, 0x00]
-        } else {
-            [0x00, 0x00, 0x00]
-        };
-        let mut line = Vec::with_capacity(16 * self.ratio * sec.len());
-        for _ in 0..16 * self.ratio {
-            line.extend(sec);
-        }
+        let led_width_pixels = 16 * self.ratio;
+        let led_width_bytes = led_width_pixels * COLOR_DEPTH;
+        let row_stride = WIDTH * self.ratio * self.ratio * COLOR_DEPTH;
+
         let pixels = &mut self.pixels;
-        for y in 1..17 {
-            let start = y * WIDTH * self.ratio * self.ratio * COLOR_DEPTH - line.len();
-            let slice = &mut pixels[start..start + line.len()];
-            slice.copy_from_slice(&line);
+
+        let first_row_end = row_stride;
+        let first_row_start = first_row_end - led_width_bytes;
+
+        if self.led != 0 {
+            for i in (first_row_start..first_row_end).step_by(COLOR_DEPTH) {
+                pixels[i] = 0xFF;
+                pixels[i + 1] = 0x00;
+                pixels[i + 2] = 0x00;
+            }
+        } else {
+            pixels[first_row_start..first_row_end].fill(0x00);
+        }
+
+        // 2. Dupliquer cette ligne pour les 15 autres lignes (y=2 à 16)
+        // copy_within est très performant et utilise souvent des instructions SIMD (AVX/SSE)
+        let source_range = first_row_start..first_row_end;
+        for y in 2..17 {
+            let dest_start = y * row_stride - led_width_bytes;
+            pixels.copy_within(source_range.clone(), dest_start);
         }
     }
 
