@@ -8,6 +8,17 @@ fn criterion_benchmark(c: &mut Criterion) {
     bench_get_pixels(c);
     bench_sound(c);
     bench_draw_led(c);
+    bench_dopaint(c);
+}
+
+fn bench_dopaint(c: &mut Criterion) {
+    let mut screen = Screen::new(1);
+    let mut memory = Memory::default();
+    c.bench_function("dopaint_ratio1", |b| b.iter(|| screen.dopaint(&mut memory)));
+
+    let mut screen = Screen::new(3);
+    let mut memory = Memory::default();
+    c.bench_function("dopaint_ratio3", |b| b.iter(|| screen.dopaint(&mut memory)));
 }
 
 fn bench_sound(c: &mut Criterion) {

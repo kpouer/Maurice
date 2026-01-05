@@ -82,7 +82,7 @@ impl Screen {
         RawImage::new_with_data(WIDTH * self.ratio, HEIGHT * self.ratio, &self.pixels)
     }
 
-    pub(crate) fn dopaint(&mut self, mem: &mut Memory) {
+    pub fn dopaint(&mut self, mem: &mut Memory) {
         let mut i = 0;
 
         let pixels = &mut self.pixels;
