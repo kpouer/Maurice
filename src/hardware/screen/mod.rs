@@ -55,27 +55,26 @@ impl Screen {
         let led_width_bytes = led_width_pixels * COLOR_DEPTH;
         let row_stride = WIDTH * self.ratio * self.ratio * COLOR_DEPTH;
 
-        let pixels = &mut self.pixels;
-
         let first_row_end = row_stride;
-        let first_row_start = first_row_end - led_width_bytes;
+        let first_row_start = row_stride - led_width_bytes;
 
         if self.led != 0 {
-            for i in (first_row_start..first_row_end).step_by(COLOR_DEPTH) {
-                pixels[i] = 0xFF;
-                pixels[i + 1] = 0x00;
-                pixels[i + 2] = 0x00;
+                let (first_row, _) = self.pixels.split_at_mut(first_row_end);
+                let target_chunk = &mut first_row[first_row_start..first_row_end];
+
+                for pixel in target_chunk.chunks_exact_mut(COLOR_DEPTH) {
+                    pixel[0] = 0xFF;
+                    pixel[1] = 0x00;
+                    pixel[2] = 0x00;
             }
         } else {
-            pixels[first_row_start..first_row_end].fill(0x00);
+            self.pixels[first_row_start..first_row_end].fill(0x00);
         }
 
-        // 2. Dupliquer cette ligne pour les 15 autres lignes (y=2 à 16)
-        // copy_within est très performant et utilise souvent des instructions SIMD (AVX/SSE)
         let source_range = first_row_start..first_row_end;
         for y in 2..17 {
             let dest_start = y * row_stride - led_width_bytes;
-            pixels.copy_within(source_range.clone(), dest_start);
+            self.pixels.copy_within(source_range.clone(), dest_start);
         }
     }
 
