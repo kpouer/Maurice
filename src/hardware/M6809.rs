@@ -3322,21 +3322,15 @@ const fn signed16bits(v: int) -> int {
     delta = (delta >> 16) << 16; // force last 16bits to 0
     (v & 0xFFFF) | delta // result is now signed
 }
-fn regx(m: int) -> String {
-    let mut output = String::from("?");
-    if (m & 0x60) == 0x00 {
-        output.push('X');
+fn regx(m: int) -> &'static str {
+    const MASK: i32 = 0x60;
+    match m & MASK {
+        0x00 => "?X",
+        0x20 => "?X",
+        0x40 => "?U",
+        0x60 => "?S",
+        _ => "?",
     }
-    if (m & 0x60) == 0x20 {
-        output.push('Y');
-    }
-    if (m & 0x60) == 0x40 {
-        output.push('U');
-    }
-    if (m & 0x60) == 0x60 {
-        output.push('S');
-    }
-    output
 }
 
 fn r_tfr(m: int) -> String {
@@ -3895,12 +3889,11 @@ pub(crate) fn unassemble(start: int, maxLines: int, mem: &Memory) -> String {
                 } else {
                     match mmx & 0x1F {
                         0x04 => {
-                            output2.push(',');
-                            output2.push_str(&regx(mmx));
+                            output2.push_str(&format!(",{}", regx(mmx)));
                             break;
                         }
                         0x14 => {
-                            output2.push_str(&format!("[,{}]", &regx(mmx)));
+                            output2.push_str(&format!("[,{}]", regx(mmx)));
                             break;
                         }
                         0x08 => {
@@ -3936,8 +3929,7 @@ pub(crate) fn unassemble(start: int, maxLines: int, mem: &Memory) -> String {
                             break;
                         }
                         0x06 => {
-                            output2 += "A,";
-                            output2.push_str(&regx(mmx));
+                            output2.push_str(&format!("A,{}", regx(mmx)));
                             break;
                         }
                         0x16 => {
