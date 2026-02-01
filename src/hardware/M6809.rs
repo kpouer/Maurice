@@ -3334,7 +3334,7 @@ fn regx(m: int) -> &'static str {
 }
 
 fn r_tfr(m: int) -> String {
-    let mut output = String::new();
+    let mut output = String::with_capacity(5);
     match m & 0xF0 {
         0x80 => output.push_str("A,"),
         0x90 => output.push_str("B,"),
