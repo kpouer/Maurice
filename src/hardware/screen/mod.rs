@@ -59,13 +59,13 @@ impl Screen {
         let first_row_start = row_stride - led_width_bytes;
 
         if self.led != 0 {
-                let (first_row, _) = self.pixels.split_at_mut(first_row_end);
-                let target_chunk = &mut first_row[first_row_start..first_row_end];
+            let (first_row, _) = self.pixels.split_at_mut(first_row_end);
+            let target_chunk = &mut first_row[first_row_start..first_row_end];
 
-                for pixel in target_chunk.chunks_exact_mut(COLOR_DEPTH) {
-                    pixel[0] = 0xFF;
-                    pixel[1] = 0x00;
-                    pixel[2] = 0x00;
+            for pixel in target_chunk.chunks_exact_mut(COLOR_DEPTH) {
+                pixel[0] = 0xFF;
+                pixel[1] = 0x00;
+                pixel[2] = 0x00;
             }
         } else {
             self.pixels[first_row_start..first_row_end].fill(0x00);
@@ -142,9 +142,25 @@ mod tests {
             let led_start = line_offset - 16 * COLOR_DEPTH;
             for x in 0..16 {
                 let pixel_offset = led_start + x * COLOR_DEPTH;
-                assert_eq!(screen.pixels[pixel_offset], 0xFF, "Red channel should be 0xFF at y={}, x={}", y, x);
-                assert_eq!(screen.pixels[pixel_offset + 1], 0x00, "Green channel should be 0x00 at y={}, x={}", y, x);
-                assert_eq!(screen.pixels[pixel_offset + 2], 0x00, "Blue channel should be 0x00 at y={}, x={}", y, x);
+                assert_eq!(
+                    screen.pixels[pixel_offset], 0xFF,
+                    "Red channel should be 0xFF at y={}, x={}",
+                    y, x
+                );
+                assert_eq!(
+                    screen.pixels[pixel_offset + 1],
+                    0x00,
+                    "Green channel should be 0x00 at y={}, x={}",
+                    y,
+                    x
+                );
+                assert_eq!(
+                    screen.pixels[pixel_offset + 2],
+                    0x00,
+                    "Blue channel should be 0x00 at y={}, x={}",
+                    y,
+                    x
+                );
             }
         }
     }
@@ -161,9 +177,25 @@ mod tests {
             let led_start = line_offset - 16 * COLOR_DEPTH;
             for x in 0..16 {
                 let pixel_offset = led_start + x * COLOR_DEPTH;
-                assert_eq!(screen.pixels[pixel_offset], 0x00, "Red channel should be 0x00 at y={}, x={}", y, x);
-                assert_eq!(screen.pixels[pixel_offset + 1], 0x00, "Green channel should be 0x00 at y={}, x={}", y, x);
-                assert_eq!(screen.pixels[pixel_offset + 2], 0x00, "Blue channel should be 0x00 at y={}, x={}", y, x);
+                assert_eq!(
+                    screen.pixels[pixel_offset], 0x00,
+                    "Red channel should be 0x00 at y={}, x={}",
+                    y, x
+                );
+                assert_eq!(
+                    screen.pixels[pixel_offset + 1],
+                    0x00,
+                    "Green channel should be 0x00 at y={}, x={}",
+                    y,
+                    x
+                );
+                assert_eq!(
+                    screen.pixels[pixel_offset + 2],
+                    0x00,
+                    "Blue channel should be 0x00 at y={}, x={}",
+                    y,
+                    x
+                );
             }
         }
     }
@@ -180,9 +212,25 @@ mod tests {
             let led_start = line_offset - 16 * 3 * COLOR_DEPTH;
             for x in 0..(16 * 3) {
                 let pixel_offset = led_start + x * COLOR_DEPTH;
-                assert_eq!(screen.pixels[pixel_offset], 0xFF, "Red channel should be 0xFF at y={}, x={}", y, x);
-                assert_eq!(screen.pixels[pixel_offset + 1], 0x00, "Green channel should be 0x00 at y={}, x={}", y, x);
-                assert_eq!(screen.pixels[pixel_offset + 2], 0x00, "Blue channel should be 0x00 at y={}, x={}", y, x);
+                assert_eq!(
+                    screen.pixels[pixel_offset], 0xFF,
+                    "Red channel should be 0xFF at y={}, x={}",
+                    y, x
+                );
+                assert_eq!(
+                    screen.pixels[pixel_offset + 1],
+                    0x00,
+                    "Green channel should be 0x00 at y={}, x={}",
+                    y,
+                    x
+                );
+                assert_eq!(
+                    screen.pixels[pixel_offset + 2],
+                    0x00,
+                    "Blue channel should be 0x00 at y={}, x={}",
+                    y,
+                    x
+                );
             }
         }
     }
