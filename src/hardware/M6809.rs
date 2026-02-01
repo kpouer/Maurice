@@ -3236,7 +3236,7 @@ impl M6809 {
                         self.LBVS(mem);
                     }
                     _ => {
-                        eprintln!("opcode 10 {} not implemented", hex(opcode0x10, 2));
+                        eprintln!("opcode 10 {opcode0x10:02X} not implemented");
                         eprintln!("{}", self.print_state());
                     }
                 } // of case opcode0x10
@@ -3280,58 +3280,39 @@ impl M6809 {
                         self.CMP16(self.U, M, 7, mem);
                     }
                     _ => {
-                        eprintln!("opcode 11{} not implemented", hex(opcode0x11, 2));
+                        eprintln!("opcode 11{opcode0x11:02X} not implemented");
                         eprintln!("{}", self.print_state());
                     }
                 } // of case opcode 0x11
             }
             _ => {
-                eprintln!("opcode {} not implemented", hex(opcode, 2));
+                eprintln!("opcode {opcode:02X} not implemented");
                 eprintln!("{}", self.print_state());
             }
-        } // of case  opcode
+        } // of case opcode
     } // of method fetch()
 
     // UNASSEMBLE/DEBUG PART
     pub(crate) fn print_state(&mut self) -> String {
         self.CC = self.getcc();
         let s = format!(
-            "A={} B={} X={} Y={}\nPC={} DP={} U={} S={} CC={}",
-            hex(self.A, 2),
-            hex(self.B, 2),
-            hex(self.X, 4),
-            hex(self.Y, 4),
-            hex(self.PC, 4),
-            hex(self.DP, 2),
-            hex(self.U, 4),
-            hex(self.S, 4),
-            hex(self.CC, 2)
+            "A={:02X} B={:02X} X={:04X} Y={:04X}\nPC={:04X} DP={:02X} U={:04X} S={:04X} CC={:02X}",
+            self.A,
+            self.B,
+            self.X,
+            self.Y,
+            self.PC,
+            self.DP,
+            self.U,
+            self.S,
+            self.CC
         );
         s
     }
 }
 
-fn hex(val: int, size: int) -> String {
-    let mut output = String::new();
-    for t in 0..size {
-        let coef = (size - t - 1) * 4;
-        let mask = 0xF << coef;
-        let q = (val & mask) >> coef;
-        if q < 10 {
-            output.push_str(format!("{}", q).as_str());
-        } else {
-            match q {
-                10 => output.push('A'),
-                11 => output.push('B'),
-                12 => output.push('C'),
-                13 => output.push('D'),
-                14 => output.push('E'),
-                15 => output.push('F'),
-                _ => {}
-            }
-        }
-    }
-    output
+fn hex(val: int, size: usize) -> String {
+    format!("{:0width$X}", val, width = size)
 }
 
 // force sign extension in a portable but ugly maneer
@@ -3836,10 +3817,7 @@ pub(crate) fn unassemble(start: int, maxLines: int, mem: &Memory) -> String {
         let mut mm = mem.read(_where);
         _where += 1;
 
-        let mut output1 = hex(_where - 1, 4);
-        output1.push('.');
-        output1.push_str(hex(mm, 2).as_str());
-        output1.push(' ');
+        let mut output1 = format!("{:04X}.{:02X} ", _where - 1, mm);
         let mut output2 = String::new();
 
         let mnemo;
@@ -3847,16 +3825,14 @@ pub(crate) fn unassemble(start: int, maxLines: int, mem: &Memory) -> String {
             mm = mem.read(_where);
             _where += 1;
             mnemo = MNEMO10[mm as usize];
-            output1.push_str(hex(mm, 2).as_str());
-            output1.push(' ');
+            output1.push_str(&format!("{mm:02X} "));
             output2.push_str(&mnemo[0..4]);
             output2.push(' ');
         } else if mm == 0x11 {
             mm = mem.read(_where);
             _where += 1;
             mnemo = MNEMO11[mm as usize];
-            output1.push_str(hex(mm, 2).as_str());
-            output1.push(' ');
+            output1.push_str(&format!("{mm:02X} "));
             output2.push_str(&mnemo[0..4]);
             output2.push(' ');
         } else {
@@ -3868,50 +3844,43 @@ pub(crate) fn unassemble(start: int, maxLines: int, mem: &Memory) -> String {
             'I' => {
                 mm = mem.read(_where);
                 _where += 1;
-                output1.push_str(hex(mm, 2).as_str());
-                output1.push(' ');
+                output1.push_str(&format!("{mm:02X} "));
                 output2.push_str("#x");
                 output2.push_str(hex(mm, 2).as_str());
                 mm = mem.read(_where);
                 _where += 1;
-                output1.push_str(hex(mm, 2).as_str());
-                output1.push(' ');
+                output1.push_str(&format!("{mm:02X} "));
                 output2.push_str(hex(mm, 2).as_str());
             }
             'i' => {
                 mm = mem.read(_where);
                 _where += 1;
-                output1.push_str(hex(mm, 2).as_str());
-                output1.push(' ');
+                output1.push_str(&format!("{mm:02X} "));
                 output2.push_str("#x");
                 output2.push_str(hex(mm, 2).as_str());
             }
             'e' => {
                 mm = mem.read(_where);
                 _where += 1;
-                output1.push_str(hex(mm, 2).as_str());
-                output1.push(' ');
+                output1.push_str(&format!("{mm:02X} "));
                 output2.push('x');
                 output2.push_str(hex(mm, 2).as_str());
                 mm = mem.read(_where);
                 _where += 1;
-                output1.push_str(hex(mm, 2).as_str());
-                output1.push(' ');
+                output1.push_str(&format!("{mm:02X} "));
                 output2.push_str(hex(mm, 2).as_str());
             }
             'd' => {
                 mm = mem.read(_where);
                 _where += 1;
-                output1.push_str(hex(mm, 2).as_str());
-                output1.push(' ');
+                output1.push_str(&format!("{mm:02X} "));
                 output2.push('x');
                 output2.push_str(hex(mm, 2).as_str());
             }
             'o' => {
                 mm = mem.read(_where);
                 _where += 1;
-                output1.push_str(hex(mm, 2).as_str());
-                output1.push(' ');
+                output1.push_str(&format!("{mm:02X} "));
                 output2.push_str(format!("{}", signedChar(mm)).as_str());
                 output2.push_str(" (x");
                 output2.push_str(hex((_where + signedChar(mm)) & 0xFFFF, 4).as_str());
@@ -3922,8 +3891,7 @@ pub(crate) fn unassemble(start: int, maxLines: int, mem: &Memory) -> String {
                 _where += 1;
                 mm |= mem.read(_where);
                 _where += 1;
-                output1.push_str(hex(mm, 4).as_str());
-                output1.push(' ');
+                output1.push_str(&format!("{mm:04X} "));
                 output2.push_str(format!("{}", signed16bits(mm)).as_str());
                 output2.push_str(" (=x");
                 output2.push_str(hex((_where + signed16bits(mm)) & 0xFFFF, 4).as_str());
@@ -3932,8 +3900,7 @@ pub(crate) fn unassemble(start: int, maxLines: int, mem: &Memory) -> String {
             'x' => {
                 let mmx = mem.read(_where);
                 _where += 1;
-                output1.push_str(hex(mmx, 2).as_str());
-                output1.push(' ');
+                output1.push_str(&format!("{mm:02X} "));
                 if (mmx & 0x80) == 0 {
                     if (mmx & 0x10) == 0 {
                         output2.push_str(format!("{}", mmx & 0x0F).as_str());
@@ -4202,5 +4169,67 @@ mod tests {
     fn test_signed16bits_zero(#[case] input: u16, #[case] expected: i16) {
         // Le zéro devrait rester zéro après conversion
         assert_eq!(signed16bits(input as int), expected.into());
+    }
+
+    #[rstest]
+    #[case(0, 2, "00")]
+    #[case(0, 4, "0000")]
+    #[case(15, 2, "0F")]
+    #[case(255, 2, "FF")]
+    #[case(256, 4, "0100")]
+    #[case(0xABCD, 4, "ABCD")]
+    #[case(0x1234, 4, "1234")]
+    #[case(10, 2, "0A")]
+    #[case(11, 2, "0B")]
+    #[case(12, 2, "0C")]
+    #[case(13, 2, "0D")]
+    #[case(14, 2, "0E")]
+    fn test_hex_conversion(#[case] val: int, #[case] size: usize, #[case] expected: &str) {
+        assert_eq!(hex(val, size), expected);
+    }
+
+    #[test]
+    fn test_hex_zero_size_2() {
+        assert_eq!(hex(0, 2), "00");
+    }
+
+    #[test]
+    fn test_hex_zero_size_4() {
+        assert_eq!(hex(0, 4), "0000");
+    }
+
+    // #[test]
+    // fn test_hex_all_digits() {
+    //     assert_eq!(hex(0x0123456789ABCDEF, 16), "0123456789ABCDEF");
+    // }
+
+    #[test]
+    fn test_hex_single_digit() {
+        for i in 0..10 {
+            assert_eq!(hex(i, 1), format!("{}", i));
+        }
+    }
+
+    #[test]
+    fn test_hex_letters() {
+        assert_eq!(hex(10, 1), "A");
+        assert_eq!(hex(11, 1), "B");
+        assert_eq!(hex(12, 1), "C");
+        assert_eq!(hex(13, 1), "D");
+        assert_eq!(hex(14, 1), "E");
+        assert_eq!(hex(15, 1), "F");
+    }
+
+    #[test]
+    fn test_hex_padding() {
+        assert_eq!(hex(1, 4), "0001");
+        assert_eq!(hex(15, 4), "000F");
+        assert_eq!(hex(255, 4), "00FF");
+    }
+
+    #[test]
+    fn test_hex_max_values() {
+        assert_eq!(hex(0xFF, 2), "FF");
+        assert_eq!(hex(0xFFFF, 4), "FFFF");
     }
 }
