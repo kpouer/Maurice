@@ -33,33 +33,39 @@ impl Gui {
             let modifiers = input_state.modifiers;
             self.machine.keyboard.modifiers = modifiers.into();
             input_state.events.iter().for_each(|event| {
-                if let Event::Key {
-                    key,
-                    physical_key: _,
-                    pressed,
-                    repeat: false,
-                    modifiers: _,
-                } = event
-                {
-                    match key {
-                        Key::F7 => self.machine.reset_soft(),
-                        Key::F8 => self.machine.reset_hard(),
-                        _ => {
-                            if let Ok(vk) = MO5VirtualKeyCode::try_from(*key) {
-                                if *pressed {
-                                    self.machine.keyboard.key_pressed(vk, &mut self.machine.mem);
-                                } else {
-                                    self.machine
-                                        .keyboard
-                                        .key_released(vk, &mut self.machine.mem);
-                                };
-                            }
-                        }
-                    };
-                }
+                self.handle_key_event(event);
             });
         });
         self.handle_drag_drop(ctx)
+    }
+
+    fn handle_key_event(&mut self, event: &Event) {
+        let Event::Key {
+            key,
+            physical_key: _,
+            pressed,
+            repeat: false,
+            modifiers: _,
+        } = event
+        else {
+            return;
+        };
+
+        match key {
+            Key::F7 => self.machine.reset_soft(),
+            Key::F8 => self.machine.reset_hard(),
+            _ => {
+                if let Ok(vk) = MO5VirtualKeyCode::try_from(*key) {
+                    if *pressed {
+                        self.machine.keyboard.key_pressed(vk, &mut self.machine.mem);
+                    } else {
+                        self.machine
+                            .keyboard
+                            .key_released(vk, &mut self.machine.mem);
+                    };
+                }
+            }
+        };
     }
 
     fn handle_drag_drop(&mut self, ctx: &Context) -> bool {
