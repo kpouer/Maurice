@@ -228,16 +228,9 @@ impl Gui {
             });
         });
     }
-}
 
-impl App for Gui {
-    fn update(&mut self, ctx: &Context, _: &mut Frame) {
-        let hovered = self.handle_input(ctx);
-        self.build_menu_panel(ctx);
-        self.dialogs.eventually_show_dialogs(ctx, &mut self.machine);
-        self.update_texture(ctx);
-
-        #[cfg(not(target_family = "wasm"))]
+    #[cfg(not(target_family = "wasm"))]
+    fn handle_file_dialog(&mut self, ctx: &Context) {
         if let Some(fd) = &mut self.file_dialog {
             fd.update(ctx);
             if let Some(path) = fd.take_picked() {
@@ -248,34 +241,45 @@ impl App for Gui {
                 self.file_dialog = None;
             }
         }
+    }
+}
 
-        if let Some(image) = &self.image {
-            let available_rect = ctx.available_rect();
-            let rect = Rect {
-                min: pos2(available_rect.left(), available_rect.top()),
-                max: pos2(available_rect.width(), available_rect.height()),
-            };
-            let uv = Rect {
-                min: Pos2::ZERO,
-                max: pos2(1.0, 1.0),
-            };
+impl App for Gui {
+    fn update(&mut self, ctx: &Context, _: &mut Frame) {
+        let is_hovered = self.handle_input(ctx);
+        self.build_menu_panel(ctx);
+        self.dialogs.eventually_show_dialogs(ctx, &mut self.machine);
+        self.update_texture(ctx);
 
-            egui::CentralPanel::default()
-                .show(ctx, |ui| {
-                    ui.painter().image(image.into(), rect, uv, Color32::WHITE);
-                    if hovered {
-                        Self::show_message(ui, "Drop a tape file here.");
-                    } else if let Some(message) = &self.message {
-                        if message.is_expired() {
-                            self.message = None;
-                        } else {
-                            Self::show_message(ui, message.message());
-                        }
+        #[cfg(not(target_family = "wasm"))]
+        self.handle_file_dialog(ctx);
+
+        let Some(image) = &self.image else { return };
+        let available_rect = ctx.available_rect();
+        let rect = Rect {
+            min: pos2(available_rect.left(), available_rect.top()),
+            max: pos2(available_rect.width(), available_rect.height()),
+        };
+        let uv = Rect {
+            min: Pos2::ZERO,
+            max: pos2(1.0, 1.0),
+        };
+
+        egui::CentralPanel::default()
+            .show(ctx, |ui| {
+                ui.painter().image(image.into(), rect, uv, Color32::WHITE);
+                if is_hovered {
+                    Self::show_message(ui, "Drop a tape file here.");
+                } else if let Some(message) = &self.message {
+                    if message.is_expired() {
+                        self.message = None;
+                    } else {
+                        Self::show_message(ui, message.message());
                     }
-                })
-                .response
-                .request_focus();
-            ctx.request_repaint();
-        }
+                }
+            })
+            .response
+            .request_focus();
+        ctx.request_repaint();
     }
 }
