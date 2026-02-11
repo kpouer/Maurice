@@ -4098,4 +4098,181 @@ mod tests {
         // Le zéro devrait rester zéro après conversion
         assert_eq!(signed16bits(input as int), expected.into());
     }
+
+    #[test]
+    fn test_indexe_5bit_offset() {
+        let mem_val = Memory::default();
+        let mut mem = mem_val;
+        let mut cpu = M6809::new(&mem);
+
+        // Test X + 5 (0x05: 000 00101 -> X, +5)
+        cpu.X = 0x1000;
+        cpu.PC = 0x2000;
+        mem.write(0x2000, 0x05);
+        let addr = cpu.INDEXE(&mut mem);
+        assert_eq!(addr, 0x1005);
+        assert_eq!(cpu.PC, 0x2001);
+
+        // Test Y - 1 (0x3F: 001 11111 -> Y, -1 because 0x1F is -1 in 5-bit signed)
+        // 5-bit signed: 0x10 is -16, 0x1F is -1
+        cpu.Y = 0x1000;
+        cpu.PC = 0x2000;
+        mem.write(0x2000, 0x3F);
+        let addr = cpu.INDEXE(&mut mem);
+        assert_eq!(addr, 0x0FFF);
+
+        // Test U + 15 (0x4F: 010 01111 -> U, +15)
+        cpu.U = 0x1000;
+        cpu.PC = 0x2000;
+        mem.write(0x2000, 0x4F);
+        let addr = cpu.INDEXE(&mut mem);
+        assert_eq!(addr, 0x100F);
+
+        // Test S - 16 (0x70: 011 10000 -> S, -16)
+        cpu.S = 0x1000;
+        cpu.PC = 0x2000;
+        mem.write(0x2000, 0x70);
+        let addr = cpu.INDEXE(&mut mem);
+        assert_eq!(addr, 0x0FF0);
+    }
+
+    #[test]
+    fn test_indexe_auto_inc_dec() {
+        let mut mem = Memory::default();
+        let mut cpu = M6809::new(&mem);
+
+        // Post-increment X by 1 (0x80)
+        cpu.X = 0x1000;
+        cpu.PC = 0x2000;
+        mem.write(0x2000, 0x80);
+        let addr = cpu.INDEXE(&mut mem);
+        assert_eq!(addr, 0x1000);
+        assert_eq!(cpu.X, 0x1001);
+
+        // Post-increment X by 2 (0x81)
+        cpu.X = 0x1000;
+        cpu.PC = 0x2000;
+        mem.write(0x2000, 0x81);
+        let addr = cpu.INDEXE(&mut mem);
+        assert_eq!(addr, 0x1000);
+        assert_eq!(cpu.X, 0x1002);
+
+        // Pre-decrement X by 1 (0x82)
+        cpu.X = 0x1000;
+        cpu.PC = 0x2000;
+        mem.write(0x2000, 0x82);
+        let addr = cpu.INDEXE(&mut mem);
+        assert_eq!(addr, 0x0FFF);
+        assert_eq!(cpu.X, 0x0FFF);
+
+        // Pre-decrement X by 2 (0x83)
+        cpu.X = 0x1000;
+        cpu.PC = 0x2000;
+        mem.write(0x2000, 0x83);
+        let addr = cpu.INDEXE(&mut mem);
+        assert_eq!(addr, 0x0FFE);
+        assert_eq!(cpu.X, 0x0FFE);
+    }
+
+    #[test]
+    fn test_indexe_accumulator_offset() {
+        let mut mem = Memory::default();
+        let mut cpu = M6809::new(&mem);
+
+        // B offset (0x85)
+        cpu.X = 0x1000;
+        cpu.B = 0x05;
+        cpu.PC = 0x2000;
+        mem.write(0x2000, 0x85);
+        assert_eq!(cpu.INDEXE(&mut mem), 0x1005);
+
+        // A offset (0x86)
+        cpu.X = 0x1000;
+        cpu.A = 0xFF; // -1
+        cpu.PC = 0x2000;
+        mem.write(0x2000, 0x86);
+        assert_eq!(cpu.INDEXE(&mut mem), 0x0FFF);
+
+        // D offset (0x8B)
+        cpu.X = 0x1000;
+        cpu.A = 0x00;
+        cpu.B = 0x10;
+        cpu.PC = 0x2000;
+        mem.write(0x2000, 0x8B);
+        assert_eq!(cpu.INDEXE(&mut mem), 0x1010);
+    }
+
+    #[test]
+    fn test_indexe_constant_offset() {
+        let mut mem = Memory::default();
+        let mut cpu = M6809::new(&mem);
+
+        // 8-bit offset (0x88)
+        cpu.X = 0x1000;
+        cpu.PC = 0x2000;
+        mem.write(0x2000, 0x88);
+        mem.write(0x2001, 0x12);
+        assert_eq!(cpu.INDEXE(&mut mem), 0x1012);
+        assert_eq!(cpu.PC, 0x2002);
+
+        // 16-bit offset (0x89)
+        cpu.X = 0x1000;
+        cpu.PC = 0x2000;
+        mem.write(0x2000, 0x89);
+        mem.write(0x2001, 0x12);
+        mem.write(0x2002, 0x34);
+        assert_eq!(cpu.INDEXE(&mut mem), 0x1000 + 0x1234);
+        assert_eq!(cpu.PC, 0x2003);
+    }
+
+    #[test]
+    fn test_indexe_pc_relative() {
+        let mut mem = Memory::default();
+        let mut cpu = M6809::new(&mem);
+
+        // PC 8-bit offset (0x8C)
+        cpu.PC = 0x2000;
+        mem.write(0x2000, 0x8C);
+        mem.write(0x2001, 0x05); // Offset +5 from PC after reading offset byte
+        // After reading 0x8C, PC is 0x2001.
+        // Inside INDEXE for 0x8C: m = mem.read(0x2001) [0x05], PC = 0x2002.
+        // Result is PC + signedChar(m) = 0x2002 + 5 = 0x2007.
+        assert_eq!(cpu.INDEXE(&mut mem), 0x2007);
+        assert_eq!(cpu.PC, 0x2002);
+
+        // PC 16-bit offset (0x8D)
+        cpu.PC = 0x2000;
+        mem.write(0x2000, 0x8D);
+        mem.write(0x2001, 0x10);
+        mem.write(0x2002, 0x00);
+        // After reading 0x8D, PC is 0x2001.
+        // Inside INDEXE for 0x8D: M = read_16(0x2001) [0x1000], PC = 0x2003.
+        // Result is PC + signed16bits(M) = 0x2003 + 0x1000 = 0x3003.
+        assert_eq!(cpu.INDEXE(&mut mem), 0x3003);
+        assert_eq!(cpu.PC, 0x2003);
+    }
+
+    #[test]
+    fn test_indexe_indirect() {
+        let mut mem = Memory::default();
+        let mut cpu = M6809::new(&mem);
+
+        // Indirect with 8-bit offset from X (0x98)
+        cpu.X = 0x1000;
+        cpu.PC = 0x2000;
+        mem.write(0x2000, 0x98);
+        mem.write(0x2001, 0x02); // Offset 2 -> 0x1002
+        mem.write(0x1002, 0xAB);
+        mem.write(0x1003, 0xCD); // [0x1002] contains 0xABCD
+        assert_eq!(cpu.INDEXE(&mut mem), 0xABCD);
+
+        // Indirect Extended (0x9F)
+        cpu.PC = 0x2000;
+        mem.write(0x2000, 0x9F);
+        mem.write(0x2001, 0x30);
+        mem.write(0x2002, 0x00); // Address 0x3000
+        mem.write(0x3000, 0xCA);
+        mem.write(0x3001, 0xFE); // [0x3000] contains 0xCAFE
+        assert_eq!(cpu.INDEXE(&mut mem), 0xCAFE);
+    }
 }
