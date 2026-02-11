@@ -202,3 +202,21 @@ impl Machine {
 fn get_ratio() -> usize {
     crate::hardware::screen::DEFAULT_PIXEL_SIZE
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    #[rstest]
+    fn test_loop() {
+        let mut machine = Machine::default();
+        let mut image = None;
+        for i in 0..10 {
+            image = Some(machine.run_loop());
+        }
+        let image = image.unwrap().unwrap();
+        let result = image.data.into_iter().map(|pixel| *pixel as u64).sum::<u64>();
+        assert_eq!(276459696, result);
+    }
+}
