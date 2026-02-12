@@ -4,12 +4,12 @@ use crate::hardware::memory::Memory;
 use crate::hardware::screen::Screen;
 use crate::hardware::sound::Sound;
 use crate::int;
-use std::ops::Index;
 use log::warn;
+use std::ops::Index;
 
 const SOUND_SIZE: usize = 1024;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct M6809 {
     // Sound emulation parameters
     pub(crate) sound_buffer: SoundBuffer,
@@ -43,29 +43,7 @@ pub struct M6809 {
 
 impl M6809 {
     pub fn new(mem: &Memory) -> Self {
-        let mut m6809 = M6809 {
-            sound_buffer: Default::default(),
-            cl: 0,
-            A: 0,
-            B: 0,
-            DP: 0,
-            CC: 0,
-
-            X: 0,
-            Y: 0,
-            U: 0,
-            S: 0,
-            PC: 0,
-            D: 0,
-            res: 0,
-            m1: 0,
-            m2: 0,
-            sign: 0,
-            ovfl: 0,
-            h1: 0,
-            h2: 0,
-            ccrest: 0,
-        };
+        let mut m6809 = M6809::default();
         m6809.reset(mem);
         m6809
     }
@@ -464,7 +442,7 @@ impl M6809 {
                 self.cl += 3;
                 M
             }
-            0xC4 => self.U,//i_d_U;
+            0xC4 => self.U, //i_d_U;
             0xC5 => {
                 //i_d_B_U;
                 let M = (self.U + signedChar(self.B)) & 0xFFFF;
@@ -929,16 +907,12 @@ impl M6809 {
             0x03 => self.U,
             0x04 => self.S,
             0x05 => self.PC,
-            0x06 => self.getcc(),
-            0x07 => self.getcc(),
+            0x06 | 0x07 => self.getcc(),
             0x08 => self.A,
             0x09 => self.B,
             0x0A => self.getcc(),
             0x0B => self.DP,
-            0x0C => self.getcc(),
-            0x0D => self.getcc(),
-            0x0E => self.getcc(),
-            0x0F => self.getcc(),
+            0x0C | 0x0D | 0x0E | 0x0F => self.getcc(),
             _ => 0,
         };
         let r2 = m & 0x0F;
@@ -952,16 +926,12 @@ impl M6809 {
             0x03 => self.U = k,
             0x04 => self.S = k,
             0x05 => self.PC = k,
-            0x06 => self.setcc(k),
-            0x07 => self.setcc(k),
+            0x06 | 0x07 => self.setcc(k),
             0x08 => self.A = k & 0xff,
             0x09 => self.B = k & 0xff,
             0x0A => self.setcc(k),
             0x0B => self.DP = k & 0xff,
-            0x0C => self.setcc(k),
-            0x0D => self.setcc(k),
-            0x0E => self.setcc(k),
-            0x0F => self.setcc(k),
+            0x0C | 0x0D | 0x0E | 0x0F => self.setcc(k),
             _ => {}
         } // of match r2
     }
@@ -3172,51 +3142,21 @@ impl M6809 {
                         self.CMP16(self.Y, M, 7, mem);
                     }
                     // Bxx
-                    0x21 => {
-                        self.LBRN(mem);
-                    }
-                    0x24 => {
-                        self.LBCC(mem);
-                    }
-                    0x25 => {
-                        self.LBCS(mem);
-                    }
-                    0x27 => {
-                        self.LBEQ(mem);
-                    }
-                    0x26 => {
-                        self.LBNE(mem);
-                    }
-                    0x2C => {
-                        self.LBGE(mem);
-                    }
-                    0x2F => {
-                        self.LBLE(mem);
-                    }
-                    0x23 => {
-                        self.LBLS(mem);
-                    }
-                    0x2E => {
-                        self.LBGT(mem);
-                    }
-                    0x2D => {
-                        self.LBLT(mem);
-                    }
-                    0x22 => {
-                        self.LBHI(mem);
-                    }
-                    0x2B => {
-                        self.LBMI(mem);
-                    }
-                    0x2A => {
-                        self.LBPL(mem);
-                    }
-                    0x28 => {
-                        self.LBVC(mem);
-                    }
-                    0x29 => {
-                        self.LBVS(mem);
-                    }
+                    0x21 => self.LBRN(mem),
+                    0x24 => self.LBCC(mem),
+                    0x25 => self.LBCS(mem),
+                    0x27 => self.LBEQ(mem),
+                    0x26 => self.LBNE(mem),
+                    0x2C => self.LBGE(mem),
+                    0x2F => self.LBLE(mem),
+                    0x23 => self.LBLS(mem),
+                    0x2E => self.LBGT(mem),
+                    0x2D => self.LBLT(mem),
+                    0x22 => self.LBHI(mem),
+                    0x2B => self.LBMI(mem),
+                    0x2A => self.LBPL(mem),
+                    0x28 => self.LBVC(mem),
+                    0x29 => self.LBVS(mem),
                     _ => {
                         eprintln!("opcode 10 {opcode0x10:02X} not implemented");
                         eprintln!("{}", self.print_state());
@@ -3304,7 +3244,8 @@ const fn signed16bits(v: int) -> int {
     delta = (delta >> 16) << 16; // force last 16bits to 0
     (v & 0xFFFF) | delta // result is now signed
 }
-fn regx(m: int) -> &'static str {
+
+const fn regx(m: int) -> &'static str {
     const MASK: i32 = 0x60;
     match m & MASK {
         0x00 => "?X",

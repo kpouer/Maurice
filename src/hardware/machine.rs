@@ -216,7 +216,11 @@ mod tests {
             image = Some(machine.run_loop());
         }
         let image = image.flatten().expect("I need an image to test");
-        let result = image.data.into_iter().map(|pixel| *pixel as u64).sum::<u64>();
+        let result = image
+            .data
+            .into_iter()
+            .map(|pixel| *pixel as u64)
+            .sum::<u64>();
         assert_eq!(276459696, result);
     }
 }
