@@ -7,7 +7,7 @@ use crate::hardware::k7::K7;
 use crate::hardware::screen::Screen;
 use crate::{bios, int};
 use chrono::Local;
-use log::{debug, info};
+use log::{debug, info, warn};
 
 #[derive(Debug)]
 pub struct Memory {
@@ -351,8 +351,14 @@ impl Memory {
 
         /* doit_on lire un caractere ? */
         if self.k7_bit == 0x00 {
-            if self.k7_in.is_some() {
-                self.k7_char = self.k7_in.as_mut().unwrap().read().unwrap();
+            if let Some(k7) = &mut self.k7_in {
+                match k7.read() {
+                    None => {
+                        warn!("End of file");
+                        return 0;
+                    }
+                    Some(char) => self.k7_char = char,
+                }
             } else {
                 return 0;
             }
