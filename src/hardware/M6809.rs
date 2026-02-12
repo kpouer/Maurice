@@ -5,6 +5,7 @@ use crate::hardware::screen::Screen;
 use crate::hardware::sound::Sound;
 use crate::int;
 use std::ops::Index;
+use log::warn;
 
 const SOUND_SIZE: usize = 1024;
 
@@ -133,590 +134,571 @@ impl M6809 {
             self.cl += 1;
             return (reg + delta) & 0xFFFF;
         }
-        // let m2;
-        let mut M;
         match m {
             0x80 => {
                 //i_d_P1_X
-                M = self.X;
+                let M = self.X;
                 self.X = (self.X + 1) & 0xFFFF;
                 self.cl += 2;
-                return M;
+                M
             }
             0x81 => {
                 //i_d_P2_X
-                M = self.X;
+                let M = self.X;
                 self.X = (self.X + 2) & 0xFFFF;
                 self.cl += 3;
-                return M;
+                M
             }
             0x82 => {
                 //i_d_M1_X
                 self.X = (self.X - 1) & 0xFFFF;
-                M = self.X;
+                let M = self.X;
                 self.cl += 2;
-                return M;
+                M
             }
             0x83 => {
                 //i_d_M2_X
                 self.X = (self.X - 2) & 0xFFFF;
-                M = self.X;
+                let M = self.X;
                 self.cl += 3;
-                return M;
+                M
             }
-            0x84 => {
-                //i_d_X
-                M = self.X;
-                return M;
-            }
+            0x84 => self.X, //i_d_X
             0x85 => {
                 //i_d_B_X
-                M = (self.X + signedChar(self.B)) & 0xFFFF;
+                let M = (self.X + signedChar(self.B)) & 0xFFFF;
                 self.cl += 1;
-                return M;
+                M
             }
             0x86 => {
                 //i_d_A_X;
-                M = (self.X + signedChar(self.A)) & 0xFFFF;
+                let M = (self.X + signedChar(self.A)) & 0xFFFF;
                 self.cl += 1;
-                return M;
+                M
             }
-            0x87 => return 0, //i_undoc;	/* empty */
+            0x87 => 0, //i_undoc;	/* empty */
             0x88 => {
                 //i_d_8_X;
                 self.m2 = mem.read(self.PC);
                 self.PC += 1;
-                M = (self.X + signedChar(self.m2)) & 0xFFFF;
+                let M = (self.X + signedChar(self.m2)) & 0xFFFF;
                 self.cl += 1;
-                return M;
+                M
             }
             0x89 => {
                 //i_d_16_X;
                 self.m2 = mem.read_16(self.PC);
                 self.PC += 2;
-                M = (self.X + signed16bits(self.m2)) & 0xFFFF;
+                let M = (self.X + signed16bits(self.m2)) & 0xFFFF;
                 self.cl += 4;
-                return M;
+                M
             }
-            0x8A => return 0, //i_undoc;	/* empty */
+            0x8A => 0, //i_undoc;	/* empty */
             0x8B => {
                 //i_d_D_X;
-                M = (self.X + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
+                let M = (self.X + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
                 self.cl += 4;
-                return M;
+                M
             }
             0x8C | 0xAC | 0xCC | 0xEC => {
                 //i_d_PC8;
                 m = mem.read(self.PC);
                 self.PC = (self.PC + 1) & 0xFFFF;
-                M = (self.PC + signedChar(m)) & 0xFFFF;
+                let M = (self.PC + signedChar(m)) & 0xFFFF;
                 self.cl += 1;
-                return M;
+                M
             }
             0x8D | 0xAD | 0xCD | 0xED => {
                 //i_d_PC16;
-                M = mem.read_16(self.PC);
+                let mut M = mem.read_16(self.PC);
                 self.PC = (self.PC + 2) & 0xFFFF;
                 M = (self.PC + signed16bits(M)) & 0xFFFF;
                 self.cl += 5;
-                return M;
+                M
             }
-            0x8E..=0x90 => return 0, //i_undoc;	/* empty */
+            0x8E..=0x90 => 0, //i_undoc;	/* empty */
             0x91 => {
                 //i_i_P2_X;
-                M = mem.read_16(self.X);
+                let M = mem.read_16(self.X);
                 self.X = (self.X + 2) & 0xFFFF;
                 self.cl += 6;
-                return M;
+                M
             }
-            0x92 => return 0, //i_undoc;	/* empty */
+            0x92 => 0, //i_undoc;	/* empty */
             0x93 => {
                 //i_i_M2_X;
                 self.X = (self.X - 2) & 0xFFFF;
-                M = mem.read_16(self.X);
+                let M = mem.read_16(self.X);
                 self.cl += 6;
-                return M;
+                M
             }
             0x94 => {
                 //i_i_0_X;
-                M = mem.read_16(self.X);
+                let M = mem.read_16(self.X);
                 self.cl += 3;
-                return M;
+                M
             }
             0x95 => {
                 //i_i_B_X;
-                M = (self.X + signedChar(self.B)) & 0xFFFF;
+                let mut M = (self.X + signedChar(self.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
-                return M;
+                M
             }
             0x96 => {
                 //i_i_A_X;
-                M = (self.X + signedChar(self.A)) & 0xFFFF;
+                let mut M = (self.X + signedChar(self.A)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
-                return M;
+                M
             }
-            0x97 => return 0, //i_undoc;	/* empty */
+            0x97 => 0, //i_undoc;	/* empty */
             0x98 => {
                 //i_i_8_X;
                 self.m2 = mem.read(self.PC);
                 self.PC = (self.PC + 1) & 0xFFFF;
-                M = (self.X + signedChar(self.m2)) & 0xFFFF;
+                let mut M = (self.X + signedChar(self.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
-                return M;
+                M
             }
             0x99 => {
                 //i_i_16_X;
                 self.m2 = mem.read_16(self.PC);
                 self.PC = (self.PC + 2) & 0xFFFF;
-                M = (self.X + signed16bits(self.m2)) & 0xFFFF;
+                let mut M = (self.X + signed16bits(self.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
-                return M;
+                M
             }
-            0x9A => return 0, //i_undoc;	/* empty */
+            0x9A => 0, //i_undoc;	/* empty */
             0x9B => {
                 //i_i_D_X;
-                M = (self.X + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
+                let mut M = (self.X + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
-                return M;
+                M
             }
             0x9C | 0xBC | 0xDC | 0xFC => {
                 //i_i_PC8;
                 self.m2 = mem.read(self.PC);
                 self.PC = (self.PC + 1) & 0xFFFF;
-                M = (self.PC + signedChar(self.m2)) & 0xFFFF;
+                let mut M = (self.PC + signedChar(self.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
-                return M;
+                M
             }
             0x9D | 0xBD | 0xDD | 0xFD => {
                 //i_i_PC16;
                 self.m2 = mem.read_16(self.PC);
                 self.PC = (self.PC + 2) & 0xFFFF;
-                M = (self.PC + signed16bits(self.m2)) & 0xFFFF;
+                let mut M = (self.PC + signed16bits(self.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 8;
-                return M;
+                M
             }
-            0x9E => return 0, //i_undoc;	/* empty */
+            0x9E => 0, //i_undoc;	/* empty */
             0x9F | 0xBF | 0xDF | 0xFF => {
                 //i_i_e16;
                 self.m2 = mem.read_16(self.PC);
                 self.PC = (self.PC + 2) & 0xFFFF;
-                M = mem.read_16(self.m2);
+                let M = mem.read_16(self.m2);
                 self.cl += 5;
-                return M;
+                M
                 // Y
             }
             0xA0 => {
                 //i_d_P1_Y;
-                M = self.Y;
+                let M = self.Y;
                 self.Y = (self.Y + 1) & 0xFFFF;
                 self.cl += 2;
-                return M;
+                M
             }
             0xA1 => {
                 //i_d_P2_Y;
-                M = self.Y;
+                let M = self.Y;
                 self.Y = (self.Y + 2) & 0xFFFF;
                 self.cl += 3;
-                return M;
+                M
             }
             0xA2 => {
                 //i_d_M1_Y;
                 self.Y = (self.Y - 1) & 0xFFFF;
-                M = self.Y;
+                let M = self.Y;
                 self.cl += 2;
-                return M;
+                M
             }
             0xA3 => {
                 //i_d_M2_Y;
                 self.Y = (self.Y - 2) & 0xFFFF;
-                M = self.Y;
+                let M = self.Y;
                 self.cl += 3;
-                return M;
+                M
             }
-            0xA4 => {
-                //i_d_Y;
-                M = self.Y;
-                return M;
-            }
+            0xA4 => self.Y, //i_d_Y;
             0xA5 => {
                 //i_d_B_Y;
-                M = (self.Y + signedChar(self.B)) & 0xFFFF;
+                let M = (self.Y + signedChar(self.B)) & 0xFFFF;
                 self.cl += 1;
-                return M;
+                M
             }
             0xA6 => {
                 //i_d_A_Y;
-                M = (self.Y + signedChar(self.A)) & 0xFFFF;
+                let M = (self.Y + signedChar(self.A)) & 0xFFFF;
                 self.cl += 1;
-                return M;
+                M
             }
-            0xA7 => return 0, //i_undoc;	/* empty */
+            0xA7 => 0, //i_undoc;	/* empty */
             0xA8 => {
                 //i_d_8_Y;
                 self.m2 = mem.read(self.PC);
                 self.PC += 1;
-                M = (self.Y + signedChar(self.m2)) & 0xFFFF;
+                let M = (self.Y + signedChar(self.m2)) & 0xFFFF;
                 self.cl += 1;
-                return M;
+                M
             }
             0xA9 => {
                 //i_d_16_Y;
                 self.m2 = mem.read_16(self.PC);
                 self.PC += 2;
-                M = (self.Y + signed16bits(self.m2)) & 0xFFFF;
+                let M = (self.Y + signed16bits(self.m2)) & 0xFFFF;
                 self.cl += 4;
-                return M;
+                M
             }
-            0xAA => return 0, //i_undoc;	/* empty */
+            0xAA => 0, //i_undoc;	/* empty */
             0xAB => {
                 //i_d_D_Y;
-                M = (self.Y + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
+                let M = (self.Y + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
                 self.cl += 4;
-                return M;
+                M
             }
-            0xAE..=0xB0 => return 0, //i_undoc;	/* empty */
+            0xAE..=0xB0 => 0, //i_undoc;	/* empty */
             0xB1 => {
                 //i_i_P2_Y;
-                M = mem.read_16(self.Y);
+                let M = mem.read_16(self.Y);
                 self.Y = (self.Y + 2) & 0xFFFF;
                 self.cl += 6;
-                return M;
+                M
             }
-            0xB2 => return 0, //i_undoc;	/* empty */
+            0xB2 => 0, //i_undoc;	/* empty */
             0xB3 => {
                 //i_i_M2_Y;
                 self.Y = (self.Y - 2) & 0xFFFF;
-                M = mem.read_16(self.Y);
+                let M = mem.read_16(self.Y);
                 self.cl += 6;
-                return M;
+                M
             }
             0xB4 => {
                 //i_i_0_Y;
-                M = mem.read_16(self.Y);
+                let M = mem.read_16(self.Y);
                 self.cl += 3;
-                return M;
+                M
             }
             0xB5 => {
                 //i_i_B_Y;
-                M = (self.Y + signedChar(self.B)) & 0xFFFF;
+                let mut M = (self.Y + signedChar(self.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
-                return M;
+                M
             }
             0xB6 => {
                 //i_i_A_Y;
-                M = (self.Y + signedChar(self.A)) & 0xFFFF;
+                let mut M = (self.Y + signedChar(self.A)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
-                return M;
+                M
             }
-            0xB7 => return 0, //i_undoc;	/* empty */
+            0xB7 => 0, //i_undoc;	/* empty */
             0xB8 => {
                 //i_i_8_Y;
                 self.m2 = mem.read(self.PC);
                 self.PC = (self.PC + 1) & 0xFFFF;
-                M = (self.Y + signedChar(self.m2)) & 0xFFFF;
+                let mut M = (self.Y + signedChar(self.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
-                return M;
+                M
             }
             0xB9 => {
                 //i_i_16_Y;
                 self.m2 = mem.read_16(self.PC);
                 self.PC = (self.PC + 2) & 0xFFFF;
-                M = (self.Y + signed16bits(self.m2)) & 0xFFFF;
+                let mut M = (self.Y + signed16bits(self.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
-                return M;
+                M
             }
-            0xBA => return 0, //i_undoc;	/* empty */
+            0xBA => 0, //i_undoc;	/* empty */
             0xBB => {
                 //i_i_D_Y;
-                M = (self.Y + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
+                let mut M = (self.Y + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
-                return M;
+                M
             }
-            0xBE => return 0, //i_undoc;	/* empty */ U
+            0xBE => 0, //i_undoc;	/* empty */ U
             0xC0 => {
                 //i_d_P1_U;
-                M = self.U;
+                let M = self.U;
                 self.U = (self.U + 1) & 0xFFFF;
                 self.cl += 2;
-                return M;
+                M
             }
             0xC1 => {
                 //i_d_P2_U;
-                M = self.U;
+                let M = self.U;
                 self.U = (self.U + 2) & 0xFFFF;
                 self.cl += 3;
-                return M;
+                M
             }
             0xC2 => {
                 //i_d_M1_U;
                 self.U = (self.U - 1) & 0xFFFF;
-                M = self.U;
+                let M = self.U;
                 self.cl += 2;
-                return M;
+                M
             }
             0xC3 => {
                 //i_d_M2_U;
                 self.U = (self.U - 2) & 0xFFFF;
-                M = self.U;
+                let M = self.U;
                 self.cl += 3;
-                return M;
+                M
             }
-            0xC4 => {
-                //i_d_U;
-                M = self.U;
-                return M;
-            }
+            0xC4 => self.U,//i_d_U;
             0xC5 => {
                 //i_d_B_U;
-                M = (self.U + signedChar(self.B)) & 0xFFFF;
+                let M = (self.U + signedChar(self.B)) & 0xFFFF;
                 self.cl += 1;
-                return M;
+                M
             }
             0xC6 => {
                 //i_d_A_U;
-                M = (self.U + signedChar(self.A)) & 0xFFFF;
+                let M = (self.U + signedChar(self.A)) & 0xFFFF;
                 self.cl += 1;
-                return M;
+                M
             }
-            0xC7 => return 0, //i_undoc;	/* empty */
+            0xC7 => 0, //i_undoc;	/* empty */
             0xC8 => {
                 //i_d_8_U;
                 self.m2 = mem.read(self.PC);
                 self.PC += 1;
-                M = (self.U + signedChar(self.m2)) & 0xFFFF;
+                let M = (self.U + signedChar(self.m2)) & 0xFFFF;
                 self.cl += 1;
-                return M;
+                M
             }
             0xC9 => {
                 //i_d_16_U;
                 self.m2 = mem.read_16(self.PC);
                 self.PC += 2;
-                M = (self.U + signed16bits(self.m2)) & 0xFFFF;
+                let M = (self.U + signed16bits(self.m2)) & 0xFFFF;
                 self.cl += 4;
-                return M;
+                M
             }
-            0xCA => return 0, //i_undoc;	/* empty */
+            0xCA => 0, //i_undoc;	/* empty */
             0xCB => {
                 //i_d_D_U;
-                M = (self.U + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
+                let M = (self.U + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
                 self.cl += 4;
-                return M;
+                M
             }
-            0xCE..=0xD0 => return 0, //i_undoc;	/* empty */
+            0xCE..=0xD0 => 0, //i_undoc;	/* empty */
             0xD1 => {
                 //i_i_P2_U;
-                M = mem.read_16(self.U);
+                let M = mem.read_16(self.U);
                 self.U = (self.U + 2) & 0xFFFF;
                 self.cl += 6;
-                return M;
+                M
             }
-            0xD2 => {
-                return 0; //i_undoc;	/* empty */
-            }
+            0xD2 => 0, //i_undoc;	/* empty */
             0xD3 => {
                 //i_i_M2_U;
                 self.U = (self.U - 2) & 0xFFFF;
-                M = mem.read_16(self.U);
+                let M = mem.read_16(self.U);
                 self.cl += 6;
-                return M;
+                M
             }
             0xD4 => {
                 //i_i_0_U;
-                M = mem.read_16(self.U);
+                let M = mem.read_16(self.U);
                 self.cl += 3;
-                return M;
+                M
             }
             0xD5 => {
                 //i_i_B_U;
-                M = (self.U + signedChar(self.B)) & 0xFFFF;
+                let mut M = (self.U + signedChar(self.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
-                return M;
+                M
             }
             0xD6 => {
                 //i_i_A_U;
-                M = (self.U + signedChar(self.A)) & 0xFFFF;
+                let mut M = (self.U + signedChar(self.A)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
-                return M;
+                M
             }
-            0xD7 => return 0, //i_undoc;	/* empty */
+            0xD7 => 0, //i_undoc;	/* empty */
             0xD8 => {
                 //i_i_8_U;
                 self.m2 = mem.read(self.PC);
                 self.PC = (self.PC + 1) & 0xFFFF;
-                M = (self.U + signedChar(self.m2)) & 0xFFFF;
+                let mut M = (self.U + signedChar(self.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
-                return M;
+                M
             }
             0xD9 => {
                 //i_i_16_U;
                 self.m2 = mem.read_16(self.PC);
                 self.PC = (self.PC + 2) & 0xFFFF;
-                M = (self.U + signed16bits(self.m2)) & 0xFFFF;
+                let mut M = (self.U + signed16bits(self.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
-                return M;
+                M
             }
-            0xDA => return 0, //i_undoc;	/* empty */
+            0xDA => 0, //i_undoc;	/* empty */
             0xDB => {
                 //i_i_D_U;
-                M = (self.U + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
+                let mut M = (self.U + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
-                return M;
+                M
             }
-            0xDE => return 0, //i_undoc;	/* empty */// S
+            0xDE => 0, //i_undoc;	/* empty */// S
             0xE0 => {
                 //i_d_P1_S;
-                M = self.S;
+                let M = self.S;
                 self.S = (self.S + 1) & 0xFFFF;
                 self.cl += 2;
-                return M;
+                M
             }
             0xE1 => {
                 //i_d_P2_S;
-                M = self.S;
+                let M = self.S;
                 self.S = (self.S + 2) & 0xFFFF;
                 self.cl += 3;
-                return M;
+                M
             }
             0xE2 => {
                 //i_d_M1_S;
                 self.S = (self.S - 1) & 0xFFFF;
-                M = self.S;
+                let M = self.S;
                 self.cl += 2;
-                return M;
+                M
             }
             0xE3 => {
                 //i_d_M2_S;
                 self.S = (self.S - 2) & 0xFFFF;
-                M = self.S;
+                let M = self.S;
                 self.cl += 3;
-                return M;
+                M
             }
-            0xE4 => {
-                //i_d_S;
-                M = self.S;
-                return M;
-            }
+            0xE4 => self.S, //i_d_S;
             0xE5 => {
                 //i_d_B_S;
-                M = (self.S + signedChar(self.B)) & 0xFFFF;
+                let M = (self.S + signedChar(self.B)) & 0xFFFF;
                 self.cl += 1;
-                return M;
+                M
             }
             0xE6 => {
                 //i_d_A_S;
-                M = (self.S + signedChar(self.A)) & 0xFFFF;
+                let M = (self.S + signedChar(self.A)) & 0xFFFF;
                 self.cl += 1;
-                return M;
+                M
             }
-            0xE7 => return 0, //i_undoc;	/* empty */
+            0xE7 => 0, //i_undoc;	/* empty */
             0xE8 => {
                 //i_d_8_S;
                 self.m2 = mem.read(self.PC);
                 self.PC += 1;
-                M = (self.S + signedChar(self.m2)) & 0xFFFF;
+                let M = (self.S + signedChar(self.m2)) & 0xFFFF;
                 self.cl += 1;
-                return M;
+                M
             }
             0xE9 => {
                 //i_d_16_S;
                 self.m2 = mem.read_16(self.PC);
                 self.PC += 2;
-                M = (self.S + signed16bits(self.m2)) & 0xFFFF;
+                let M = (self.S + signed16bits(self.m2)) & 0xFFFF;
                 self.cl += 4;
-                return M;
+                M
             }
-            0xEA => return 0, //i_undoc;	/* empty */
+            0xEA => 0, //i_undoc;	/* empty */
             0xEB => {
                 //i_d_D_S;
-                M = (self.S + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
+                let M = (self.S + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
                 self.cl += 4;
-                return M;
+                M
             }
-            0xEE..=0xF0 => return 0, //i_undoc;	/* empty */
+            0xEE..=0xF0 => 0, //i_undoc;	/* empty */
             0xF1 => {
                 //i_i_P2_S;
-                M = mem.read_16(self.S);
+                let M = mem.read_16(self.S);
                 self.S = (self.S + 2) & 0xFFFF;
                 self.cl += 6;
-                return M;
+                M
             }
-            0xF2 => return 0, //i_undoc;	/* empty */
+            0xF2 => 0, //i_undoc;	/* empty */
             0xF3 => {
                 //i_i_M2_S;
                 self.S = (self.S - 2) & 0xFFFF;
-                M = mem.read_16(self.S);
+                let M = mem.read_16(self.S);
                 self.cl += 6;
-                return M;
+                M
             }
             0xF4 => {
                 //i_i_0_S;
-                M = mem.read_16(self.S);
+                let M = mem.read_16(self.S);
                 self.cl += 3;
-                return M;
+                M
             }
             0xF5 => {
                 //i_i_B_S;
-                M = (self.S + signedChar(self.B)) & 0xFFFF;
+                let mut M = (self.S + signedChar(self.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
-                return M;
+                M
             }
             0xF6 => {
                 //i_i_A_S;
-                M = (self.S + signedChar(self.A)) & 0xFFFF;
+                let mut M = (self.S + signedChar(self.A)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
-                return M;
+                M
             }
-            0xF7 => return 0, //i_undoc;	/* empty */
+            0xF7 => 0, //i_undoc;	/* empty */
             0xF8 => {
                 //i_i_8_S;
                 self.m2 = mem.read(self.PC);
                 self.PC = (self.PC + 1) & 0xFFFF;
-                M = (self.S + signedChar(self.m2)) & 0xFFFF;
+                let mut M = (self.S + signedChar(self.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
-                return M;
+                M
             }
             0xF9 => {
                 //i_i_16_S;
                 self.m2 = mem.read_16(self.PC);
                 self.PC = (self.PC + 2) & 0xFFFF;
-                M = (self.S + signed16bits(self.m2)) & 0xFFFF;
+                let mut M = (self.S + signed16bits(self.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
-                return M;
+                M
             }
-            0xFA => return 0, //i_undoc;	/* empty */
+            0xFA => 0, //i_undoc;	/* empty */
             0xFB => {
                 //i_i_D_S;
-                M = (self.S + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
+                let mut M = (self.S + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
-                return M;
+                M
             }
-            0xFE => return 0, //i_undoc;	/* empty */
-            _ => {}
+            0xFE => 0, //i_undoc;	/* empty */
+            _ => {
+                warn!("Unknown opcode {m:02X}");
+                0
+            }
         }
-        // eprintln!("Indexed mode not implemented");
-        0
     }
 
     // cc register recalculate from separate bits
