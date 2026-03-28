@@ -2,7 +2,7 @@ use crate::gui::about::About;
 #[cfg(not(target_family = "wasm"))]
 use crate::gui::debug::Debug;
 use crate::hardware::machine::Machine;
-use egui::{Context, Widget};
+use egui::{Ui, Widget};
 
 #[derive(Default)]
 pub(crate) struct Dialogs {
@@ -11,12 +11,12 @@ pub(crate) struct Dialogs {
 }
 
 impl Dialogs {
-    pub(crate) fn eventually_show_dialogs(&mut self, ctx: &Context, machine: &mut Machine) {
+    pub(crate) fn eventually_show_dialogs(&mut self, ui: &mut Ui, machine: &mut Machine) {
         if self.debug {
-            self.show_debug(ctx, machine);
+            self.show_debug(ui, machine);
         }
         if self.about {
-            self.show_about(ctx);
+            self.show_about(ui);
         }
     }
 
@@ -28,7 +28,7 @@ impl Dialogs {
         self.debug = true;
     }
 
-    fn show_debug(&mut self, ctx: &Context, machine: &mut Machine) {
+    fn show_debug(&mut self, ui: &mut Ui, machine: &mut Machine) {
         // #[cfg(target_arch = "wasm32")]
         // {
         //     egui::Window::new("Debug Maurice")
@@ -41,21 +41,21 @@ impl Dialogs {
         // }
 
         #[cfg(not(target_family = "wasm"))]
-        ctx.show_viewport_immediate(
+        ui.ctx().show_viewport_immediate(
             egui::ViewportId::from_hash_of("about_viewport"),
             egui::ViewportBuilder::default()
                 .with_title("Debug Maurice")
                 .with_inner_size([400.0, 200.0]),
-            move |ctx, class| {
+            move |ui, class| {
                 assert!(
                     class == egui::ViewportClass::Immediate,
                     "This egui backend doesn't support multiple viewports"
                 );
 
-                egui::CentralPanel::default().show(ctx, |ui| {
+                egui::CentralPanel::default().show_inside(ui, |ui| {
                     Debug::new(machine).ui(ui);
                 });
-                if ctx.input(|i| i.viewport().close_requested()) {
+                if ui.ctx().input(|i| i.viewport().close_requested()) {
                     // Tell parent to close us.
                     self.debug = false;
                 }
@@ -63,7 +63,7 @@ impl Dialogs {
         );
     }
 
-    fn show_about(&mut self, ctx: &Context) {
+    fn show_about(&mut self, ui: &mut Ui) {
         #[cfg(target_arch = "wasm32")]
         {
             egui::Window::new("About Maurice")
@@ -76,19 +76,19 @@ impl Dialogs {
         }
 
         #[cfg(not(target_family = "wasm"))]
-        ctx.show_viewport_immediate(
+        ui.ctx().show_viewport_immediate(
             egui::ViewportId::from_hash_of("about_viewport"),
             egui::ViewportBuilder::default()
                 .with_title("About Maurice")
                 .with_inner_size([400.0, 200.0]),
-            move |ctx, class| {
+            move |ui, class| {
                 assert!(
                     class == egui::ViewportClass::Immediate,
                     "This egui backend doesn't support multiple viewports"
                 );
 
-                egui::CentralPanel::default().show(ctx, |ui| About::new().ui(ui));
-                if ctx.input(|i| i.viewport().close_requested()) {
+                egui::CentralPanel::default().show_inside(ui, |ui| About::new().ui(ui));
+                if ui.ctx().input(|i| i.viewport().close_requested()) {
                     // Tell parent to close us.
                     self.about = false;
                 }

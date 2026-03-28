@@ -123,15 +123,15 @@ impl Gui {
         }
     }
 
-    fn build_menu_panel(&mut self, ctx: &Context) {
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+    fn build_menu_panel(&mut self, ui: &mut Ui) {
+        egui::Panel::top("top_panel").show_inside(ui, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 self.file_menu(ui);
                 self.run_menu(ui);
                 self.reset_menu(ui);
                 #[cfg(not(target_family = "wasm"))]
                 {
-                    self.image_menu(ui, ctx);
+                    self.image_menu(ui);
                     // todo debug the debug dialog
                     self.debug_menu(ui);
                 }
@@ -182,20 +182,20 @@ impl Gui {
     }
 
     #[cfg(not(target_family = "wasm"))]
-    fn image_menu(&mut self, ui: &mut Ui, ctx: &Context) {
+    fn image_menu(&mut self, ui: &mut Ui) {
         ui.menu_button("Image", |ui| {
             if ui.button("Zoom 1x").clicked() {
-                ctx.send_viewport_cmd(ViewportCommand::InnerSize(
+                ui.ctx().send_viewport_cmd(ViewportCommand::InnerSize(
                     [WIDTH as f32, HEIGHT as f32].into(),
                 ))
             }
             if ui.button("Zoom 2x").clicked() {
-                ctx.send_viewport_cmd(ViewportCommand::InnerSize(
+                ui.ctx().send_viewport_cmd(ViewportCommand::InnerSize(
                     [(2 * WIDTH) as f32, (2 * HEIGHT) as f32].into(),
                 ))
             }
             if ui.button("Zoom 3x").clicked() {
-                ctx.send_viewport_cmd(ViewportCommand::InnerSize(
+                ui.ctx().send_viewport_cmd(ViewportCommand::InnerSize(
                     [(3 * WIDTH) as f32, (3 * HEIGHT) as f32].into(),
                 ))
             }
@@ -251,17 +251,17 @@ impl Gui {
 }
 
 impl App for Gui {
-    fn update(&mut self, ctx: &Context, _: &mut Frame) {
-        let is_hovered = self.handle_input(ctx);
-        self.build_menu_panel(ctx);
-        self.dialogs.eventually_show_dialogs(ctx, &mut self.machine);
-        self.update_texture(ctx);
+    fn ui(&mut self, ui: &mut Ui, _: &mut Frame) {
+        let is_hovered = self.handle_input(ui.ctx());
+        self.build_menu_panel(ui);
+        self.dialogs.eventually_show_dialogs(ui, &mut self.machine);
+        self.update_texture(ui.ctx());
 
         #[cfg(not(target_family = "wasm"))]
-        self.handle_file_dialog(ctx);
+        self.handle_file_dialog(ui.ctx());
 
         let Some(image) = &self.image else { return };
-        let available_rect = ctx.available_rect();
+        let available_rect = ui.ctx().content_rect();
         let rect = Rect {
             min: pos2(available_rect.left(), available_rect.top()),
             max: pos2(available_rect.width(), available_rect.height()),
@@ -272,7 +272,7 @@ impl App for Gui {
         };
 
         egui::CentralPanel::default()
-            .show(ctx, |ui| {
+            .show_inside(ui, |ui| {
                 ui.painter().image(image.into(), rect, uv, Color32::WHITE);
                 if is_hovered {
                     Self::show_message(ui, "Drop a tape file here.");
@@ -286,6 +286,6 @@ impl App for Gui {
             })
             .response
             .request_focus();
-        ctx.request_repaint();
+        ui.ctx().request_repaint();
     }
 }
