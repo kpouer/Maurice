@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
-use crate::hardware::M6809::M6809;
+use crate::hardware::m6809::M6809;
 
 const N_BYTES: usize = 1024; // Buffer size
 

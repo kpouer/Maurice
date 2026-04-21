@@ -4019,7 +4019,7 @@ mod tests {
     #[case(0x8000, -32768)] // 2^15, valeur min négative
     fn test_signed16bits_zero(#[case] input: u16, #[case] expected: i16) {
         // Le zéro devrait rester zéro après conversion
-        assert_eq!(signed16bits(input as int), expected.into());
+        assert_eq!(signed16bits(input as int), expected as int);
     }
 
     #[test]

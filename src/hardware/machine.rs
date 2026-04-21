@@ -1,6 +1,6 @@
 use crate::hardware::keyboard::Keyboard;
 
-use crate::hardware::M6809::{M6809, unassemble};
+use crate::hardware::m6809::{M6809, unassemble};
 use crate::hardware::k7::K7;
 use crate::hardware::memory::Memory;
 use crate::hardware::screen::Screen;

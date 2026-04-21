@@ -1,4 +1,4 @@
-pub mod M6809;
+pub mod m6809;
 pub mod k7;
 pub(crate) mod keyboard;
 pub mod machine;
