@@ -5,3 +5,4 @@ pub mod machine;
 pub mod memory;
 pub mod screen;
 pub mod sound;
+mod sound_buffer;
