@@ -714,8 +714,8 @@ impl M6809 {
         self.CC
     }
 
-    fn LOAD8(ADR: int, mem: &mut Memory) -> int {
-        mem.read(ADR)
+    fn LOAD8(adr: int, mem: &mut Memory) -> int {
+        mem.read(adr)
     }
 
     // LDx
