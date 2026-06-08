@@ -3,8 +3,10 @@ use std::sync::{Arc, Mutex};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
 use crate::hardware::m6809::M6809;
+use crate::hardware::sound_buffer::SoundBuffer;
 
 const N_BYTES: usize = 1024; // Buffer size
+const AUDIO_DOWNSAMPLING_FACTOR: usize = 4;
 
 const DESIRED_CHANNELS: u16 = 2;
 const DESIRED_SAMPLE_FORMAT: cpal::SampleFormat = cpal::SampleFormat::F32;
@@ -13,7 +15,7 @@ const DESIRED_SAMPLE_RATE: cpal::SampleRate = 44100;
 pub struct Sound {
     pub buffer: Arc<Mutex<Vec<u8>>>,
     audio_stream: Option<cpal::Stream>,
-    audio: [u8; N_BYTES / 4],
+    audio: [u8; N_BYTES / AUDIO_DOWNSAMPLING_FACTOR],
 }
 
 impl Default for Sound {
@@ -38,13 +40,22 @@ impl Sound {
     // Copie du buffer de son provenant du 6809 vers le buffer de la carte son
     // Cette fonction est lancée lorsque le buffer 6809 est plein
     pub fn play_sound(&mut self, cpu: &M6809) {
-        for i in 0..N_BYTES {
-            self.audio[i / 4] = cpu.sound_buffer[i];
+        self.copy_downsampled_audio_from(&cpu.sound_buffer);
+        self.enqueue_audio_samples();
+    }
+
+    fn copy_downsampled_audio_from(&mut self, sound_buffer: &SoundBuffer) {
+        for destination_index in 0..self.audio.len() {
+            let source_index = destination_index * AUDIO_DOWNSAMPLING_FACTOR;
+            self.audio[destination_index] = sound_buffer[source_index];
         }
+    }
+
+    fn enqueue_audio_samples(&mut self) {
         let mut buffer = self.buffer.lock().unwrap();
-        // buffer.copy_from_slice(&self.audio[..N_BYTES / 4]);
-        for i in 0..N_BYTES / 4 {
-            buffer.push(self.audio[i]);
+
+        for &sample in &self.audio {
+            buffer.push(sample);
         }
     }
 }
