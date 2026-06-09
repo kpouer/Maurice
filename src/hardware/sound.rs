@@ -1,4 +1,6 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use ringbuf::{HeapRb, CachingProd, CachingCons};
+use ringbuf::traits::{Producer, Consumer, Split};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
@@ -12,23 +14,23 @@ const DESIRED_SAMPLE_FORMAT: cpal::SampleFormat = cpal::SampleFormat::F32;
 const DESIRED_SAMPLE_RATE: cpal::SampleRate = 44100;
 
 pub struct Sound {
-    pub buffer: Arc<Mutex<Vec<u8>>>,
+    pub producer: CachingProd<Arc<HeapRb<u8>>>,
     audio_stream: Option<cpal::Stream>,
     audio: [u8; SOUND_SIZE / AUDIO_DOWNSAMPLING_FACTOR],
 }
 
 impl Default for Sound {
     fn default() -> Self {
-        let buffer = Arc::new(Mutex::new(Vec::new()));
-        let audio_stream = if let Some((stream, _)) = get_audio_stream(Arc::clone(&buffer)) {
-            // let rate = sample_rate.0;
+        let rb = HeapRb::<u8>::new(SOUND_SIZE * 4);
+        let (producer, consumer) = rb.split();
+        let audio_stream = if let Some((stream, _)) = get_audio_stream(consumer) {
             stream.play().ok();
             Some(stream)
         } else {
             None
         };
         Sound {
-            buffer,
+            producer,
             audio_stream,
             audio: [0; SOUND_SIZE / 4],
         }
@@ -51,17 +53,13 @@ impl Sound {
     }
 
     fn enqueue_audio_samples(&mut self) {
-        let mut buffer = self.buffer.lock().unwrap();
-
-        for &sample in &self.audio {
-            buffer.push(sample);
-        }
+        self.producer.push_slice(&self.audio);
     }
 }
 
 // Get audio stream and sample rate to use when processing audio. We pass the shared
 // buffer which will be used by the APU.
-fn get_audio_stream(buffer: Arc<Mutex<Vec<u8>>>) -> Option<(cpal::Stream, cpal::SampleRate)> {
+fn get_audio_stream(mut consumer: CachingCons<Arc<HeapRb<u8>>>) -> Option<(cpal::Stream, cpal::SampleRate)> {
     let device = cpal::default_host().default_output_device()?;
     let supported_configs = device.supported_output_configs().ok()?;
     let mut supported_config = None;
@@ -86,7 +84,7 @@ fn get_audio_stream(buffer: Arc<Mutex<Vec<u8>>>) -> Option<(cpal::Stream, cpal::
         cpal::SampleFormat::F32 => device.build_output_stream(
             &config,
             move |data: &mut [f32], _cb: &cpal::OutputCallbackInfo| {
-                write_audio_data_to_buffer(&buffer, data)
+                write_audio_data_to_buffer(&mut consumer, data)
             },
             error_function,
             None,
@@ -94,7 +92,7 @@ fn get_audio_stream(buffer: Arc<Mutex<Vec<u8>>>) -> Option<(cpal::Stream, cpal::
         cpal::SampleFormat::U16 => device.build_output_stream(
             &config,
             move |data: &mut [u16], _cb: &cpal::OutputCallbackInfo| {
-                write_audio_data_to_buffer(&buffer, data)
+                write_audio_data_to_buffer(&mut consumer, data)
             },
             error_function,
             None,
@@ -102,7 +100,7 @@ fn get_audio_stream(buffer: Arc<Mutex<Vec<u8>>>) -> Option<(cpal::Stream, cpal::
         cpal::SampleFormat::I16 => device.build_output_stream(
             &config,
             move |data: &mut [i16], _cb: &cpal::OutputCallbackInfo| {
-                write_audio_data_to_buffer(&buffer, data)
+                write_audio_data_to_buffer(&mut consumer, data)
             },
             error_function,
             None,
@@ -115,12 +113,15 @@ fn get_audio_stream(buffer: Arc<Mutex<Vec<u8>>>) -> Option<(cpal::Stream, cpal::
 
 // Write audio buffer data to output.
 fn write_audio_data_to_buffer<T: cpal::Sample + cpal::FromSample<u8>>(
-    buffer: &Arc<Mutex<Vec<u8>>>,
+    consumer: &mut CachingCons<Arc<HeapRb<u8>>>,
     output: &mut [T],
 ) {
-    let mut buffer = buffer.lock().unwrap();
-    let length = std::cmp::min(output.len(), buffer.len());
-    for (i, v) in buffer.drain(..length).enumerate() {
-        output[i] = T::from_sample(v);
+    for out in output.iter_mut() {
+        if let Some(sample) = consumer.try_pop() {
+            *out = T::from_sample(sample);
+        } else {
+            // If we're out of samples, fill with silence
+            *out = T::from_sample(0u8);
+        }
     }
 }
