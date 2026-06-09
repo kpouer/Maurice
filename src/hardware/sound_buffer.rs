@@ -1,6 +1,6 @@
 use std::ops::Index;
 
-const SOUND_SIZE: usize = 1024;
+pub(crate) const SOUND_SIZE: usize = 1024;
 
 #[derive(Debug)]
 pub(crate) struct SoundBuffer {

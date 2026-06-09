@@ -3,9 +3,8 @@ use std::sync::{Arc, Mutex};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
 use crate::hardware::m6809::M6809;
-use crate::hardware::sound_buffer::SoundBuffer;
+use crate::hardware::sound_buffer::{SoundBuffer, SOUND_SIZE};
 
-const N_BYTES: usize = 1024; // Buffer size
 const AUDIO_DOWNSAMPLING_FACTOR: usize = 4;
 
 const DESIRED_CHANNELS: u16 = 2;
@@ -15,7 +14,7 @@ const DESIRED_SAMPLE_RATE: cpal::SampleRate = 44100;
 pub struct Sound {
     pub buffer: Arc<Mutex<Vec<u8>>>,
     audio_stream: Option<cpal::Stream>,
-    audio: [u8; N_BYTES / AUDIO_DOWNSAMPLING_FACTOR],
+    audio: [u8; SOUND_SIZE / AUDIO_DOWNSAMPLING_FACTOR],
 }
 
 impl Default for Sound {
@@ -31,7 +30,7 @@ impl Default for Sound {
         Sound {
             buffer,
             audio_stream,
-            audio: [0; N_BYTES / 4],
+            audio: [0; SOUND_SIZE / 4],
         }
     }
 }
