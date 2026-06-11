@@ -1,32 +1,29 @@
 #![allow(non_snake_case)]
 
+mod registers;
+
 use crate::hardware::memory::Memory;
 use crate::hardware::screen::Screen;
 use crate::hardware::sound::Sound;
 use crate::int;
 use log::warn;
+use crate::hardware::m6809::registers::Registers;
 use crate::hardware::sound_buffer::SoundBuffer;
 
 #[derive(Debug, Default)]
 pub struct M6809 {
     // Sound emulation parameters
     pub(crate) sound_buffer: SoundBuffer,
+    registers: Registers,
 
     cl: int,
 
     // 8bits registers
-    A: int,
-    B: int,
     DP: int,
     CC: int,
 
     // 16bits registers
-    X: int,
-    Y: int,
-    U: int,
-    S: int,
     pub(crate) PC: int,
-    D: int, // D is A+B
 
     // fast CC bits (as ints)
     res: int,
@@ -49,18 +46,8 @@ impl M6809 {
     pub(crate) fn reset(&mut self, mem: &Memory) {
         self.PC = mem.read_16(0xFFFE);
         self.DP = 0x00;
-        self.S = 0x8000;
+        self.registers.S = 0x8000;
         self.CC = 0x00;
-    }
-
-    // recalculate A and B or D
-    const fn CALCD(&mut self) {
-        self.D = (self.A << 8) | self.B;
-    }
-
-    const fn CALCAB(&mut self) {
-        self.A = self.D >> 8;
-        self.B = self.D & 0xFF;
     }
 
     // basic 6809 addressing modes
@@ -101,10 +88,10 @@ impl M6809 {
                 m & 0x1F
             };
             let reg = match m & 0xE0 {
-                0x00 => self.X,
-                0x20 => self.Y,
-                0x40 => self.U,
-                0x60 => self.S,
+                0x00 => self.registers.X,
+                0x20 => self.registers.Y,
+                0x40 => self.registers.U,
+                0x60 => self.registers.S,
                 _ => return 0,
             };
             self.cl += 1;
@@ -113,42 +100,42 @@ impl M6809 {
         match m {
             0x80 => {
                 //i_d_P1_X
-                let M = self.X;
-                self.X = (self.X + 1) & 0xFFFF;
+                let M = self.registers.X;
+                self.registers.X = (self.registers.X + 1) & 0xFFFF;
                 self.cl += 2;
                 M
             }
             0x81 => {
                 //i_d_P2_X
-                let M = self.X;
-                self.X = (self.X + 2) & 0xFFFF;
+                let M = self.registers.X;
+                self.registers.X = (self.registers.X + 2) & 0xFFFF;
                 self.cl += 3;
                 M
             }
             0x82 => {
                 //i_d_M1_X
-                self.X = (self.X - 1) & 0xFFFF;
-                let M = self.X;
+                self.registers.X = (self.registers.X - 1) & 0xFFFF;
+                let M = self.registers.X;
                 self.cl += 2;
                 M
             }
             0x83 => {
                 //i_d_M2_X
-                self.X = (self.X - 2) & 0xFFFF;
-                let M = self.X;
+                self.registers.X = (self.registers.X - 2) & 0xFFFF;
+                let M = self.registers.X;
                 self.cl += 3;
                 M
             }
-            0x84 => self.X, //i_d_X
+            0x84 => self.registers.X, //i_d_X
             0x85 => {
                 //i_d_B_X
-                let M = (self.X + signedChar(self.B)) & 0xFFFF;
+                let M = (self.registers.X + signedChar(self.registers.B)) & 0xFFFF;
                 self.cl += 1;
                 M
             }
             0x86 => {
                 //i_d_A_X;
-                let M = (self.X + signedChar(self.A)) & 0xFFFF;
+                let M = (self.registers.X + signedChar(self.registers.A)) & 0xFFFF;
                 self.cl += 1;
                 M
             }
@@ -157,7 +144,7 @@ impl M6809 {
                 //i_d_8_X;
                 self.m2 = mem.read(self.PC);
                 self.PC += 1;
-                let M = (self.X + signedChar(self.m2)) & 0xFFFF;
+                let M = (self.registers.X + signedChar(self.m2)) & 0xFFFF;
                 self.cl += 1;
                 M
             }
@@ -165,14 +152,14 @@ impl M6809 {
                 //i_d_16_X;
                 self.m2 = mem.read_16(self.PC);
                 self.PC += 2;
-                let M = (self.X + signed16bits(self.m2)) & 0xFFFF;
+                let M = (self.registers.X + signed16bits(self.m2)) & 0xFFFF;
                 self.cl += 4;
                 M
             }
             0x8A => 0, //i_undoc;	/* empty */
             0x8B => {
                 //i_d_D_X;
-                let M = (self.X + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
+                let M = (self.registers.X + signed16bits((self.registers.A << 8) | self.registers.B)) & 0xFFFF;
                 self.cl += 4;
                 M
             }
@@ -195,35 +182,35 @@ impl M6809 {
             0x8E..=0x90 => 0, //i_undoc;	/* empty */
             0x91 => {
                 //i_i_P2_X;
-                let M = mem.read_16(self.X);
-                self.X = (self.X + 2) & 0xFFFF;
+                let M = mem.read_16(self.registers.X);
+                self.registers.X = (self.registers.X + 2) & 0xFFFF;
                 self.cl += 6;
                 M
             }
             0x92 => 0, //i_undoc;	/* empty */
             0x93 => {
                 //i_i_M2_X;
-                self.X = (self.X - 2) & 0xFFFF;
-                let M = mem.read_16(self.X);
+                self.registers.X = (self.registers.X - 2) & 0xFFFF;
+                let M = mem.read_16(self.registers.X);
                 self.cl += 6;
                 M
             }
             0x94 => {
                 //i_i_0_X;
-                let M = mem.read_16(self.X);
+                let M = mem.read_16(self.registers.X);
                 self.cl += 3;
                 M
             }
             0x95 => {
                 //i_i_B_X;
-                let mut M = (self.X + signedChar(self.B)) & 0xFFFF;
+                let mut M = (self.registers.X + signedChar(self.registers.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
                 M
             }
             0x96 => {
                 //i_i_A_X;
-                let mut M = (self.X + signedChar(self.A)) & 0xFFFF;
+                let mut M = (self.registers.X + signedChar(self.registers.A)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
                 M
@@ -233,7 +220,7 @@ impl M6809 {
                 //i_i_8_X;
                 self.m2 = mem.read(self.PC);
                 self.PC = (self.PC + 1) & 0xFFFF;
-                let mut M = (self.X + signedChar(self.m2)) & 0xFFFF;
+                let mut M = (self.registers.X + signedChar(self.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
                 M
@@ -242,7 +229,7 @@ impl M6809 {
                 //i_i_16_X;
                 self.m2 = mem.read_16(self.PC);
                 self.PC = (self.PC + 2) & 0xFFFF;
-                let mut M = (self.X + signed16bits(self.m2)) & 0xFFFF;
+                let mut M = (self.registers.X + signed16bits(self.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
                 M
@@ -250,7 +237,7 @@ impl M6809 {
             0x9A => 0, //i_undoc;	/* empty */
             0x9B => {
                 //i_i_D_X;
-                let mut M = (self.X + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
+                let mut M = (self.registers.X + signed16bits((self.registers.A << 8) | self.registers.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
                 M
@@ -285,42 +272,42 @@ impl M6809 {
             }
             0xA0 => {
                 //i_d_P1_Y;
-                let M = self.Y;
-                self.Y = (self.Y + 1) & 0xFFFF;
+                let M = self.registers.Y;
+                self.registers.Y = (self.registers.Y + 1) & 0xFFFF;
                 self.cl += 2;
                 M
             }
             0xA1 => {
                 //i_d_P2_Y;
-                let M = self.Y;
-                self.Y = (self.Y + 2) & 0xFFFF;
+                let M = self.registers.Y;
+                self.registers.Y = (self.registers.Y + 2) & 0xFFFF;
                 self.cl += 3;
                 M
             }
             0xA2 => {
                 //i_d_M1_Y;
-                self.Y = (self.Y - 1) & 0xFFFF;
-                let M = self.Y;
+                self.registers.Y = (self.registers.Y - 1) & 0xFFFF;
+                let M = self.registers.Y;
                 self.cl += 2;
                 M
             }
             0xA3 => {
                 //i_d_M2_Y;
-                self.Y = (self.Y - 2) & 0xFFFF;
-                let M = self.Y;
+                self.registers.Y = (self.registers.Y - 2) & 0xFFFF;
+                let M = self.registers.Y;
                 self.cl += 3;
                 M
             }
-            0xA4 => self.Y, //i_d_Y;
+            0xA4 => self.registers.Y, //i_d_Y;
             0xA5 => {
                 //i_d_B_Y;
-                let M = (self.Y + signedChar(self.B)) & 0xFFFF;
+                let M = (self.registers.Y + signedChar(self.registers.B)) & 0xFFFF;
                 self.cl += 1;
                 M
             }
             0xA6 => {
                 //i_d_A_Y;
-                let M = (self.Y + signedChar(self.A)) & 0xFFFF;
+                let M = (self.registers.Y + signedChar(self.registers.A)) & 0xFFFF;
                 self.cl += 1;
                 M
             }
@@ -329,7 +316,7 @@ impl M6809 {
                 //i_d_8_Y;
                 self.m2 = mem.read(self.PC);
                 self.PC += 1;
-                let M = (self.Y + signedChar(self.m2)) & 0xFFFF;
+                let M = (self.registers.Y + signedChar(self.m2)) & 0xFFFF;
                 self.cl += 1;
                 M
             }
@@ -337,49 +324,49 @@ impl M6809 {
                 //i_d_16_Y;
                 self.m2 = mem.read_16(self.PC);
                 self.PC += 2;
-                let M = (self.Y + signed16bits(self.m2)) & 0xFFFF;
+                let M = (self.registers.Y + signed16bits(self.m2)) & 0xFFFF;
                 self.cl += 4;
                 M
             }
             0xAA => 0, //i_undoc;	/* empty */
             0xAB => {
                 //i_d_D_Y;
-                let M = (self.Y + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
+                let M = (self.registers.Y + signed16bits((self.registers.A << 8) | self.registers.B)) & 0xFFFF;
                 self.cl += 4;
                 M
             }
             0xAE..=0xB0 => 0, //i_undoc;	/* empty */
             0xB1 => {
                 //i_i_P2_Y;
-                let M = mem.read_16(self.Y);
-                self.Y = (self.Y + 2) & 0xFFFF;
+                let M = mem.read_16(self.registers.Y);
+                self.registers.Y = (self.registers.Y + 2) & 0xFFFF;
                 self.cl += 6;
                 M
             }
             0xB2 => 0, //i_undoc;	/* empty */
             0xB3 => {
                 //i_i_M2_Y;
-                self.Y = (self.Y - 2) & 0xFFFF;
-                let M = mem.read_16(self.Y);
+                self.registers.Y = (self.registers.Y - 2) & 0xFFFF;
+                let M = mem.read_16(self.registers.Y);
                 self.cl += 6;
                 M
             }
             0xB4 => {
                 //i_i_0_Y;
-                let M = mem.read_16(self.Y);
+                let M = mem.read_16(self.registers.Y);
                 self.cl += 3;
                 M
             }
             0xB5 => {
                 //i_i_B_Y;
-                let mut M = (self.Y + signedChar(self.B)) & 0xFFFF;
+                let mut M = (self.registers.Y + signedChar(self.registers.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
                 M
             }
             0xB6 => {
                 //i_i_A_Y;
-                let mut M = (self.Y + signedChar(self.A)) & 0xFFFF;
+                let mut M = (self.registers.Y + signedChar(self.registers.A)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
                 M
@@ -389,7 +376,7 @@ impl M6809 {
                 //i_i_8_Y;
                 self.m2 = mem.read(self.PC);
                 self.PC = (self.PC + 1) & 0xFFFF;
-                let mut M = (self.Y + signedChar(self.m2)) & 0xFFFF;
+                let mut M = (self.registers.Y + signedChar(self.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
                 M
@@ -398,7 +385,7 @@ impl M6809 {
                 //i_i_16_Y;
                 self.m2 = mem.read_16(self.PC);
                 self.PC = (self.PC + 2) & 0xFFFF;
-                let mut M = (self.Y + signed16bits(self.m2)) & 0xFFFF;
+                let mut M = (self.registers.Y + signed16bits(self.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
                 M
@@ -406,7 +393,7 @@ impl M6809 {
             0xBA => 0, //i_undoc;	/* empty */
             0xBB => {
                 //i_i_D_Y;
-                let mut M = (self.Y + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
+                let mut M = (self.registers.Y + signed16bits((self.registers.A << 8) | self.registers.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
                 M
@@ -414,42 +401,42 @@ impl M6809 {
             0xBE => 0, //i_undoc;	/* empty */ U
             0xC0 => {
                 //i_d_P1_U;
-                let M = self.U;
-                self.U = (self.U + 1) & 0xFFFF;
+                let M = self.registers.U;
+                self.registers.U = (self.registers.U + 1) & 0xFFFF;
                 self.cl += 2;
                 M
             }
             0xC1 => {
                 //i_d_P2_U;
-                let M = self.U;
-                self.U = (self.U + 2) & 0xFFFF;
+                let M = self.registers.U;
+                self.registers.U = (self.registers.U + 2) & 0xFFFF;
                 self.cl += 3;
                 M
             }
             0xC2 => {
                 //i_d_M1_U;
-                self.U = (self.U - 1) & 0xFFFF;
-                let M = self.U;
+                self.registers.U = (self.registers.U - 1) & 0xFFFF;
+                let M = self.registers.U;
                 self.cl += 2;
                 M
             }
             0xC3 => {
                 //i_d_M2_U;
-                self.U = (self.U - 2) & 0xFFFF;
-                let M = self.U;
+                self.registers.U = (self.registers.U - 2) & 0xFFFF;
+                let M = self.registers.U;
                 self.cl += 3;
                 M
             }
-            0xC4 => self.U, //i_d_U;
+            0xC4 => self.registers.U, //i_d_U;
             0xC5 => {
                 //i_d_B_U;
-                let M = (self.U + signedChar(self.B)) & 0xFFFF;
+                let M = (self.registers.U + signedChar(self.registers.B)) & 0xFFFF;
                 self.cl += 1;
                 M
             }
             0xC6 => {
                 //i_d_A_U;
-                let M = (self.U + signedChar(self.A)) & 0xFFFF;
+                let M = (self.registers.U + signedChar(self.registers.A)) & 0xFFFF;
                 self.cl += 1;
                 M
             }
@@ -458,7 +445,7 @@ impl M6809 {
                 //i_d_8_U;
                 self.m2 = mem.read(self.PC);
                 self.PC += 1;
-                let M = (self.U + signedChar(self.m2)) & 0xFFFF;
+                let M = (self.registers.U + signedChar(self.m2)) & 0xFFFF;
                 self.cl += 1;
                 M
             }
@@ -466,49 +453,49 @@ impl M6809 {
                 //i_d_16_U;
                 self.m2 = mem.read_16(self.PC);
                 self.PC += 2;
-                let M = (self.U + signed16bits(self.m2)) & 0xFFFF;
+                let M = (self.registers.U + signed16bits(self.m2)) & 0xFFFF;
                 self.cl += 4;
                 M
             }
             0xCA => 0, //i_undoc;	/* empty */
             0xCB => {
                 //i_d_D_U;
-                let M = (self.U + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
+                let M = (self.registers.U + signed16bits((self.registers.A << 8) | self.registers.B)) & 0xFFFF;
                 self.cl += 4;
                 M
             }
             0xCE..=0xD0 => 0, //i_undoc;	/* empty */
             0xD1 => {
                 //i_i_P2_U;
-                let M = mem.read_16(self.U);
-                self.U = (self.U + 2) & 0xFFFF;
+                let M = mem.read_16(self.registers.U);
+                self.registers.U = (self.registers.U + 2) & 0xFFFF;
                 self.cl += 6;
                 M
             }
             0xD2 => 0, //i_undoc;	/* empty */
             0xD3 => {
                 //i_i_M2_U;
-                self.U = (self.U - 2) & 0xFFFF;
-                let M = mem.read_16(self.U);
+                self.registers.U = (self.registers.U - 2) & 0xFFFF;
+                let M = mem.read_16(self.registers.U);
                 self.cl += 6;
                 M
             }
             0xD4 => {
                 //i_i_0_U;
-                let M = mem.read_16(self.U);
+                let M = mem.read_16(self.registers.U);
                 self.cl += 3;
                 M
             }
             0xD5 => {
                 //i_i_B_U;
-                let mut M = (self.U + signedChar(self.B)) & 0xFFFF;
+                let mut M = (self.registers.U + signedChar(self.registers.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
                 M
             }
             0xD6 => {
                 //i_i_A_U;
-                let mut M = (self.U + signedChar(self.A)) & 0xFFFF;
+                let mut M = (self.registers.U + signedChar(self.registers.A)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
                 M
@@ -518,7 +505,7 @@ impl M6809 {
                 //i_i_8_U;
                 self.m2 = mem.read(self.PC);
                 self.PC = (self.PC + 1) & 0xFFFF;
-                let mut M = (self.U + signedChar(self.m2)) & 0xFFFF;
+                let mut M = (self.registers.U + signedChar(self.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
                 M
@@ -527,7 +514,7 @@ impl M6809 {
                 //i_i_16_U;
                 self.m2 = mem.read_16(self.PC);
                 self.PC = (self.PC + 2) & 0xFFFF;
-                let mut M = (self.U + signed16bits(self.m2)) & 0xFFFF;
+                let mut M = (self.registers.U + signed16bits(self.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
                 M
@@ -535,7 +522,7 @@ impl M6809 {
             0xDA => 0, //i_undoc;	/* empty */
             0xDB => {
                 //i_i_D_U;
-                let mut M = (self.U + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
+                let mut M = (self.registers.U + signed16bits((self.registers.A << 8) | self.registers.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
                 M
@@ -543,42 +530,42 @@ impl M6809 {
             0xDE => 0, //i_undoc;	/* empty */// S
             0xE0 => {
                 //i_d_P1_S;
-                let M = self.S;
-                self.S = (self.S + 1) & 0xFFFF;
+                let M = self.registers.S;
+                self.registers.S = (self.registers.S + 1) & 0xFFFF;
                 self.cl += 2;
                 M
             }
             0xE1 => {
                 //i_d_P2_S;
-                let M = self.S;
-                self.S = (self.S + 2) & 0xFFFF;
+                let M = self.registers.S;
+                self.registers.S = (self.registers.S + 2) & 0xFFFF;
                 self.cl += 3;
                 M
             }
             0xE2 => {
                 //i_d_M1_S;
-                self.S = (self.S - 1) & 0xFFFF;
-                let M = self.S;
+                self.registers.S = (self.registers.S - 1) & 0xFFFF;
+                let M = self.registers.S;
                 self.cl += 2;
                 M
             }
             0xE3 => {
                 //i_d_M2_S;
-                self.S = (self.S - 2) & 0xFFFF;
-                let M = self.S;
+                self.registers.S = (self.registers.S - 2) & 0xFFFF;
+                let M = self.registers.S;
                 self.cl += 3;
                 M
             }
-            0xE4 => self.S, //i_d_S;
+            0xE4 => self.registers.S, //i_d_S;
             0xE5 => {
                 //i_d_B_S;
-                let M = (self.S + signedChar(self.B)) & 0xFFFF;
+                let M = (self.registers.S + signedChar(self.registers.B)) & 0xFFFF;
                 self.cl += 1;
                 M
             }
             0xE6 => {
                 //i_d_A_S;
-                let M = (self.S + signedChar(self.A)) & 0xFFFF;
+                let M = (self.registers.S + signedChar(self.registers.A)) & 0xFFFF;
                 self.cl += 1;
                 M
             }
@@ -587,7 +574,7 @@ impl M6809 {
                 //i_d_8_S;
                 self.m2 = mem.read(self.PC);
                 self.PC += 1;
-                let M = (self.S + signedChar(self.m2)) & 0xFFFF;
+                let M = (self.registers.S + signedChar(self.m2)) & 0xFFFF;
                 self.cl += 1;
                 M
             }
@@ -595,49 +582,49 @@ impl M6809 {
                 //i_d_16_S;
                 self.m2 = mem.read_16(self.PC);
                 self.PC += 2;
-                let M = (self.S + signed16bits(self.m2)) & 0xFFFF;
+                let M = (self.registers.S + signed16bits(self.m2)) & 0xFFFF;
                 self.cl += 4;
                 M
             }
             0xEA => 0, //i_undoc;	/* empty */
             0xEB => {
                 //i_d_D_S;
-                let M = (self.S + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
+                let M = (self.registers.S + signed16bits((self.registers.A << 8) | self.registers.B)) & 0xFFFF;
                 self.cl += 4;
                 M
             }
             0xEE..=0xF0 => 0, //i_undoc;	/* empty */
             0xF1 => {
                 //i_i_P2_S;
-                let M = mem.read_16(self.S);
-                self.S = (self.S + 2) & 0xFFFF;
+                let M = mem.read_16(self.registers.S);
+                self.registers.S = (self.registers.S + 2) & 0xFFFF;
                 self.cl += 6;
                 M
             }
             0xF2 => 0, //i_undoc;	/* empty */
             0xF3 => {
                 //i_i_M2_S;
-                self.S = (self.S - 2) & 0xFFFF;
-                let M = mem.read_16(self.S);
+                self.registers.S = (self.registers.S - 2) & 0xFFFF;
+                let M = mem.read_16(self.registers.S);
                 self.cl += 6;
                 M
             }
             0xF4 => {
                 //i_i_0_S;
-                let M = mem.read_16(self.S);
+                let M = mem.read_16(self.registers.S);
                 self.cl += 3;
                 M
             }
             0xF5 => {
                 //i_i_B_S;
-                let mut M = (self.S + signedChar(self.B)) & 0xFFFF;
+                let mut M = (self.registers.S + signedChar(self.registers.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
                 M
             }
             0xF6 => {
                 //i_i_A_S;
-                let mut M = (self.S + signedChar(self.A)) & 0xFFFF;
+                let mut M = (self.registers.S + signedChar(self.registers.A)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
                 M
@@ -647,7 +634,7 @@ impl M6809 {
                 //i_i_8_S;
                 self.m2 = mem.read(self.PC);
                 self.PC = (self.PC + 1) & 0xFFFF;
-                let mut M = (self.S + signedChar(self.m2)) & 0xFFFF;
+                let mut M = (self.registers.S + signedChar(self.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
                 M
@@ -656,7 +643,7 @@ impl M6809 {
                 //i_i_16_S;
                 self.m2 = mem.read_16(self.PC);
                 self.PC = (self.PC + 2) & 0xFFFF;
-                let mut M = (self.S + signed16bits(self.m2)) & 0xFFFF;
+                let mut M = (self.registers.S + signed16bits(self.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
                 M
@@ -664,7 +651,7 @@ impl M6809 {
             0xFA => 0, //i_undoc;	/* empty */
             0xFB => {
                 //i_i_D_S;
-                let mut M = (self.S + signed16bits((self.A << 8) | self.B)) & 0xFFFF;
+                let mut M = (self.registers.S + signed16bits((self.registers.A << 8) | self.registers.B)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
                 M
@@ -779,16 +766,16 @@ impl M6809 {
         // only for javac
         // of match r1
         let k: int = match r1 {
-            0x00 => (self.A << 8) | self.B,
-            0x01 => self.X,
-            0x02 => self.Y,
-            0x03 => self.U,
-            0x04 => self.S,
+            0x00 => (self.registers.A << 8) | self.registers.B,
+            0x01 => self.registers.X,
+            0x02 => self.registers.Y,
+            0x03 => self.registers.U,
+            0x04 => self.registers.S,
             0x05 => self.PC,
             0x06 => self.getcc(),
             0x07 => self.getcc(),
-            0x08 => self.A,
-            0x09 => self.B,
+            0x08 => self.registers.A,
+            0x09 => self.registers.B,
             0x0A => self.getcc(),
             0x0B => self.DP,
             0x0C => self.getcc(),
@@ -801,25 +788,25 @@ impl M6809 {
         let r2 = m & 0x0F;
         match r2 {
             0x00 => {
-                l = (self.A << 8) | self.B;
-                self.A = (k >> 8) & 255;
-                self.B = k & 255;
+                l = (self.registers.A << 8) | self.registers.B;
+                self.registers.A = (k >> 8) & 255;
+                self.registers.B = k & 255;
             }
             0x01 => {
-                l = self.X;
-                self.X = k;
+                l = self.registers.X;
+                self.registers.X = k;
             }
             0x02 => {
-                l = self.Y;
-                self.Y = k;
+                l = self.registers.Y;
+                self.registers.Y = k;
             }
             0x03 => {
-                l = self.U;
-                self.U = k;
+                l = self.registers.U;
+                self.registers.U = k;
             }
             0x04 => {
-                l = self.S;
-                self.S = k;
+                l = self.registers.S;
+                self.registers.S = k;
             }
             0x05 => {
                 l = self.PC;
@@ -834,12 +821,12 @@ impl M6809 {
                 self.setcc(k);
             }
             0x08 => {
-                l = self.A;
-                self.A = k & 0xff;
+                l = self.registers.A;
+                self.registers.A = k & 0xff;
             }
             0x09 => {
-                l = self.B;
-                self.B = k & 0xff;
+                l = self.registers.B;
+                self.registers.B = k & 0xff;
             }
             0x0A => {
                 l = self.getcc();
@@ -869,18 +856,18 @@ impl M6809 {
         } // of match r2
         match r1 {
             0x00 => {
-                self.A = (l >> 8) & 255;
-                self.B = l & 255;
+                self.registers.A = (l >> 8) & 255;
+                self.registers.B = l & 255;
             }
-            0x01 => self.X = l,
-            0x02 => self.Y = l,
-            0x03 => self.U = l,
-            0x04 => self.S = l,
+            0x01 => self.registers.X = l,
+            0x02 => self.registers.Y = l,
+            0x03 => self.registers.U = l,
+            0x04 => self.registers.S = l,
             0x05 => self.PC = l,
             0x06 => self.setcc(l),
             0x07 => self.setcc(l),
-            0x08 => self.A = l & 0xff,
-            0x09 => self.B = l & 0xff,
+            0x08 => self.registers.A = l & 0xff,
+            0x09 => self.registers.B = l & 0xff,
             0x0A => self.setcc(l),
             0x0B => self.DP = l & 0xff,
             0x0C => self.setcc(l),
@@ -899,15 +886,15 @@ impl M6809 {
         // only for javac
         // of match r1
         let k: int = match r1 {
-            0x00 => (self.A << 8) | self.B,
-            0x01 => self.X,
-            0x02 => self.Y,
-            0x03 => self.U,
-            0x04 => self.S,
+            0x00 => (self.registers.A << 8) | self.registers.B,
+            0x01 => self.registers.X,
+            0x02 => self.registers.Y,
+            0x03 => self.registers.U,
+            0x04 => self.registers.S,
             0x05 => self.PC,
             0x06 | 0x07 => self.getcc(),
-            0x08 => self.A,
-            0x09 => self.B,
+            0x08 => self.registers.A,
+            0x09 => self.registers.B,
             0x0A => self.getcc(),
             0x0B => self.DP,
             0x0C | 0x0D | 0x0E | 0x0F => self.getcc(),
@@ -916,17 +903,17 @@ impl M6809 {
         let r2 = m & 0x0F;
         match r2 {
             0x00 => {
-                self.A = (k >> 8) & 255;
-                self.B = k & 255;
+                self.registers.A = (k >> 8) & 255;
+                self.registers.B = k & 255;
             }
-            0x01 => self.X = k,
-            0x02 => self.Y = k,
-            0x03 => self.U = k,
-            0x04 => self.S = k,
+            0x01 => self.registers.X = k,
+            0x02 => self.registers.Y = k,
+            0x03 => self.registers.U = k,
+            0x04 => self.registers.S = k,
             0x05 => self.PC = k,
             0x06 | 0x07 => self.setcc(k),
-            0x08 => self.A = k & 0xff,
-            0x09 => self.B = k & 0xff,
+            0x08 => self.registers.A = k & 0xff,
+            0x09 => self.registers.B = k & 0xff,
             0x0A => self.setcc(k),
             0x0B => self.DP = k & 0xff,
             0x0C | 0x0D | 0x0E | 0x0F => self.setcc(k),
@@ -938,52 +925,52 @@ impl M6809 {
         let m = mem.read(self.PC);
         self.PC += 1;
         if (m & 0x80) != 0 {
-            self.S -= 1;
-            mem.write(self.S, self.PC & 0x00FF);
-            self.S -= 1;
-            mem.write(self.S, self.PC >> 8);
+            self.registers.S -= 1;
+            mem.write(self.registers.S, self.PC & 0x00FF);
+            self.registers.S -= 1;
+            mem.write(self.registers.S, self.PC >> 8);
             self.cl += 2;
         }
         if (m & 0x40) != 0 {
-            self.S -= 1;
-            mem.write(self.S, self.U & 0x00FF);
-            self.S -= 1;
-            mem.write(self.S, self.U >> 8);
+            self.registers.S -= 1;
+            mem.write(self.registers.S, self.registers.U & 0x00FF);
+            self.registers.S -= 1;
+            mem.write(self.registers.S, self.registers.U >> 8);
             self.cl += 2;
         }
         if (m & 0x20) != 0 {
-            self.S -= 1;
-            mem.write(self.S, self.Y & 0x00FF);
-            self.S -= 1;
-            mem.write(self.S, self.Y >> 8);
+            self.registers.S -= 1;
+            mem.write(self.registers.S, self.registers.Y & 0x00FF);
+            self.registers.S -= 1;
+            mem.write(self.registers.S, self.registers.Y >> 8);
             self.cl += 2;
         }
         if (m & 0x10) != 0 {
-            self.S -= 1;
-            mem.write(self.S, self.X & 0x00FF);
-            self.S -= 1;
-            mem.write(self.S, self.X >> 8);
+            self.registers.S -= 1;
+            mem.write(self.registers.S, self.registers.X & 0x00FF);
+            self.registers.S -= 1;
+            mem.write(self.registers.S, self.registers.X >> 8);
             self.cl += 2;
         }
         if (m & 0x08) != 0 {
-            self.S -= 1;
-            mem.write(self.S, self.DP);
+            self.registers.S -= 1;
+            mem.write(self.registers.S, self.DP);
             self.cl += 1;
         }
         if (m & 0x04) != 0 {
-            self.S -= 1;
-            mem.write(self.S, self.B);
+            self.registers.S -= 1;
+            mem.write(self.registers.S, self.registers.B);
             self.cl += 1;
         }
         if (m & 0x02) != 0 {
-            self.S -= 1;
-            mem.write(self.S, self.A);
+            self.registers.S -= 1;
+            mem.write(self.registers.S, self.registers.A);
             self.cl += 1;
         }
         if (m & 0x01) != 0 {
-            self.S -= 1;
+            self.registers.S -= 1;
             self.getcc();
-            mem.write(self.S, self.CC);
+            mem.write(self.registers.S, self.CC);
             self.cl += 1;
         }
         self.cl += 5;
@@ -993,52 +980,52 @@ impl M6809 {
         let m = mem.read(self.PC);
         self.PC += 1;
         if (m & 0x80) != 0 {
-            self.U -= 1;
-            mem.write(self.U, self.PC & 0x00FF);
-            self.U -= 1;
-            mem.write(self.U, self.PC >> 8);
+            self.registers.U -= 1;
+            mem.write(self.registers.U, self.PC & 0x00FF);
+            self.registers.U -= 1;
+            mem.write(self.registers.U, self.PC >> 8);
             self.cl += 2;
         }
         if (m & 0x40) != 0 {
-            self.U -= 1;
-            mem.write(self.U, self.S & 0x00FF);
-            self.U -= 1;
-            mem.write(self.U, self.S >> 8);
+            self.registers.U -= 1;
+            mem.write(self.registers.U, self.registers.S & 0x00FF);
+            self.registers.U -= 1;
+            mem.write(self.registers.U, self.registers.S >> 8);
             self.cl += 2;
         }
         if (m & 0x20) != 0 {
-            self.U -= 1;
-            mem.write(self.U, self.Y & 0x00FF);
-            self.U -= 1;
-            mem.write(self.U, self.Y >> 8);
+            self.registers.U -= 1;
+            mem.write(self.registers.U, self.registers.Y & 0x00FF);
+            self.registers.U -= 1;
+            mem.write(self.registers.U, self.registers.Y >> 8);
             self.cl += 2;
         }
         if (m & 0x10) != 0 {
-            self.U -= 1;
-            mem.write(self.U, self.X & 0x00FF);
-            self.U -= 1;
-            mem.write(self.U, self.X >> 8);
+            self.registers.U -= 1;
+            mem.write(self.registers.U, self.registers.X & 0x00FF);
+            self.registers.U -= 1;
+            mem.write(self.registers.U, self.registers.X >> 8);
             self.cl += 2;
         }
         if (m & 0x08) != 0 {
-            self.U -= 1;
-            mem.write(self.U, self.DP);
+            self.registers.U -= 1;
+            mem.write(self.registers.U, self.DP);
             self.cl += 1;
         }
         if (m & 0x04) != 0 {
-            self.U -= 1;
-            mem.write(self.U, self.B);
+            self.registers.U -= 1;
+            mem.write(self.registers.U, self.registers.B);
             self.cl += 1;
         }
         if (m & 0x02) != 0 {
-            self.U -= 1;
-            mem.write(self.U, self.A);
+            self.registers.U -= 1;
+            mem.write(self.registers.U, self.registers.A);
             self.cl += 1;
         }
         if (m & 0x01) != 0 {
-            self.U -= 1;
+            self.registers.U -= 1;
             self.getcc();
-            mem.write(self.U, self.CC);
+            mem.write(self.registers.U, self.CC);
             self.cl += 1;
         }
         self.cl += 5;
@@ -1048,44 +1035,44 @@ impl M6809 {
         let m = mem.read(self.PC);
         self.PC += 1;
         if (m & 0x01) != 0 {
-            self.CC = mem.read(self.S);
+            self.CC = mem.read(self.registers.S);
             self.setcc(self.CC);
-            self.S += 1;
+            self.registers.S += 1;
             self.cl += 1;
         }
         if (m & 0x02) != 0 {
-            self.A = mem.read(self.S);
-            self.S += 1;
+            self.registers.A = mem.read(self.registers.S);
+            self.registers.S += 1;
             self.cl += 1;
         }
         if (m & 0x04) != 0 {
-            self.B = mem.read(self.S);
-            self.S += 1;
+            self.registers.B = mem.read(self.registers.S);
+            self.registers.S += 1;
             self.cl += 1;
         }
         if (m & 0x08) != 0 {
-            self.DP = mem.read(self.S);
-            self.S += 1;
+            self.DP = mem.read(self.registers.S);
+            self.registers.S += 1;
             self.cl += 1;
         }
         if (m & 0x10) != 0 {
-            self.X = mem.read_16(self.S);
-            self.S += 2;
+            self.registers.X = mem.read_16(self.registers.S);
+            self.registers.S += 2;
             self.cl += 2;
         }
         if (m & 0x20) != 0 {
-            self.Y = mem.read_16(self.S);
-            self.S += 2;
+            self.registers.Y = mem.read_16(self.registers.S);
+            self.registers.S += 2;
             self.cl += 2;
         }
         if (m & 0x40) != 0 {
-            self.U = mem.read_16(self.S);
-            self.S += 2;
+            self.registers.U = mem.read_16(self.registers.S);
+            self.registers.S += 2;
             self.cl += 2;
         }
         if (m & 0x80) != 0 {
-            self.PC = mem.read_16(self.S);
-            self.S += 2;
+            self.PC = mem.read_16(self.registers.S);
+            self.registers.S += 2;
             self.cl += 2;
         }
         self.cl += 5;
@@ -1095,65 +1082,65 @@ impl M6809 {
         let m = mem.read(self.PC);
         self.PC += 1;
         if (m & 0x01) != 0 {
-            self.CC = mem.read(self.U);
+            self.CC = mem.read(self.registers.U);
             self.setcc(self.CC);
-            self.U += 1;
+            self.registers.U += 1;
             self.cl += 1;
         }
         if (m & 0x02) != 0 {
-            self.A = mem.read(self.U);
-            self.U += 1;
+            self.registers.A = mem.read(self.registers.U);
+            self.registers.U += 1;
             self.cl += 1;
         }
         if (m & 0x04) != 0 {
-            self.B = mem.read(self.U);
-            self.U += 1;
+            self.registers.B = mem.read(self.registers.U);
+            self.registers.U += 1;
             self.cl += 1;
         }
         if (m & 0x08) != 0 {
-            self.DP = mem.read(self.U);
-            self.U += 1;
+            self.DP = mem.read(self.registers.U);
+            self.registers.U += 1;
             self.cl += 1;
         }
         if (m & 0x10) != 0 {
-            self.X = mem.read_16(self.U);
-            self.U += 2;
+            self.registers.X = mem.read_16(self.registers.U);
+            self.registers.U += 2;
             self.cl += 2;
         }
         if (m & 0x20) != 0 {
-            self.Y = mem.read_16(self.U);
-            self.U += 2;
+            self.registers.Y = mem.read_16(self.registers.U);
+            self.registers.U += 2;
             self.cl += 2;
         }
         if (m & 0x40) != 0 {
-            self.S = mem.read_16(self.U);
-            self.U += 2;
+            self.registers.S = mem.read_16(self.registers.U);
+            self.registers.U += 2;
             self.cl += 2;
         }
         if (m & 0x80) != 0 {
-            self.PC = mem.read_16(self.U);
-            self.U += 2;
+            self.PC = mem.read_16(self.registers.U);
+            self.registers.U += 2;
             self.cl += 2;
         }
         self.cl += 5;
     }
 
     const fn INCA(&mut self) {
-        self.m1 = self.A;
+        self.m1 = self.registers.A;
         self.m2 = 0;
-        self.A = (self.A + 1) & 0xFF;
-        self.ovfl = self.A;
-        self.sign = self.A;
+        self.registers.A = (self.registers.A + 1) & 0xFF;
+        self.ovfl = self.registers.A;
+        self.sign = self.registers.A;
         self.res = (self.res & 0x100) | self.sign;
         self.cl += 2;
     }
 
     const fn INCB(&mut self) {
-        self.m1 = self.B;
+        self.m1 = self.registers.B;
         self.m2 = 0;
-        self.B = (self.B + 1) & 0xFF;
-        self.ovfl = self.B;
-        self.sign = self.B;
+        self.registers.B = (self.registers.B + 1) & 0xFF;
+        self.ovfl = self.registers.B;
+        self.sign = self.registers.B;
         self.res = (self.res & 0x100) | self.sign;
         self.cl += 2;
     }
@@ -1172,21 +1159,21 @@ impl M6809 {
 
     // DEC
     const fn DECA(&mut self) {
-        self.m1 = self.A;
+        self.m1 = self.registers.A;
         self.m2 = 0x80;
-        self.A = (self.A - 1) & 0xFF;
-        self.ovfl = self.A;
-        self.sign = self.A;
+        self.registers.A = (self.registers.A - 1) & 0xFF;
+        self.ovfl = self.registers.A;
+        self.sign = self.registers.A;
         self.res = (self.res & 0x100) | self.sign;
         self.cl += 2;
     }
 
     const fn DECB(&mut self) {
-        self.m1 = self.B;
+        self.m1 = self.registers.B;
         self.m2 = 0x80;
-        self.B = (self.B - 1) & 0xFF;
-        self.ovfl = self.B;
-        self.sign = self.B;
+        self.registers.B = (self.registers.B - 1) & 0xFF;
+        self.ovfl = self.registers.B;
+        self.sign = self.registers.B;
         self.res = (self.res & 0x100) | self.sign;
         self.cl += 2;
     }
@@ -1235,14 +1222,14 @@ impl M6809 {
     // TST
     const fn TSTAi(&mut self) {
         self.m1 = self.ovfl;
-        self.sign = self.A;
+        self.sign = self.registers.A;
         self.res = (self.res & 0x100) | self.sign;
         self.cl += 2;
     }
 
     const fn TSTBi(&mut self) {
         self.m1 = self.ovfl;
-        self.sign = self.B;
+        self.sign = self.registers.B;
         self.res = (self.res & 0x100) | self.sign;
         self.cl += 2;
     }
@@ -1258,8 +1245,8 @@ impl M6809 {
     fn ANDA(&mut self, adr: int, c: int, mem: &mut Memory) {
         let val = mem.read(adr);
         self.m1 = self.ovfl;
-        self.A &= val;
-        self.sign = self.A;
+        self.registers.A &= val;
+        self.sign = self.registers.A;
         self.res = (self.res & 0x100) | self.sign;
         self.cl += c;
     }
@@ -1267,8 +1254,8 @@ impl M6809 {
     fn ANDB(&mut self, adr: int, c: int, mem: &mut Memory) {
         let val = mem.read(adr);
         self.m1 = self.ovfl;
-        self.B &= val;
-        self.sign = self.B;
+        self.registers.B &= val;
+        self.sign = self.registers.B;
         self.res = (self.res & 0x100) | self.sign;
         self.cl += c;
     }
@@ -1284,8 +1271,8 @@ impl M6809 {
     fn ORA(&mut self, adr: int, c: int, mem: &mut Memory) {
         let val = mem.read(adr);
         self.m1 = self.ovfl;
-        self.A |= val;
-        self.sign = self.A;
+        self.registers.A |= val;
+        self.sign = self.registers.A;
         self.res = (self.res & 0x100) | self.sign;
         self.cl += c;
     }
@@ -1293,8 +1280,8 @@ impl M6809 {
     fn ORB(&mut self, adr: int, c: int, mem: &mut Memory) {
         let val = mem.read(adr);
         self.m1 = self.ovfl;
-        self.B |= val;
-        self.sign = self.B;
+        self.registers.B |= val;
+        self.sign = self.registers.B;
         self.res = (self.res & 0x100) | self.sign;
         self.cl += c;
     }
@@ -1310,8 +1297,8 @@ impl M6809 {
     fn EORA(&mut self, adr: int, c: int, mem: &mut Memory) {
         let val = mem.read(adr);
         self.m1 = self.ovfl;
-        self.A ^= val;
-        self.sign = self.A;
+        self.registers.A ^= val;
+        self.sign = self.registers.A;
         self.res = (self.res & 0x100) | self.sign;
         self.cl += c;
     }
@@ -1319,24 +1306,24 @@ impl M6809 {
     fn EORB(&mut self, adr: int, c: int, mem: &mut Memory) {
         let val = mem.read(adr);
         self.m1 = self.ovfl;
-        self.B ^= val;
-        self.sign = self.B;
+        self.registers.B ^= val;
+        self.sign = self.registers.B;
         self.res = (self.res & 0x100) | self.sign;
         self.cl += c;
     }
 
     const fn COMA(&mut self) {
         self.m1 = self.ovfl;
-        self.A = (!self.A) & 0xFF;
-        self.sign = self.A;
+        self.registers.A = (!self.registers.A) & 0xFF;
+        self.sign = self.registers.A;
         self.res = self.sign | 0x100;
         self.cl += 2;
     }
 
     const fn COMB(&mut self) {
         self.m1 = self.ovfl;
-        self.B = (!self.B) & 0xFF;
-        self.sign = self.B;
+        self.registers.B = (!self.registers.B) & 0xFF;
+        self.sign = self.registers.B;
         self.res = self.sign | 0x100;
         self.cl += 2;
     }
@@ -1352,24 +1339,24 @@ impl M6809 {
     }
 
     const fn NEGA(&mut self) {
-        self.m1 = self.A;
-        self.m2 = -self.A;
-        self.A = -self.A;
-        self.ovfl = self.A;
-        self.res = self.A;
-        self.sign = self.A;
-        self.A &= 0xFF;
+        self.m1 = self.registers.A;
+        self.m2 = -self.registers.A;
+        self.registers.A = -self.registers.A;
+        self.ovfl = self.registers.A;
+        self.res = self.registers.A;
+        self.sign = self.registers.A;
+        self.registers.A &= 0xFF;
         self.cl += 2;
     }
 
     const fn NEGB(&mut self) {
-        self.m1 = self.B;
-        self.m2 = -self.B;
-        self.B = -self.B;
-        self.ovfl = self.B;
-        self.res = self.B;
-        self.sign = self.B;
-        self.B &= 0xFF;
+        self.m1 = self.registers.B;
+        self.m2 = -self.registers.B;
+        self.registers.B = -self.registers.B;
+        self.ovfl = self.registers.B;
+        self.res = self.registers.B;
+        self.sign = self.registers.B;
+        self.registers.B &= 0xFF;
         self.cl += 2;
     }
 
@@ -1386,182 +1373,182 @@ impl M6809 {
     }
 
     const fn ABX(&mut self) {
-        self.X = (self.X + self.B) & 0xFFFF;
+        self.registers.X = (self.registers.X + self.registers.B) & 0xFFFF;
         self.cl += 3;
     }
 
     fn ADDA(&mut self, adr: int, c: int, mem: &mut Memory) {
         let val = mem.read(adr);
-        self.m1 = self.A;
-        self.h1 = self.A;
+        self.m1 = self.registers.A;
+        self.h1 = self.registers.A;
         self.m2 = val;
         self.h2 = val;
-        self.A += val;
-        self.ovfl = self.A;
-        self.res = self.A;
-        self.sign = self.A;
-        self.A &= 0xFF;
+        self.registers.A += val;
+        self.ovfl = self.registers.A;
+        self.res = self.registers.A;
+        self.sign = self.registers.A;
+        self.registers.A &= 0xFF;
         self.cl += c;
     }
 
     fn ADDB(&mut self, adr: int, c: int, mem: &mut Memory) {
         let val = mem.read(adr);
-        self.m1 = self.B;
-        self.h1 = self.B;
+        self.m1 = self.registers.B;
+        self.h1 = self.registers.B;
         self.m2 = val;
         self.h2 = val;
-        self.B += val;
-        self.ovfl = self.B;
-        self.res = self.B;
-        self.sign = self.B;
-        self.B &= 0xFF;
+        self.registers.B += val;
+        self.ovfl = self.registers.B;
+        self.res = self.registers.B;
+        self.sign = self.registers.B;
+        self.registers.B &= 0xFF;
         self.cl += c;
     }
 
     fn ADDD(&mut self, adr: int, c: int, mem: &mut Memory) {
         let val = mem.read_16(adr);
-        self.m1 = self.A;
+        self.m1 = self.registers.A;
         self.m2 = val >> 8;
-        self.D = (self.A << 8) + self.B + val;
-        self.A = self.D >> 8;
-        self.B = self.D & 0xFF;
-        self.ovfl = self.A;
-        self.res = self.A;
-        self.sign = self.A;
-        self.res |= self.B;
-        self.A &= 0xFF;
+        self.registers.D = (self.registers.A << 8) + self.registers.B + val;
+        self.registers.A = self.registers.D >> 8;
+        self.registers.B = self.registers.D & 0xFF;
+        self.ovfl = self.registers.A;
+        self.res = self.registers.A;
+        self.sign = self.registers.A;
+        self.res |= self.registers.B;
+        self.registers.A &= 0xFF;
         self.cl += c;
     }
 
     fn ADCA(&mut self, adr: int, c: int, mem: &mut Memory) {
         let val = mem.read(adr);
-        self.m1 = self.A;
-        self.h1 = self.A;
+        self.m1 = self.registers.A;
+        self.h1 = self.registers.A;
         self.m2 = val;
         self.h2 = val + ((self.res & 0x100) >> 8);
-        self.A += self.h2;
-        self.ovfl = self.A;
-        self.res = self.A;
-        self.sign = self.A;
-        self.A &= 0xFF;
+        self.registers.A += self.h2;
+        self.ovfl = self.registers.A;
+        self.res = self.registers.A;
+        self.sign = self.registers.A;
+        self.registers.A &= 0xFF;
         self.cl += c;
     }
 
     fn ADCB(&mut self, adr: int, c: int, mem: &mut Memory) {
         let val = mem.read(adr);
-        self.m1 = self.B;
-        self.h1 = self.B;
+        self.m1 = self.registers.B;
+        self.h1 = self.registers.B;
         self.m2 = val;
         self.h2 = val + ((self.res & 0x100) >> 8);
-        self.B += self.h2;
-        self.ovfl = self.B;
-        self.res = self.B;
-        self.sign = self.B;
-        self.B &= 0xFF;
+        self.registers.B += self.h2;
+        self.ovfl = self.registers.B;
+        self.res = self.registers.B;
+        self.sign = self.registers.B;
+        self.registers.B &= 0xFF;
         self.cl += c;
     }
 
     const fn MUL(&mut self) {
-        let k = self.A * self.B;
-        self.A = (k >> 8) & 0xFF;
-        self.B = k & 0xFF;
-        self.res = ((self.B & 0x80) << 1) | ((k | (k >> 8)) & 0xFF);
+        let k = self.registers.A * self.registers.B;
+        self.registers.A = (k >> 8) & 0xFF;
+        self.registers.B = k & 0xFF;
+        self.res = ((self.registers.B & 0x80) << 1) | ((k | (k >> 8)) & 0xFF);
         self.cl += 11;
     }
 
     fn SBCA(&mut self, adr: int, c: int, mem: &mut Memory) {
         let val = mem.read(adr);
-        self.m1 = self.A;
+        self.m1 = self.registers.A;
         self.m2 = -val;
-        self.A -= val + ((self.res & 0x100) >> 8);
-        self.ovfl = self.A;
-        self.res = self.A;
-        self.sign = self.A;
-        self.A &= 0xFF;
+        self.registers.A -= val + ((self.res & 0x100) >> 8);
+        self.ovfl = self.registers.A;
+        self.res = self.registers.A;
+        self.sign = self.registers.A;
+        self.registers.A &= 0xFF;
         self.cl += c;
     }
 
     fn SBCB(&mut self, adr: int, c: int, mem: &mut Memory) {
         let val = mem.read(adr);
-        self.m1 = self.B;
+        self.m1 = self.registers.B;
         self.m2 = -val;
-        self.B -= val + ((self.res & 0x100) >> 8);
-        self.ovfl = self.B;
-        self.res = self.B;
-        self.sign = self.B;
-        self.B &= 0xFF;
+        self.registers.B -= val + ((self.res & 0x100) >> 8);
+        self.ovfl = self.registers.B;
+        self.res = self.registers.B;
+        self.sign = self.registers.B;
+        self.registers.B &= 0xFF;
         self.cl += c;
     }
 
     fn SUBA(&mut self, adr: int, c: int, mem: &mut Memory) {
         let val = mem.read(adr);
-        self.m1 = self.A;
+        self.m1 = self.registers.A;
         self.m2 = -val;
-        self.A -= val;
-        self.ovfl = self.A;
-        self.res = self.A;
-        self.sign = self.A;
-        self.A &= 0xFF;
+        self.registers.A -= val;
+        self.ovfl = self.registers.A;
+        self.res = self.registers.A;
+        self.sign = self.registers.A;
+        self.registers.A &= 0xFF;
         self.cl += c;
     }
 
     fn SUBB(&mut self, adr: int, c: int, mem: &mut Memory) {
         let val = mem.read(adr);
-        self.m1 = self.B;
+        self.m1 = self.registers.B;
         self.m2 = -val;
-        self.B -= val;
-        self.ovfl = self.B;
-        self.res = self.B;
-        self.sign = self.B;
-        self.B &= 0xFF;
+        self.registers.B -= val;
+        self.ovfl = self.registers.B;
+        self.res = self.registers.B;
+        self.sign = self.registers.B;
+        self.registers.B &= 0xFF;
         self.cl += c;
     }
 
     fn SUBD(&mut self, adr: int, c: int, mem: &mut Memory) {
         let val = mem.read_16(adr);
-        self.m1 = self.A;
+        self.m1 = self.registers.A;
         self.m2 = (-val) >> 8;
-        self.D = (self.A << 8) + self.B - val;
-        self.A = self.D >> 8;
-        self.B = self.D & 0xFF;
-        self.ovfl = self.A;
-        self.res = self.A;
-        self.sign = self.A;
-        self.res |= self.B;
-        self.A &= 0xFF;
+        self.registers.D = (self.registers.A << 8) + self.registers.B - val;
+        self.registers.A = self.registers.D >> 8;
+        self.registers.B = self.registers.D & 0xFF;
+        self.ovfl = self.registers.A;
+        self.res = self.registers.A;
+        self.sign = self.registers.A;
+        self.res |= self.registers.B;
+        self.registers.A &= 0xFF;
         self.cl += c;
     }
 
     const fn SEX(&mut self) {
-        if (self.B & 0x80) == 0x80 {
-            self.A = 0xFF;
+        if (self.registers.B & 0x80) == 0x80 {
+            self.registers.A = 0xFF;
         } else {
-            self.A = 0;
+            self.registers.A = 0;
         }
-        self.sign = self.B;
+        self.sign = self.registers.B;
         self.res = (self.res & 0x100) | self.sign;
         self.cl += 2;
     }
 
     const fn ASLA(&mut self) {
-        self.m1 = self.A;
-        self.m2 = self.A;
-        self.A <<= 1;
-        self.ovfl = self.A;
-        self.sign = self.A;
-        self.res = self.A;
-        self.A &= 0xFF;
+        self.m1 = self.registers.A;
+        self.m2 = self.registers.A;
+        self.registers.A <<= 1;
+        self.ovfl = self.registers.A;
+        self.sign = self.registers.A;
+        self.res = self.registers.A;
+        self.registers.A &= 0xFF;
         self.cl += 2;
     }
 
     const fn ASLB(&mut self) {
-        self.m1 = self.B;
-        self.m2 = self.B;
-        self.B <<= 1;
-        self.ovfl = self.B;
-        self.sign = self.B;
-        self.res = self.B;
-        self.B &= 0xFF;
+        self.m1 = self.registers.B;
+        self.m2 = self.registers.B;
+        self.registers.B <<= 1;
+        self.ovfl = self.registers.B;
+        self.sign = self.registers.B;
+        self.res = self.registers.B;
+        self.registers.B &= 0xFF;
         self.cl += 2;
     }
 
@@ -1578,17 +1565,17 @@ impl M6809 {
     }
 
     const fn ASRA(&mut self) {
-        self.res = (self.A & 1) << 8;
-        self.A = (self.A >> 1) | (self.A & 0x80);
-        self.sign = self.A;
+        self.res = (self.registers.A & 1) << 8;
+        self.registers.A = (self.registers.A >> 1) | (self.registers.A & 0x80);
+        self.sign = self.registers.A;
         self.res |= self.sign;
         self.cl += 2;
     }
 
     const fn ASRB(&mut self) {
-        self.res = (self.B & 1) << 8;
-        self.B = (self.B >> 1) | (self.B & 0x80);
-        self.sign = self.B;
+        self.res = (self.registers.B & 1) << 8;
+        self.registers.B = (self.registers.B >> 1) | (self.registers.B & 0x80);
+        self.sign = self.registers.B;
         self.res |= self.sign;
         self.cl += 2;
     }
@@ -1604,18 +1591,18 @@ impl M6809 {
     }
 
     const fn LSRA(&mut self) {
-        self.res = (self.A & 1) << 8;
-        self.A >>= 1;
+        self.res = (self.registers.A & 1) << 8;
+        self.registers.A >>= 1;
         self.sign = 0;
-        self.res |= self.A;
+        self.res |= self.registers.A;
         self.cl += 2;
     }
 
     const fn LSRB(&mut self) {
-        self.res = (self.B & 1) << 8;
-        self.B >>= 1;
+        self.res = (self.registers.B & 1) << 8;
+        self.registers.B >>= 1;
         self.sign = 0;
-        self.res |= self.B;
+        self.res |= self.registers.B;
         self.cl += 2;
     }
 
@@ -1630,24 +1617,24 @@ impl M6809 {
     }
 
     const fn ROLA(&mut self) {
-        self.m1 = self.A;
-        self.m2 = self.A;
-        self.A = (self.A << 1) | ((self.res & 0x100) >> 8);
-        self.ovfl = self.A;
-        self.sign = self.A;
-        self.res = self.A;
-        self.A &= 0xFF;
+        self.m1 = self.registers.A;
+        self.m2 = self.registers.A;
+        self.registers.A = (self.registers.A << 1) | ((self.res & 0x100) >> 8);
+        self.ovfl = self.registers.A;
+        self.sign = self.registers.A;
+        self.res = self.registers.A;
+        self.registers.A &= 0xFF;
         self.cl += 2;
     }
 
     const fn ROLB(&mut self) {
-        self.m1 = self.B;
-        self.m2 = self.B;
-        self.B = (self.B << 1) | ((self.res & 0x100) >> 8);
-        self.ovfl = self.B;
-        self.sign = self.B;
-        self.res = self.B;
-        self.B &= 0xFF;
+        self.m1 = self.registers.B;
+        self.m2 = self.registers.B;
+        self.registers.B = (self.registers.B << 1) | ((self.res & 0x100) >> 8);
+        self.ovfl = self.registers.B;
+        self.sign = self.registers.B;
+        self.res = self.registers.B;
+        self.registers.B &= 0xFF;
         self.cl += 2;
     }
 
@@ -1664,17 +1651,17 @@ impl M6809 {
     }
 
     const fn RORA(&mut self) {
-        let i = self.A;
-        self.A = (self.A | (self.res & 0x100)) >> 1;
-        self.sign = self.A;
+        let i = self.registers.A;
+        self.registers.A = (self.registers.A | (self.res & 0x100)) >> 1;
+        self.sign = self.registers.A;
         self.res = ((i & 1) << 8) | self.sign;
         self.cl += 2;
     }
 
     const fn RORB(&mut self) {
-        let i = self.B;
-        self.B = (self.B | (self.res & 0x100)) >> 1;
-        self.sign = self.B;
+        let i = self.registers.B;
+        self.registers.B = (self.registers.B | (self.res & 0x100)) >> 1;
+        self.sign = self.registers.B;
         self.res = ((i & 1) << 8) | self.sign;
         self.cl += 2;
     }
@@ -1728,10 +1715,10 @@ impl M6809 {
     fn BSR(&mut self, mem: &mut Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
-        self.S -= 1;
-        mem.write(self.S, self.PC & 0x00FF);
-        self.S -= 1;
-        mem.write(self.S, self.PC >> 8);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.PC & 0x00FF);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.PC >> 8);
         self.PC += signedChar(m);
         self.cl += 7;
     }
@@ -1743,10 +1730,10 @@ impl M6809 {
         m = mem.read(self.PC);
         self.PC += 1;
         off |= m;
-        self.S -= 1;
-        mem.write(self.S, self.PC & 0x00FF);
-        self.S -= 1;
-        mem.write(self.S, self.PC >> 8);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.PC & 0x00FF);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.PC >> 8);
         self.PC = (self.PC + off) & 0xFFFF;
         self.cl += 9;
     }
@@ -1754,30 +1741,30 @@ impl M6809 {
     fn JSRd(&mut self, mem: &mut Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
-        self.S -= 1;
-        mem.write(self.S, self.PC & 0x00FF);
-        self.S -= 1;
-        mem.write(self.S, self.PC >> 8);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.PC & 0x00FF);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.PC >> 8);
         self.PC = (self.DP << 8) | m;
         self.cl += 7;
     }
 
     fn JSRe(&mut self, mem: &mut Memory) {
         let adr = self.ETEND(mem);
-        self.S -= 1;
-        mem.write(self.S, self.PC & 0x00FF);
-        self.S -= 1;
-        mem.write(self.S, self.PC >> 8);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.PC & 0x00FF);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.PC >> 8);
         self.PC = adr;
         self.cl += 8;
     }
 
     fn JSRx(&mut self, mem: &mut Memory) {
         let adr = self.INDEXE(mem);
-        self.S -= 1;
-        mem.write(self.S, self.PC & 0x00FF);
-        self.S -= 1;
-        mem.write(self.S, self.PC >> 8);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.PC & 0x00FF);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.PC >> 8);
         self.PC = adr;
         self.cl += 7;
     }
@@ -1801,8 +1788,8 @@ impl M6809 {
     }
 
     fn RTS(&mut self, mem: &mut Memory) {
-        self.PC = mem.read_16(self.S);
-        self.S += 2;
+        self.PC = mem.read_16(self.registers.S);
+        self.registers.S += 2;
         self.cl += 5;
     }
 
@@ -2153,59 +2140,59 @@ impl M6809 {
         self.getcc();
         self.CC |= 0x80; /* bit E � 1 */
         self.setcc(self.CC);
-        self.S -= 1;
-        mem.write(self.S, self.PC & 0x00FF);
-        self.S -= 1;
-        mem.write(self.S, self.PC >> 8);
-        self.S -= 1;
-        mem.write(self.S, self.U & 0x00FF);
-        self.S -= 1;
-        mem.write(self.S, self.U >> 8);
-        self.S -= 1;
-        mem.write(self.S, self.Y & 0x00FF);
-        self.S -= 1;
-        mem.write(self.S, self.Y >> 8);
-        self.S -= 1;
-        mem.write(self.S, self.X & 0x00FF);
-        self.S -= 1;
-        mem.write(self.S, self.X >> 8);
-        self.S -= 1;
-        mem.write(self.S, self.DP);
-        self.S -= 1;
-        mem.write(self.S, self.B);
-        self.S -= 1;
-        mem.write(self.S, self.A);
-        self.S -= 1;
-        mem.write(self.S, self.CC);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.PC & 0x00FF);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.PC >> 8);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.registers.U & 0x00FF);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.registers.U >> 8);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.registers.Y & 0x00FF);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.registers.Y >> 8);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.registers.X & 0x00FF);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.registers.X >> 8);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.DP);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.registers.B);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.registers.A);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.CC);
 
         self.PC = mem.read_16(0xFFFA);
         self.cl += 19;
     }
 
     fn RTI(&mut self, mem: &mut Memory) {
-        self.CC = mem.read(self.S);
+        self.CC = mem.read(self.registers.S);
         self.setcc(self.CC);
-        self.S += 1;
+        self.registers.S += 1;
         if (self.CC & 0x80) == 0x80 {
-            self.A = mem.read(self.S);
-            self.S += 1;
-            self.B = mem.read(self.S);
-            self.S += 1;
-            self.DP = mem.read(self.S);
-            self.S += 1;
-            self.X = mem.read_16(self.S);
-            self.S += 2;
-            self.Y = mem.read_16(self.S);
-            self.S += 2;
-            self.U = mem.read_16(self.S);
-            self.S += 2;
+            self.registers.A = mem.read(self.registers.S);
+            self.registers.S += 1;
+            self.registers.B = mem.read(self.registers.S);
+            self.registers.S += 1;
+            self.DP = mem.read(self.registers.S);
+            self.registers.S += 1;
+            self.registers.X = mem.read_16(self.registers.S);
+            self.registers.S += 2;
+            self.registers.Y = mem.read_16(self.registers.S);
+            self.registers.S += 2;
+            self.registers.U = mem.read_16(self.registers.S);
+            self.registers.S += 2;
             self.cl += 15;
         } else {
             self.cl += 6;
         }
 
-        self.PC = mem.read_16(self.S);
-        self.S += 2;
+        self.PC = mem.read_16(self.registers.S);
+        self.registers.S += 2;
     }
 
     pub(crate) fn IRQ(&mut self, mem: &mut Memory) {
@@ -2213,30 +2200,30 @@ impl M6809 {
         self.getcc();
         self.CC |= 0x80;
         self.setcc(self.CC);
-        self.S -= 1;
-        mem.write(self.S, self.PC & 0x00FF);
-        self.S -= 1;
-        mem.write(self.S, self.PC >> 8);
-        self.S -= 1;
-        mem.write(self.S, self.U & 0x00FF);
-        self.S -= 1;
-        mem.write(self.S, self.U >> 8);
-        self.S -= 1;
-        mem.write(self.S, self.Y & 0x00FF);
-        self.S -= 1;
-        mem.write(self.S, self.Y >> 8);
-        self.S -= 1;
-        mem.write(self.S, self.X & 0x00FF);
-        self.S -= 1;
-        mem.write(self.S, self.X >> 8);
-        self.S -= 1;
-        mem.write(self.S, self.DP);
-        self.S -= 1;
-        mem.write(self.S, self.B);
-        self.S -= 1;
-        mem.write(self.S, self.A);
-        self.S -= 1;
-        mem.write(self.S, self.CC);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.PC & 0x00FF);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.PC >> 8);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.registers.U & 0x00FF);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.registers.U >> 8);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.registers.Y & 0x00FF);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.registers.Y >> 8);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.registers.X & 0x00FF);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.registers.X >> 8);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.DP);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.registers.B);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.registers.A);
+        self.registers.S -= 1;
+        mem.write(self.registers.S, self.CC);
         self.PC = mem.read_16(0xFFF8);
         self.CC |= 0x10;
         self.setcc(self.CC);
@@ -2244,8 +2231,8 @@ impl M6809 {
     }
 
     const fn DAA(&mut self) {
-        let mut i = self.A + (self.res & 0x100);
-        if ((self.A & 15) > 9) || ((self.h1 & 15) + (self.h2 & 15) > 15) {
+        let mut i = self.registers.A + (self.res & 0x100);
+        if ((self.registers.A & 15) > 9) || ((self.h1 & 15) + (self.h2 & 15) > 15) {
             i += 6;
         }
         if i > 0x99 {
@@ -2253,7 +2240,7 @@ impl M6809 {
         }
         self.res = i;
         self.sign = i;
-        self.A = i & 255;
+        self.registers.A = i & 255;
         self.cl += 2;
     }
 
@@ -2294,174 +2281,174 @@ impl M6809 {
                 self.cl += 2;
                 // PER (instruction d'emulation de périphérique)
             }
-            0x02 => mem.periph(self.PC, self.S, self.A, screen), // LDA
+            0x02 => mem.periph(self.PC, self.registers.S, self.registers.A, screen), // LDA
             0x86 => {
                 let M = self.IMMED8();
-                self.A = self.LD8(M, 2, mem);
+                self.registers.A = self.LD8(M, 2, mem);
             }
             0x96 => {
                 let M = self.DIREC(mem);
-                self.A = self.LD8(M, 4, mem);
+                self.registers.A = self.LD8(M, 4, mem);
             }
             0xB6 => {
                 let M = self.ETEND(mem);
-                self.A = self.LD8(M, 5, mem);
+                self.registers.A = self.LD8(M, 5, mem);
             }
             0xA6 => {
                 let M = self.INDEXE(mem);
-                self.A = self.LD8(M, 4, mem);
+                self.registers.A = self.LD8(M, 4, mem);
                 // LDB
             }
             0xC6 => {
                 let M = self.IMMED8();
-                self.B = self.LD8(M, 2, mem);
+                self.registers.B = self.LD8(M, 2, mem);
             }
             0xD6 => {
                 let M = self.DIREC(mem);
-                self.B = self.LD8(M, 4, mem);
+                self.registers.B = self.LD8(M, 4, mem);
             }
             0xF6 => {
                 let M = self.ETEND(mem);
-                self.B = self.LD8(M, 5, mem);
+                self.registers.B = self.LD8(M, 5, mem);
             }
             0xE6 => {
                 let M = self.INDEXE(mem);
-                self.B = self.LD8(M, 4, mem);
+                self.registers.B = self.LD8(M, 4, mem);
             }
             // LDD
             0xCC => {
                 let M = self.IMMED16();
-                self.D = self.LD16(M, 3, mem);
-                self.CALCAB();
+                self.registers.D = self.LD16(M, 3, mem);
+                self.registers.CALCAB();
             }
             0xDC => {
                 let M = self.DIREC(mem);
-                self.D = self.LD16(M, 5, mem);
-                self.CALCAB();
+                self.registers.D = self.LD16(M, 5, mem);
+                self.registers.CALCAB();
             }
             0xFC => {
                 let M = self.ETEND(mem);
-                self.D = self.LD16(M, 6, mem);
-                self.CALCAB();
+                self.registers.D = self.LD16(M, 6, mem);
+                self.registers.CALCAB();
             }
             0xEC => {
                 let M = self.INDEXE(mem);
-                self.D = self.LD16(M, 5, mem);
-                self.CALCAB();
+                self.registers.D = self.LD16(M, 5, mem);
+                self.registers.CALCAB();
             }
             // LDU
             0xCE => {
                 let M = self.IMMED16();
-                self.U = self.LD16(M, 3, mem);
+                self.registers.U = self.LD16(M, 3, mem);
             }
             0xDE => {
                 let M = self.DIREC(mem);
-                self.U = self.LD16(M, 5, mem);
+                self.registers.U = self.LD16(M, 5, mem);
             }
             0xFE => {
                 let M = self.ETEND(mem);
-                self.U = self.LD16(M, 6, mem);
+                self.registers.U = self.LD16(M, 6, mem);
             }
             0xEE => {
                 let M = self.INDEXE(mem);
-                self.U = self.LD16(M, 5, mem);
+                self.registers.U = self.LD16(M, 5, mem);
             }
             // LDX
             0x8E => {
                 let M = self.IMMED16();
-                self.X = self.LD16(M, 3, mem);
+                self.registers.X = self.LD16(M, 3, mem);
             }
             0x9E => {
                 let M = self.DIREC(mem);
-                self.X = self.LD16(M, 5, mem);
+                self.registers.X = self.LD16(M, 5, mem);
             }
             0xBE => {
                 let M = self.ETEND(mem);
-                self.X = self.LD16(M, 6, mem);
+                self.registers.X = self.LD16(M, 6, mem);
             }
             0xAE => {
                 let i = self.INDEXE(mem);
-                self.X = self.LD16(i, 5, mem);
+                self.registers.X = self.LD16(i, 5, mem);
             }
             // STA
             0x97 => {
                 let M = self.DIREC(mem);
-                self.ST8(self.A, M, 4, mem);
+                self.ST8(self.registers.A, M, 4, mem);
             }
             0xB7 => {
                 let M = self.ETEND(mem);
-                self.ST8(self.A, M, 5, mem);
+                self.ST8(self.registers.A, M, 5, mem);
             }
             0xA7 => {
                 let M = self.INDEXE(mem);
-                self.ST8(self.A, M, 4, mem);
+                self.ST8(self.registers.A, M, 4, mem);
             }
             // STB
             0xD7 => {
                 let M = self.DIREC(mem);
-                self.ST8(self.B, M, 4, mem);
+                self.ST8(self.registers.B, M, 4, mem);
             }
             0xF7 => {
                 let M = self.ETEND(mem);
-                self.ST8(self.B, M, 5, mem);
+                self.ST8(self.registers.B, M, 5, mem);
             }
             0xE7 => {
                 let M = self.INDEXE(mem);
-                self.ST8(self.B, M, 4, mem);
+                self.ST8(self.registers.B, M, 4, mem);
             }
             // STD
             0xDD => {
-                self.CALCD();
+                self.registers.CALCD();
                 let M = self.DIREC(mem);
-                self.ST16(self.D, M, 5, mem);
+                self.ST16(self.registers.D, M, 5, mem);
             }
             0xFD => {
-                self.CALCD();
+                self.registers.CALCD();
                 let M = self.ETEND(mem);
-                self.ST16(self.D, M, 6, mem);
+                self.ST16(self.registers.D, M, 6, mem);
             }
             0xED => {
-                self.CALCD();
+                self.registers.CALCD();
                 let M = self.INDEXE(mem);
-                self.ST16(self.D, M, 6, mem);
+                self.ST16(self.registers.D, M, 6, mem);
             }
             // STU
             0xDF => {
                 let adr = self.DIREC(mem);
-                self.ST16(self.U, adr, 5, mem);
+                self.ST16(self.registers.U, adr, 5, mem);
             }
             0xFF => {
                 let adr = self.ETEND(mem);
-                self.ST16(self.U, adr, 6, mem);
+                self.ST16(self.registers.U, adr, 6, mem);
             }
             0xEF => {
                 let adr = self.INDEXE(mem);
-                self.ST16(self.U, adr, 5, mem);
+                self.ST16(self.registers.U, adr, 5, mem);
             }
             // STX
             0x9F => {
                 let M = self.DIREC(mem);
-                self.ST16(self.X, M, 5, mem);
+                self.ST16(self.registers.X, M, 5, mem);
             }
             0xBF => {
                 let M = self.ETEND(mem);
-                self.ST16(self.X, M, 6, mem);
+                self.ST16(self.registers.X, M, 6, mem);
             }
             0xAF => {
                 let M = self.INDEXE(mem);
-                self.ST16(self.X, M, 5, mem);
+                self.ST16(self.registers.X, M, 5, mem);
             }
             // LEAS
-            0x32 => self.S = self.INDEXE(mem),
+            0x32 => self.registers.S = self.INDEXE(mem),
             // LEAU
-            0x33 => self.U = self.INDEXE(mem),
+            0x33 => self.registers.U = self.INDEXE(mem),
             // LEAX
-            0x30 => self.X = self.LEA(mem),
+            0x30 => self.registers.X = self.LEA(mem),
             // LEAY
-            0x31 => self.Y = self.LEA(mem),
+            0x31 => self.registers.Y = self.LEA(mem),
             // CLRA
             0x4F => {
-                self.A = 0;
+                self.registers.A = 0;
                 self.m1 = self.ovfl;
                 self.sign = 0;
                 self.res = 0;
@@ -2469,7 +2456,7 @@ impl M6809 {
             }
             // CLRB
             0x5F => {
-                self.B = 0;
+                self.registers.B = 0;
                 self.m1 = self.ovfl;
                 self.sign = 0;
                 self.res = 0;
@@ -2528,84 +2515,84 @@ impl M6809 {
             // BIT
             0x85 => {
                 let M = self.IMMED8();
-                self.BIT(self.A, M, 2, mem);
+                self.BIT(self.registers.A, M, 2, mem);
             }
             0x95 => {
                 let M = self.DIREC(mem);
-                self.BIT(self.A, M, 4, mem);
+                self.BIT(self.registers.A, M, 4, mem);
             }
             0xB5 => {
                 let M = self.ETEND(mem);
-                self.BIT(self.A, M, 5, mem);
+                self.BIT(self.registers.A, M, 5, mem);
             }
             0xA5 => {
                 let M = self.INDEXE(mem);
-                self.BIT(self.A, M, 4, mem);
+                self.BIT(self.registers.A, M, 4, mem);
             }
             0xC5 => {
                 let M = self.IMMED8();
-                self.BIT(self.B, M, 2, mem);
+                self.BIT(self.registers.B, M, 2, mem);
             }
             0xD5 => {
                 let M = self.DIREC(mem);
-                self.BIT(self.B, M, 4, mem);
+                self.BIT(self.registers.B, M, 4, mem);
             }
             0xF5 => {
                 let M = self.ETEND(mem);
-                self.BIT(self.B, M, 5, mem);
+                self.BIT(self.registers.B, M, 5, mem);
             }
             0xE5 => {
                 let M = self.INDEXE(mem);
-                self.BIT(self.B, M, 4, mem);
+                self.BIT(self.registers.B, M, 4, mem);
             }
             // CMP
             0x81 => {
                 let M = self.IMMED8();
-                self.CMP8(self.A, M, 2, mem);
+                self.CMP8(self.registers.A, M, 2, mem);
             }
             0x91 => {
                 let M = self.DIREC(mem);
-                self.CMP8(self.A, M, 4, mem);
+                self.CMP8(self.registers.A, M, 4, mem);
             }
             0xB1 => {
                 let M = self.ETEND(mem);
-                self.CMP8(self.A, M, 5, mem);
+                self.CMP8(self.registers.A, M, 5, mem);
             }
             0xA1 => {
                 let M = self.INDEXE(mem);
-                self.CMP8(self.A, M, 4, mem);
+                self.CMP8(self.registers.A, M, 4, mem);
             }
             0xC1 => {
                 let M = self.IMMED8();
-                self.CMP8(self.B, M, 2, mem);
+                self.CMP8(self.registers.B, M, 2, mem);
             }
             0xD1 => {
                 let M = self.DIREC(mem);
-                self.CMP8(self.B, M, 4, mem);
+                self.CMP8(self.registers.B, M, 4, mem);
             }
             0xF1 => {
                 let M = self.ETEND(mem);
-                self.CMP8(self.B, M, 5, mem);
+                self.CMP8(self.registers.B, M, 5, mem);
             }
             0xE1 => {
                 let M = self.INDEXE(mem);
-                self.CMP8(self.B, M, 4, mem);
+                self.CMP8(self.registers.B, M, 4, mem);
             }
             0x8C => {
                 let M = self.IMMED16();
-                self.CMP16(self.X, M, 5, mem);
+                self.CMP16(self.registers.X, M, 5, mem);
             }
             0x9C => {
                 let M = self.DIREC(mem);
-                self.CMP16(self.X, M, 7, mem);
+                self.CMP16(self.registers.X, M, 7, mem);
             }
             0xBC => {
                 let M = self.ETEND(mem);
-                self.CMP16(self.X, M, 8, mem);
+                self.CMP16(self.registers.X, M, 8, mem);
             }
             0xAC => {
                 let M = self.INDEXE(mem);
-                self.CMP16(self.X, M, 7, mem);
+                self.CMP16(self.registers.X, M, 7, mem);
             }
             // TST
             0x4D => self.TSTAi(),
@@ -3045,99 +3032,99 @@ impl M6809 {
                     // LDS
                     0xCE => {
                         let M = self.IMMED16();
-                        self.S = self.LD16(M, 3, mem);
+                        self.registers.S = self.LD16(M, 3, mem);
                     }
                     0xDE => {
                         let M = self.DIREC(mem);
-                        self.S = self.LD16(M, 5, mem);
+                        self.registers.S = self.LD16(M, 5, mem);
                     }
                     0xFE => {
                         let M = self.ETEND(mem);
-                        self.S = self.LD16(M, 6, mem);
+                        self.registers.S = self.LD16(M, 6, mem);
                     }
                     0xEE => {
                         let M = self.INDEXE(mem);
-                        self.S = self.LD16(M, 5, mem);
+                        self.registers.S = self.LD16(M, 5, mem);
                     }
                     // LDY
                     0x8E => {
                         let M = self.IMMED16();
-                        self.Y = self.LD16(M, 3, mem);
+                        self.registers.Y = self.LD16(M, 3, mem);
                     }
                     0x9E => {
                         let M = self.DIREC(mem);
-                        self.Y = self.LD16(M, 5, mem);
+                        self.registers.Y = self.LD16(M, 5, mem);
                     }
                     0xBE => {
                         let M = self.ETEND(mem);
-                        self.Y = self.LD16(M, 6, mem);
+                        self.registers.Y = self.LD16(M, 6, mem);
                     }
                     0xAE => {
                         let M = self.INDEXE(mem);
-                        self.Y = self.LD16(M, 5, mem);
+                        self.registers.Y = self.LD16(M, 5, mem);
                     }
                     // STS
                     0xDF => {
                         let M = self.DIREC(mem);
-                        self.ST16(self.S, M, 5, mem);
+                        self.ST16(self.registers.S, M, 5, mem);
                     }
                     0xFF => {
                         let M = self.ETEND(mem);
-                        self.ST16(self.S, M, 6, mem);
+                        self.ST16(self.registers.S, M, 6, mem);
                     }
                     0xEF => {
                         let M = self.INDEXE(mem);
-                        self.ST16(self.S, M, 5, mem);
+                        self.ST16(self.registers.S, M, 5, mem);
                     }
                     // STY
                     0x9F => {
                         let M = self.DIREC(mem);
-                        self.ST16(self.Y, M, 5, mem);
+                        self.ST16(self.registers.Y, M, 5, mem);
                     }
                     0xBF => {
                         let M = self.ETEND(mem);
-                        self.ST16(self.Y, M, 6, mem);
+                        self.ST16(self.registers.Y, M, 6, mem);
                     }
                     0xAF => {
                         let M = self.INDEXE(mem);
-                        self.ST16(self.Y, M, 5, mem);
+                        self.ST16(self.registers.Y, M, 5, mem);
                     }
                     // CMP
                     0x83 => {
-                        self.CALCD();
+                        self.registers.CALCD();
                         let M = self.IMMED16();
-                        self.CMP16(self.D, M, 5, mem);
+                        self.CMP16(self.registers.D, M, 5, mem);
                     }
                     0x93 => {
-                        self.CALCD();
+                        self.registers.CALCD();
                         let M = self.DIREC(mem);
-                        self.CMP16(self.D, M, 7, mem);
+                        self.CMP16(self.registers.D, M, 7, mem);
                     }
                     0xB3 => {
-                        self.CALCD();
+                        self.registers.CALCD();
                         let M = self.ETEND(mem);
-                        self.CMP16(self.D, M, 8, mem);
+                        self.CMP16(self.registers.D, M, 8, mem);
                     }
                     0xA3 => {
-                        self.CALCD();
+                        self.registers.CALCD();
                         let M = self.INDEXE(mem);
-                        self.CMP16(self.D, M, 7, mem);
+                        self.CMP16(self.registers.D, M, 7, mem);
                     }
                     0x8C => {
                         let M = self.IMMED16();
-                        self.CMP16(self.Y, M, 5, mem);
+                        self.CMP16(self.registers.Y, M, 5, mem);
                     }
                     0x9C => {
                         let M = self.DIREC(mem);
-                        self.CMP16(self.Y, M, 7, mem);
+                        self.CMP16(self.registers.Y, M, 7, mem);
                     }
                     0xBC => {
                         let M = self.ETEND(mem);
-                        self.CMP16(self.Y, M, 8, mem);
+                        self.CMP16(self.registers.Y, M, 8, mem);
                     }
                     0xAC => {
                         let M = self.INDEXE(mem);
-                        self.CMP16(self.Y, M, 7, mem);
+                        self.CMP16(self.registers.Y, M, 7, mem);
                     }
                     // Bxx
                     0x21 => self.LBRN(mem),
@@ -3169,35 +3156,35 @@ impl M6809 {
                     // CMP
                     0x8C => {
                         let M = self.IMMED16();
-                        self.CMP16(self.S, M, 5, mem);
+                        self.CMP16(self.registers.S, M, 5, mem);
                     }
                     0x9C => {
                         let M = self.DIREC(mem);
-                        self.CMP16(self.S, M, 7, mem);
+                        self.CMP16(self.registers.S, M, 7, mem);
                     }
                     0xBC => {
                         let M = self.ETEND(mem);
-                        self.CMP16(self.S, M, 8, mem);
+                        self.CMP16(self.registers.S, M, 8, mem);
                     }
                     0xAC => {
                         let M = self.INDEXE(mem);
-                        self.CMP16(self.S, M, 7, mem);
+                        self.CMP16(self.registers.S, M, 7, mem);
                     }
                     0x83 => {
                         let M = self.IMMED16();
-                        self.CMP16(self.U, M, 5, mem);
+                        self.CMP16(self.registers.U, M, 5, mem);
                     }
                     0x93 => {
                         let M = self.DIREC(mem);
-                        self.CMP16(self.U, M, 7, mem);
+                        self.CMP16(self.registers.U, M, 7, mem);
                     }
                     0xB3 => {
                         let M = self.ETEND(mem);
-                        self.CMP16(self.U, M, 8, mem);
+                        self.CMP16(self.registers.U, M, 8, mem);
                     }
                     0xA3 => {
                         let M = self.INDEXE(mem);
-                        self.CMP16(self.U, M, 7, mem);
+                        self.CMP16(self.registers.U, M, 7, mem);
                     }
                     _ => {
                         eprintln!("opcode 11{opcode0x11:02X} not implemented");
@@ -3217,7 +3204,7 @@ impl M6809 {
         self.CC = self.getcc();
         let s = format!(
             "A={:02X} B={:02X} X={:04X} Y={:04X}\nPC={:04X} DP={:02X} U={:04X} S={:04X} CC={:02X}",
-            self.A, self.B, self.X, self.Y, self.PC, self.DP, self.U, self.S, self.CC
+            self.registers.A, self.registers.B, self.registers.X, self.registers.Y, self.PC, self.DP, self.registers.U, self.registers.S, self.CC
         );
         s
     }
@@ -4012,7 +3999,7 @@ mod tests {
         let mut cpu = M6809::new(&mem);
 
         // Test X + 5 (0x05: 000 00101 -> X, +5)
-        cpu.X = 0x1000;
+        cpu.registers.X = 0x1000;
         cpu.PC = 0x2000;
         mem.write(0x2000, 0x05);
         let addr = cpu.INDEXE(&mut mem);
@@ -4021,21 +4008,21 @@ mod tests {
 
         // Test Y - 1 (0x3F: 001 11111 -> Y, -1 because 0x1F is -1 in 5-bit signed)
         // 5-bit signed: 0x10 is -16, 0x1F is -1
-        cpu.Y = 0x1000;
+        cpu.registers.Y = 0x1000;
         cpu.PC = 0x2000;
         mem.write(0x2000, 0x3F);
         let addr = cpu.INDEXE(&mut mem);
         assert_eq!(addr, 0x0FFF);
 
         // Test U + 15 (0x4F: 010 01111 -> U, +15)
-        cpu.U = 0x1000;
+        cpu.registers.U = 0x1000;
         cpu.PC = 0x2000;
         mem.write(0x2000, 0x4F);
         let addr = cpu.INDEXE(&mut mem);
         assert_eq!(addr, 0x100F);
 
         // Test S - 16 (0x70: 011 10000 -> S, -16)
-        cpu.S = 0x1000;
+        cpu.registers.S = 0x1000;
         cpu.PC = 0x2000;
         mem.write(0x2000, 0x70);
         let addr = cpu.INDEXE(&mut mem);
@@ -4048,36 +4035,36 @@ mod tests {
         let mut cpu = M6809::new(&mem);
 
         // Post-increment X by 1 (0x80)
-        cpu.X = 0x1000;
+        cpu.registers.X = 0x1000;
         cpu.PC = 0x2000;
         mem.write(0x2000, 0x80);
         let addr = cpu.INDEXE(&mut mem);
         assert_eq!(addr, 0x1000);
-        assert_eq!(cpu.X, 0x1001);
+        assert_eq!(cpu.registers.X, 0x1001);
 
         // Post-increment X by 2 (0x81)
-        cpu.X = 0x1000;
+        cpu.registers.X = 0x1000;
         cpu.PC = 0x2000;
         mem.write(0x2000, 0x81);
         let addr = cpu.INDEXE(&mut mem);
         assert_eq!(addr, 0x1000);
-        assert_eq!(cpu.X, 0x1002);
+        assert_eq!(cpu.registers.X, 0x1002);
 
         // Pre-decrement X by 1 (0x82)
-        cpu.X = 0x1000;
+        cpu.registers.X = 0x1000;
         cpu.PC = 0x2000;
         mem.write(0x2000, 0x82);
         let addr = cpu.INDEXE(&mut mem);
         assert_eq!(addr, 0x0FFF);
-        assert_eq!(cpu.X, 0x0FFF);
+        assert_eq!(cpu.registers.X, 0x0FFF);
 
         // Pre-decrement X by 2 (0x83)
-        cpu.X = 0x1000;
+        cpu.registers.X = 0x1000;
         cpu.PC = 0x2000;
         mem.write(0x2000, 0x83);
         let addr = cpu.INDEXE(&mut mem);
         assert_eq!(addr, 0x0FFE);
-        assert_eq!(cpu.X, 0x0FFE);
+        assert_eq!(cpu.registers.X, 0x0FFE);
     }
 
     #[test]
@@ -4086,23 +4073,23 @@ mod tests {
         let mut cpu = M6809::new(&mem);
 
         // B offset (0x85)
-        cpu.X = 0x1000;
-        cpu.B = 0x05;
+        cpu.registers.X = 0x1000;
+        cpu.registers.B = 0x05;
         cpu.PC = 0x2000;
         mem.write(0x2000, 0x85);
         assert_eq!(cpu.INDEXE(&mut mem), 0x1005);
 
         // A offset (0x86)
-        cpu.X = 0x1000;
-        cpu.A = 0xFF; // -1
+        cpu.registers.X = 0x1000;
+        cpu.registers.A = 0xFF; // -1
         cpu.PC = 0x2000;
         mem.write(0x2000, 0x86);
         assert_eq!(cpu.INDEXE(&mut mem), 0x0FFF);
 
         // D offset (0x8B)
-        cpu.X = 0x1000;
-        cpu.A = 0x00;
-        cpu.B = 0x10;
+        cpu.registers.X = 0x1000;
+        cpu.registers.A = 0x00;
+        cpu.registers.B = 0x10;
         cpu.PC = 0x2000;
         mem.write(0x2000, 0x8B);
         assert_eq!(cpu.INDEXE(&mut mem), 0x1010);
@@ -4114,7 +4101,7 @@ mod tests {
         let mut cpu = M6809::new(&mem);
 
         // 8-bit offset (0x88)
-        cpu.X = 0x1000;
+        cpu.registers.X = 0x1000;
         cpu.PC = 0x2000;
         mem.write(0x2000, 0x88);
         mem.write(0x2001, 0x12);
@@ -4122,7 +4109,7 @@ mod tests {
         assert_eq!(cpu.PC, 0x2002);
 
         // 16-bit offset (0x89)
-        cpu.X = 0x1000;
+        cpu.registers.X = 0x1000;
         cpu.PC = 0x2000;
         mem.write(0x2000, 0x89);
         mem.write(0x2001, 0x12);
@@ -4164,7 +4151,7 @@ mod tests {
         let mut cpu = M6809::new(&mem);
 
         // Indirect with 8-bit offset from X (0x98)
-        cpu.X = 0x1000;
+        cpu.registers.X = 0x1000;
         cpu.PC = 0x2000;
         mem.write(0x2000, 0x98);
         mem.write(0x2001, 0x02); // Offset 2 -> 0x1002
