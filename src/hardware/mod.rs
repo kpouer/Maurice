@@ -6,3 +6,4 @@ pub mod memory;
 pub mod screen;
 pub mod sound;
 mod sound_buffer;
+pub mod m6821;

@@ -8,6 +8,7 @@ use crate::hardware::screen::Screen;
 use crate::{bios, int};
 use chrono::Local;
 use log::{debug, info, warn};
+use crate::hardware::m6821::registers::Registers;
 
 #[derive(Debug)]
 pub struct Memory {
@@ -29,12 +30,7 @@ pub struct Memory {
     dirty: Vec<bool>,
 
     /* Registres du 6821 */
-    ORA: int,
-    ORB: int,
-    DDRA: int,
-    DDRB: int,
-    CRA: int,
-    pub(crate) CRB: int,
+    pub(crate) registers_6821: Registers,
     pub(crate) sound_mem: u8,
 
     /* Registre du Gate Array */
@@ -62,12 +58,7 @@ impl Default for Memory {
             mapper: [0, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
             key: vec![false; 256],
             dirty: vec![false; 200],
-            ORA: 0,
-            ORB: 0,
-            DDRA: 0,
-            DDRB: 0,
-            CRA: 0,
-            CRB: 0,
+            registers_6821: Registers::default(),
             sound_mem: 0,
             GA0: 0,
             GA1: 0,
@@ -164,10 +155,10 @@ impl Memory {
             self.set(i, 0x00);
         }
         self.load_rom();
-        self.CRA = 0x00;
-        self.CRB = 0x00;
-        self.DDRA = 0x5F;
-        self.DDRB = 0x7F;
+        self.registers_6821.CRA = 0x00;
+        self.registers_6821.CRB = 0x00;
+        self.registers_6821.DDRA = 0x5F;
+        self.registers_6821.DDRB = 0x7F;
 
         self.mem[0xA + 2][0x7CC] = 0xFF;
         self.mem[0xA + 2][0x7CD] = 0xFF;
@@ -212,7 +203,7 @@ impl Memory {
         /* 6821 système */
         /* acces à ORA ou DDRA */
         if ADR == 0xA7C0 {
-            if (self.CRA & 0x04) == 0x04
+            if (self.registers_6821.CRA & 0x04) == 0x04
             /* Accès à ORA */
             {
                 if (OP & 0x01) == 0x01 {
@@ -224,46 +215,46 @@ impl Memory {
                 }
                 /* Mise à jour de ORA selon le masque DDRA */
                 OP |= 0x80 + 0x20; // gestion de ,l'inter optique
-                self.ORA = (self.ORA & (self.DDRA ^ 0xFF)) | (OP & self.DDRA);
+                self.registers_6821.ORA = (self.registers_6821.ORA & (self.registers_6821.DDRA ^ 0xFF)) | (OP & self.registers_6821.DDRA);
                 if self.light_pen_clic {
-                    self.mem[0xA + 2][0x7C0] = self.ORA | 0x20;
+                    self.mem[0xA + 2][0x7C0] = self.registers_6821.ORA | 0x20;
                 } else {
-                    self.mem[0xA + 2][0x7C0] = self.ORA & (0xFF - 0x20);
+                    self.mem[0xA + 2][0x7C0] = self.registers_6821.ORA & (0xFF - 0x20);
                 }
             } else {
-                self.DDRA = OP;
+                self.registers_6821.DDRA = OP;
                 self.mem[0xA + 2][0x7C0] = OP;
             }
         } else if ADR == 0xA7C1
         /* accès à ORB ou DDRB */
         {
-            if (self.CRB & 0x04) == 0x04
+            if (self.registers_6821.CRB & 0x04) == 0x04
             /* Accès à ORB */
             {
-                self.ORB = (self.ORB & (self.DDRB ^ 0xFF)) | (OP & self.DDRB);
+                self.registers_6821.ORB = (self.registers_6821.ORB & (self.registers_6821.DDRB ^ 0xFF)) | (OP & self.registers_6821.DDRB);
 
                 /* GESTION HARD DU CLAVIER */
 
-                if self.key[(self.ORB & 0x7E) as usize] {
-                    self.ORB &= 0x7F;
+                if self.key[(self.registers_6821.ORB & 0x7E) as usize] {
+                    self.registers_6821.ORB &= 0x7F;
                 } else {
-                    self.ORB |= 0x80;
+                    self.registers_6821.ORB |= 0x80;
                 }
 
-                self.mem[0xA + 2][0x7C1] = self.ORB;
-                self.sound_mem = ((self.ORB & 1) << 5) as u8;
+                self.mem[0xA + 2][0x7C1] = self.registers_6821.ORB;
+                self.sound_mem = ((self.registers_6821.ORB & 1) << 5) as u8;
             } else {
-                self.DDRB = OP;
+                self.registers_6821.DDRB = OP;
                 self.mem[0xA + 2][0x7C1] = OP;
             }
         } else if ADR == 0xA7C2 {
             /* accès à CRA */
-            self.CRA = (self.CRA & 0xD0) | (OP & 0x3F);
-            self.mem[0xA + 2][0x7C2] = self.CRA;
+            self.registers_6821.CRA = (self.registers_6821.CRA & 0xD0) | (OP & 0x3F);
+            self.mem[0xA + 2][0x7C2] = self.registers_6821.CRA;
         } else if ADR == 0xA7C3 {
             /* accès à CRB */
-            self.CRB = (self.CRB & 0xD0) | (OP & 0x3F);
-            self.mem[0xA + 2][0x7C3] = self.CRB;
+            self.registers_6821.CRB = (self.registers_6821.CRB & 0xD0) | (OP & 0x3F);
+            self.mem[0xA + 2][0x7C3] = self.registers_6821.CRB;
         }
     }
 

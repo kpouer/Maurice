@@ -113,11 +113,11 @@ impl Machine {
         self.micro
             .FetchUntil(2800, &mut self.mem, &mut self.screen, &mut self.sound);
 
-        if (self.mem.CRB & 0x01) == 0x01 {
+        if (self.mem.registers_6821.CRB & 0x01) == 0x01 {
             self.irq = true;
             /* Positionne le bit 7 de CRB */
-            self.mem.CRB |= 0x80;
-            self.mem.set(0xA7C3, self.mem.CRB);
+            self.mem.registers_6821.CRB |= 0x80;
+            self.mem.set(0xA7C3, self.mem.registers_6821.CRB);
             let cc = self.micro.readCC();
             if (cc & 0x10) == 0 {
                 self.micro.IRQ(&mut self.mem);
@@ -125,8 +125,8 @@ impl Machine {
             /* 300 cycles sous interrupt */
             self.micro
                 .FetchUntil(300, &mut self.mem, &mut self.screen, &mut self.sound);
-            self.mem.CRB &= 0x7F;
-            self.mem.set(0xA7C3, self.mem.CRB);
+            self.mem.registers_6821.CRB &= 0x7F;
+            self.mem.set(0xA7C3, self.mem.registers_6821.CRB);
         }
     }
 
