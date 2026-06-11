@@ -63,13 +63,13 @@ impl M6809 {
         M
     }
 
-    fn DIREC(&mut self, mem: &mut Memory) -> int {
+    fn DIREC(&mut self, mem: &Memory) -> int {
         let M = (self.DP << 8) | mem.read(self.PC);
         self.PC += 1;
         M
     }
 
-    fn ETEND(&mut self, mem: &mut Memory) -> int {
+    fn ETEND(&mut self, mem: &Memory) -> int {
         let mut M = mem.read(self.PC) << 8;
         self.PC += 1;
         M |= mem.read(self.PC);
@@ -77,7 +77,7 @@ impl M6809 {
         M
     }
 
-    fn INDEXE(&mut self, mem: &mut Memory) -> int {
+    fn INDEXE(&mut self, mem: &Memory) -> int {
         let mut m = mem.read(self.PC);
         self.PC += 1;
         if m < 0x80 {
@@ -701,12 +701,12 @@ impl M6809 {
         self.CC
     }
 
-    fn LOAD8(adr: int, mem: &mut Memory) -> int {
+    fn LOAD8(adr: int, mem: &Memory) -> int {
         mem.read(adr)
     }
 
     // LDx
-    fn LD8(&mut self, M: int, c: int, mem: &mut Memory) -> int {
+    fn LD8(&mut self, M: int, c: int, mem: &Memory) -> int {
         self.sign = mem.read(M);
         self.m1 = self.ovfl;
         self.res = (self.res & 0x100) | self.sign;
@@ -714,7 +714,7 @@ impl M6809 {
         self.sign
     }
 
-    fn LD16(&mut self, M: int, c: int, mem: &mut Memory) -> int {
+    fn LD16(&mut self, M: int, c: int, mem: &Memory) -> int {
         let R = mem.read_16(M) & 0xFFFF;
         self.m1 = self.ovfl;
         self.sign = R >> 8;
@@ -742,7 +742,7 @@ impl M6809 {
     }
 
     // LEA
-    fn LEA(&mut self, mem: &mut Memory) -> int {
+    fn LEA(&mut self, mem: &Memory) -> int {
         let R = self.INDEXE(mem);
         self.res = (self.res & 0x100) | ((R | (R >> 8)) & 0xFF);
         self.cl += 4;
@@ -759,7 +759,7 @@ impl M6809 {
     }
 
     // EXG
-    fn EXG(&mut self, mem: &mut Memory) {
+    fn EXG(&mut self, mem: &Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
         let r1 = (m & 0xF0) >> 4;
@@ -879,7 +879,7 @@ impl M6809 {
         self.cl += 8;
     }
 
-    fn TFR(&mut self, mem: &mut Memory) {
+    fn TFR(&mut self, mem: &Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
         let r1 = (m & 0xF0) >> 4;
@@ -1031,7 +1031,7 @@ impl M6809 {
         self.cl += 5;
     }
 
-    fn PULS(&mut self, mem: &mut Memory) {
+    fn PULS(&mut self, mem: &Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
         if (m & 0x01) != 0 {
@@ -1078,7 +1078,7 @@ impl M6809 {
         self.cl += 5;
     }
 
-    fn PULU(&mut self, mem: &mut Memory) {
+    fn PULU(&mut self, mem: &Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
         if (m & 0x01) != 0 {
@@ -1190,7 +1190,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn BIT(&mut self, R: int, adr: int, c: int, mem: &mut Memory) {
+    fn BIT(&mut self, R: int, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
         self.m1 = self.ovfl;
         self.sign = R & val;
@@ -1198,7 +1198,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn CMP8(&mut self, R: int, adr: int, c: int, mem: &mut Memory) {
+    fn CMP8(&mut self, R: int, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
         self.m1 = R;
         self.m2 = -val;
@@ -1208,7 +1208,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn CMP16(&mut self, R: int, adr: int, c: int, mem: &mut Memory) {
+    fn CMP16(&mut self, R: int, adr: int, c: int, mem: &Memory) {
         let val = mem.read_16(adr);
         self.m1 = R >> 8;
         self.m2 = (-val) >> 8;
@@ -1234,7 +1234,7 @@ impl M6809 {
         self.cl += 2;
     }
 
-    fn TST(&mut self, adr: int, c: int, mem: &mut Memory) {
+    fn TST(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
         self.m1 = !self.m2;
         self.sign = val;
@@ -1242,7 +1242,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn ANDA(&mut self, adr: int, c: int, mem: &mut Memory) {
+    fn ANDA(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
         self.m1 = self.ovfl;
         self.registers.A &= val;
@@ -1251,7 +1251,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn ANDB(&mut self, adr: int, c: int, mem: &mut Memory) {
+    fn ANDB(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
         self.m1 = self.ovfl;
         self.registers.B &= val;
@@ -1260,7 +1260,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn ANDCC(&mut self, adr: int, c: int, mem: &mut Memory) {
+    fn ANDCC(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
         //	getcc();
         self.CC &= val;
@@ -1268,7 +1268,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn ORA(&mut self, adr: int, c: int, mem: &mut Memory) {
+    fn ORA(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
         self.m1 = self.ovfl;
         self.registers.A |= val;
@@ -1277,7 +1277,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn ORB(&mut self, adr: int, c: int, mem: &mut Memory) {
+    fn ORB(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
         self.m1 = self.ovfl;
         self.registers.B |= val;
@@ -1286,7 +1286,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn ORCC(&mut self, adr: int, c: int, mem: &mut Memory) {
+    fn ORCC(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
         self.getcc();
         self.CC |= val;
@@ -1294,7 +1294,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn EORA(&mut self, adr: int, c: int, mem: &mut Memory) {
+    fn EORA(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
         self.m1 = self.ovfl;
         self.registers.A ^= val;
@@ -1303,7 +1303,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn EORB(&mut self, adr: int, c: int, mem: &mut Memory) {
+    fn EORB(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
         self.m1 = self.ovfl;
         self.registers.B ^= val;
@@ -1377,7 +1377,7 @@ impl M6809 {
         self.cl += 3;
     }
 
-    fn ADDA(&mut self, adr: int, c: int, mem: &mut Memory) {
+    fn ADDA(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
         self.m1 = self.registers.A;
         self.h1 = self.registers.A;
@@ -1391,7 +1391,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn ADDB(&mut self, adr: int, c: int, mem: &mut Memory) {
+    fn ADDB(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
         self.m1 = self.registers.B;
         self.h1 = self.registers.B;
@@ -1405,7 +1405,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn ADDD(&mut self, adr: int, c: int, mem: &mut Memory) {
+    fn ADDD(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read_16(adr);
         self.m1 = self.registers.A;
         self.m2 = val >> 8;
@@ -1420,7 +1420,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn ADCA(&mut self, adr: int, c: int, mem: &mut Memory) {
+    fn ADCA(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
         self.m1 = self.registers.A;
         self.h1 = self.registers.A;
@@ -1434,7 +1434,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn ADCB(&mut self, adr: int, c: int, mem: &mut Memory) {
+    fn ADCB(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
         self.m1 = self.registers.B;
         self.h1 = self.registers.B;
@@ -1456,7 +1456,7 @@ impl M6809 {
         self.cl += 11;
     }
 
-    fn SBCA(&mut self, adr: int, c: int, mem: &mut Memory) {
+    fn SBCA(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
         self.m1 = self.registers.A;
         self.m2 = -val;
@@ -1468,7 +1468,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn SBCB(&mut self, adr: int, c: int, mem: &mut Memory) {
+    fn SBCB(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
         self.m1 = self.registers.B;
         self.m2 = -val;
@@ -1480,7 +1480,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn SUBA(&mut self, adr: int, c: int, mem: &mut Memory) {
+    fn SUBA(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
         self.m1 = self.registers.A;
         self.m2 = -val;
@@ -1492,7 +1492,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn SUBB(&mut self, adr: int, c: int, mem: &mut Memory) {
+    fn SUBB(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
         self.m1 = self.registers.B;
         self.m2 = -val;
@@ -1504,7 +1504,7 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn SUBD(&mut self, adr: int, c: int, mem: &mut Memory) {
+    fn SUBD(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read_16(adr);
         self.m1 = self.registers.A;
         self.m2 = (-val) >> 8;
@@ -1677,14 +1677,14 @@ impl M6809 {
         self.cl += c;
     }
 
-    fn BRA(&mut self, mem: &mut Memory) {
+    fn BRA(&mut self, mem: &Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
         self.PC += signedChar(m);
         self.cl += 3;
     }
 
-    fn LBRA(&mut self, mem: &mut Memory) {
+    fn LBRA(&mut self, mem: &Memory) {
         let mut m = mem.read(self.PC);
         self.PC += 1;
         let mut off = m << 8;
@@ -1695,19 +1695,19 @@ impl M6809 {
         self.cl += 5;
     }
 
-    fn JMPd(&mut self, mem: &mut Memory) {
+    fn JMPd(&mut self, mem: &Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
         self.PC = (self.DP << 8) | m;
         self.cl += 3;
     }
 
-    fn JMPe(&mut self, mem: &mut Memory) {
+    fn JMPe(&mut self, mem: &Memory) {
         self.PC = self.ETEND(mem);
         self.cl += 4;
     }
 
-    fn JMPx(&mut self, mem: &mut Memory) {
+    fn JMPx(&mut self, mem: &Memory) {
         self.PC = self.INDEXE(mem);
         self.cl += 3;
     }
@@ -1769,13 +1769,13 @@ impl M6809 {
         self.cl += 7;
     }
 
-    fn BRN(&mut self, mem: &mut Memory) {
+    fn BRN(&mut self, mem: &Memory) {
         mem.read(self.PC);
         self.PC += 1;
         self.cl += 3;
     }
 
-    fn LBRN(&mut self, mem: &mut Memory) {
+    fn LBRN(&mut self, mem: &Memory) {
         mem.read(self.PC);
         self.PC += 1;
         mem.read(self.PC);
@@ -1787,7 +1787,7 @@ impl M6809 {
         self.cl += 2;
     }
 
-    fn RTS(&mut self, mem: &mut Memory) {
+    fn RTS(&mut self, mem: &Memory) {
         self.PC = mem.read_16(self.registers.S);
         self.registers.S += 2;
         self.cl += 5;
@@ -1795,7 +1795,7 @@ impl M6809 {
 
     /* Branchements conditionnels */
 
-    fn BCC(&mut self, mem: &mut Memory) {
+    fn BCC(&mut self, mem: &Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
         if (self.res & 0x100) != 0x100 {
@@ -1804,7 +1804,7 @@ impl M6809 {
         self.cl += 3;
     }
 
-    fn LBCC(&mut self, mem: &mut Memory) {
+    fn LBCC(&mut self, mem: &Memory) {
         let mut m = mem.read(self.PC);
         self.PC += 1;
         let mut off = m << 8;
@@ -1819,7 +1819,7 @@ impl M6809 {
         }
     }
 
-    fn BCS(&mut self, mem: &mut Memory) {
+    fn BCS(&mut self, mem: &Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
         if (self.res & 0x100) == 0x100 {
@@ -1828,7 +1828,7 @@ impl M6809 {
         self.cl += 3;
     }
 
-    fn LBCS(&mut self, mem: &mut Memory) {
+    fn LBCS(&mut self, mem: &Memory) {
         let mut m = mem.read(self.PC);
         self.PC += 1;
         let mut off = m << 8;
@@ -1843,7 +1843,7 @@ impl M6809 {
         }
     }
 
-    fn BEQ(&mut self, mem: &mut Memory) {
+    fn BEQ(&mut self, mem: &Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
         if (self.res & 0xff) == 0x00 {
@@ -1852,7 +1852,7 @@ impl M6809 {
         self.cl += 3;
     }
 
-    fn LBEQ(&mut self, mem: &mut Memory) {
+    fn LBEQ(&mut self, mem: &Memory) {
         let mut m = mem.read(self.PC);
         self.PC += 1;
         let mut off = m << 8;
@@ -1865,7 +1865,7 @@ impl M6809 {
         self.cl += 6;
     }
 
-    fn BNE(&mut self, mem: &mut Memory) {
+    fn BNE(&mut self, mem: &Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
         if (self.res & 0xff) != 0 {
@@ -1874,7 +1874,7 @@ impl M6809 {
         self.cl += 3;
     }
 
-    fn LBNE(&mut self, mem: &mut Memory) {
+    fn LBNE(&mut self, mem: &Memory) {
         let mut m = mem.read(self.PC);
         self.PC += 1;
         let mut off = m << 8;
@@ -1889,7 +1889,7 @@ impl M6809 {
         }
     }
 
-    fn BGE(&mut self, mem: &mut Memory) {
+    fn BGE(&mut self, mem: &Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
         if ((self.sign ^ ((!(self.m1 ^ self.m2)) & (self.m1 ^ self.ovfl))) & 0x80) == 0 {
@@ -1898,7 +1898,7 @@ impl M6809 {
         self.cl += 3;
     }
 
-    fn LBGE(&mut self, mem: &mut Memory) {
+    fn LBGE(&mut self, mem: &Memory) {
         let mut m = mem.read(self.PC);
         self.PC += 1;
         let mut off = m << 8;
@@ -1913,7 +1913,7 @@ impl M6809 {
         }
     }
 
-    fn BLE(&mut self, mem: &mut Memory) {
+    fn BLE(&mut self, mem: &Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
         if ((self.res & 0xff) == 0)
@@ -1924,7 +1924,7 @@ impl M6809 {
         self.cl += 3;
     }
 
-    fn LBLE(&mut self, mem: &mut Memory) {
+    fn LBLE(&mut self, mem: &Memory) {
         let mut m = mem.read(self.PC);
         self.PC += 1;
         let mut off = m << 8;
@@ -1941,7 +1941,7 @@ impl M6809 {
         }
     }
 
-    fn BLS(&mut self, mem: &mut Memory) {
+    fn BLS(&mut self, mem: &Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
         if ((self.res & 0x100) != 0) || ((self.res & 0xff) == 0) {
@@ -1950,7 +1950,7 @@ impl M6809 {
         self.cl += 3;
     }
 
-    fn LBLS(&mut self, mem: &mut Memory) {
+    fn LBLS(&mut self, mem: &Memory) {
         let mut m = mem.read(self.PC);
         self.PC += 1;
         let mut off = m << 8;
@@ -1965,7 +1965,7 @@ impl M6809 {
         }
     }
 
-    fn BGT(&mut self, mem: &mut Memory) {
+    fn BGT(&mut self, mem: &Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
         if ((self.res & 0xff) != 0)
@@ -1976,7 +1976,7 @@ impl M6809 {
         self.cl += 3;
     }
 
-    fn LBGT(&mut self, mem: &mut Memory) {
+    fn LBGT(&mut self, mem: &Memory) {
         let mut m = mem.read(self.PC);
         self.PC += 1;
         let mut off = m << 8;
@@ -1993,7 +1993,7 @@ impl M6809 {
         }
     }
 
-    fn BLT(&mut self, mem: &mut Memory) {
+    fn BLT(&mut self, mem: &Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
         if ((self.sign ^ ((!(self.m1 ^ self.m2)) & (self.m1 ^ self.ovfl))) & 0x80) != 0 {
@@ -2002,7 +2002,7 @@ impl M6809 {
         self.cl += 3;
     }
 
-    fn LBLT(&mut self, mem: &mut Memory) {
+    fn LBLT(&mut self, mem: &Memory) {
         let mut m = mem.read(self.PC);
         self.PC += 1;
         let mut off = m << 8;
@@ -2017,7 +2017,7 @@ impl M6809 {
         }
     }
 
-    fn BHI(&mut self, mem: &mut Memory) {
+    fn BHI(&mut self, mem: &Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
         if ((self.res & 0x100) == 0) && ((self.res & 0xff) != 0) {
@@ -2026,7 +2026,7 @@ impl M6809 {
         self.cl += 3;
     }
 
-    fn LBHI(&mut self, mem: &mut Memory) {
+    fn LBHI(&mut self, mem: &Memory) {
         let mut m = mem.read(self.PC);
         self.PC += 1;
         let mut off = m << 8;
@@ -2040,7 +2040,7 @@ impl M6809 {
         self.cl += 5;
     }
 
-    fn BMI(&mut self, mem: &mut Memory) {
+    fn BMI(&mut self, mem: &Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
         if (self.sign & 0x80) != 0 {
@@ -2049,7 +2049,7 @@ impl M6809 {
         self.cl += 3;
     }
 
-    fn LBMI(&mut self, mem: &mut Memory) {
+    fn LBMI(&mut self, mem: &Memory) {
         let mut m = mem.read(self.PC);
         self.PC += 1;
         let mut off = m << 8;
@@ -2064,7 +2064,7 @@ impl M6809 {
         }
     }
 
-    fn BPL(&mut self, mem: &mut Memory) {
+    fn BPL(&mut self, mem: &Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
         if (self.sign & 0x80) == 0 {
@@ -2073,7 +2073,7 @@ impl M6809 {
         self.cl += 3;
     }
 
-    fn LBPL(&mut self, mem: &mut Memory) {
+    fn LBPL(&mut self, mem: &Memory) {
         let mut m = mem.read(self.PC);
         self.PC += 1;
         let mut off = m << 8;
@@ -2088,7 +2088,7 @@ impl M6809 {
         }
     }
 
-    fn BVS(&mut self, mem: &mut Memory) {
+    fn BVS(&mut self, mem: &Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
         if (((self.m1 ^ self.m2) & 0x80) == 0) && (((self.m1 ^ self.ovfl) & 0x80) != 0) {
@@ -2097,7 +2097,7 @@ impl M6809 {
         self.cl += 3;
     }
 
-    fn LBVS(&mut self, mem: &mut Memory) {
+    fn LBVS(&mut self, mem: &Memory) {
         let mut m = mem.read(self.PC);
         self.PC += 1;
         let mut off = m << 8;
@@ -2112,7 +2112,7 @@ impl M6809 {
         }
     }
 
-    fn BVC(&mut self, mem: &mut Memory) {
+    fn BVC(&mut self, mem: &Memory) {
         let m = mem.read(self.PC);
         self.PC += 1;
         if (((self.m1 ^ self.m2) & 0x80) != 0) || (((self.m1 ^ self.ovfl) & 0x80) == 0) {
@@ -2121,7 +2121,7 @@ impl M6809 {
         self.cl += 3;
     }
 
-    fn LBVC(&mut self, mem: &mut Memory) {
+    fn LBVC(&mut self, mem: &Memory) {
         let mut m = mem.read(self.PC);
         self.PC += 1;
         let mut off = m << 8;
@@ -2169,7 +2169,7 @@ impl M6809 {
         self.cl += 19;
     }
 
-    fn RTI(&mut self, mem: &mut Memory) {
+    fn RTI(&mut self, mem: &Memory) {
         self.CC = mem.read(self.registers.S);
         self.setcc(self.CC);
         self.registers.S += 1;
@@ -2244,7 +2244,7 @@ impl M6809 {
         self.cl += 2;
     }
 
-    fn CWAI(&mut self, mem: &mut Memory) {
+    fn CWAI(&mut self, mem: &Memory) {
         self.getcc();
         self.CC &= mem.read(self.PC);
         self.setcc(self.CC);
