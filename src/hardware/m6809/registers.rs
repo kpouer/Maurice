@@ -162,6 +162,39 @@ mod tests {
         assert_eq!(cc.ccrest(), expected_ccrest, "ccrest mismatch for input 0x{:02x}", input);
     }
 
+    #[rstest]
+    #[case(0x00, 0, 0, 4, 0, 0x00, 0, 0, 0)]
+    #[case(0x01, 0, 0, 260, 0, 0x00, 0, 0, 0)]
+    #[case(0x02, 0, 0, 4, 0x80, 0x00, 0, 0, 0)]
+    #[case(0x04, 0, 0, 0, 0, 0x00, 0, 0, 0)]
+    #[case(0x08, 0, 0, 4, 0, 0x80, 0, 0, 0)]
+    #[case(0x20, 0, 0, 4, 0, 0x00, 8, 8, 0)]
+    #[case(0xd0, 0, 0, 4, 0, 0x00, 0, 0, 0xd0)]
+    #[case(0xff, 0, 0, 0x100, 0x80, 0x80, 8, 8, 0xd0)]
+    fn test_getcc(
+        #[case] input: u8,
+        #[case] expected_m1: int,
+        #[case] expected_m2: int,
+        #[case] expected_res: int,
+        #[case] expected_ovfl: int,
+        #[case] expected_sign: int,
+        #[case] expected_h1: int,
+        #[case] expected_h2: int,
+        #[case] expected_ccrest: int,
+    ) {
+        let mut cc = CCRegister::default();
+        cc.m1 = expected_m1;
+        cc.m2 = expected_m2;
+        cc.res = expected_res;
+        cc.ovfl = expected_ovfl;
+        cc.sign = expected_sign;
+        cc.h1 = expected_h1;
+        cc.h2 = expected_h2;
+        cc.ccrest = expected_ccrest;
+
+        assert_eq!(cc.getcc(), input);
+    }
+
     #[test]
     fn test_setcc_bit_zero_carry() {
         let mut cc = CCRegister::default();
