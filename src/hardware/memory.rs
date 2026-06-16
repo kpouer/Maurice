@@ -4,11 +4,11 @@ use std::fs::File;
 use std::io::{BufWriter, Write};
 
 use crate::hardware::k7::K7;
+use crate::hardware::m6821::registers::Registers;
 use crate::hardware::screen::Screen;
 use crate::{bios, int};
 use chrono::Local;
 use log::{debug, info, warn};
-use crate::hardware::m6821::registers::Registers;
 
 #[derive(Debug)]
 pub struct Memory {
@@ -215,7 +215,9 @@ impl Memory {
                 }
                 /* Mise à jour de ORA selon le masque DDRA */
                 OP |= 0x80 + 0x20; // gestion de ,l'inter optique
-                self.registers_6821.ORA = (self.registers_6821.ORA & (self.registers_6821.DDRA ^ 0xFF)) | (OP & self.registers_6821.DDRA);
+                self.registers_6821.ORA = (self.registers_6821.ORA
+                    & (self.registers_6821.DDRA ^ 0xFF))
+                    | (OP & self.registers_6821.DDRA);
                 if self.light_pen_clic {
                     self.mem[0xA + 2][0x7C0] = self.registers_6821.ORA | 0x20;
                 } else {
@@ -231,7 +233,9 @@ impl Memory {
             if (self.registers_6821.CRB & 0x04) == 0x04
             /* Accès à ORB */
             {
-                self.registers_6821.ORB = (self.registers_6821.ORB & (self.registers_6821.DDRB ^ 0xFF)) | (OP & self.registers_6821.DDRB);
+                self.registers_6821.ORB = (self.registers_6821.ORB
+                    & (self.registers_6821.DDRB ^ 0xFF))
+                    | (OP & self.registers_6821.DDRB);
 
                 /* GESTION HARD DU CLAVIER */
 

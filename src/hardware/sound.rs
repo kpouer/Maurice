@@ -1,11 +1,11 @@
+use ringbuf::traits::{Consumer, Producer, Split};
+use ringbuf::{CachingCons, CachingProd, HeapRb};
 use std::sync::Arc;
-use ringbuf::{HeapRb, CachingProd, CachingCons};
-use ringbuf::traits::{Producer, Consumer, Split};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
 use crate::hardware::m6809::M6809;
-use crate::hardware::sound_buffer::{SoundBuffer, SOUND_SIZE};
+use crate::hardware::sound_buffer::{SOUND_SIZE, SoundBuffer};
 
 const AUDIO_DOWNSAMPLING_FACTOR: usize = 4;
 
@@ -59,7 +59,9 @@ impl Sound {
 
 // Get audio stream and sample rate to use when processing audio. We pass the shared
 // buffer which will be used by the APU.
-fn get_audio_stream(mut consumer: CachingCons<Arc<HeapRb<u8>>>) -> Option<(cpal::Stream, cpal::SampleRate)> {
+fn get_audio_stream(
+    mut consumer: CachingCons<Arc<HeapRb<u8>>>,
+) -> Option<(cpal::Stream, cpal::SampleRate)> {
     let device = cpal::default_host().default_output_device()?;
     let supported_configs = device.supported_output_configs().ok()?;
     let mut supported_config = None;

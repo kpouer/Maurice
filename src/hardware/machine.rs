@@ -1,7 +1,7 @@
 use crate::hardware::keyboard::Keyboard;
 
-use crate::hardware::m6809::{M6809, unassemble};
 use crate::hardware::k7::K7;
+use crate::hardware::m6809::{M6809, unassemble};
 use crate::hardware::memory::Memory;
 use crate::hardware::screen::Screen;
 use crate::hardware::sound::Sound;
@@ -118,7 +118,7 @@ impl Machine {
             /* Positionne le bit 7 de CRB */
             self.mem.registers_6821.CRB |= 0x80;
             self.mem.set(0xA7C3, self.mem.registers_6821.CRB);
-            let cc = self.micro.readCC();
+            let cc = self.micro.CC.readCC();
             if (cc & 0x10) == 0 {
                 self.micro.IRQ(&mut self.mem);
             }

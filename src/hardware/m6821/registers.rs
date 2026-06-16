@@ -9,5 +9,4 @@ pub(crate) struct Registers {
     pub(crate) ORB: int,
     pub(crate) DDRB: int,
     pub(crate) CRB: int,
-
 }
