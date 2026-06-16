@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-mod registers;
+pub mod registers;
 
 use crate::hardware::m6809::registers::{CCRegister, Registers};
 use crate::hardware::memory::Memory;
@@ -14,16 +14,9 @@ use log::warn;
 pub struct M6809 {
     // Sound emulation parameters
     pub(crate) sound_buffer: SoundBuffer,
-    registers: Registers,
+    pub(crate) registers: Registers,
 
     cl: int,
-
-    // 8bits registers
-    DP: int,
-    pub(crate) CC: CCRegister,
-
-    // 16bits registers
-    pub(crate) PC: int,
 }
 
 impl M6809 {
@@ -34,42 +27,42 @@ impl M6809 {
     }
 
     pub(crate) fn reset(&mut self, mem: &Memory) {
-        self.PC = mem.read_16(0xFFFE);
-        self.DP = 0x00;
+        self.registers.PC = mem.read_16(0xFFFE);
+        self.registers.DP = 0x00;
         self.registers.S = 0x8000;
-        self.CC.value = 0x00;
+        self.registers.CC.value = 0x00;
     }
 
     // basic 6809 addressing modes
     const fn IMMED8(&mut self) -> int {
-        let M = self.PC;
-        self.PC += 1;
+        let M = self.registers.PC;
+        self.registers.PC += 1;
         M
     }
 
     const fn IMMED16(&mut self) -> int {
-        let M = self.PC;
-        self.PC += 2;
+        let M = self.registers.PC;
+        self.registers.PC += 2;
         M
     }
 
     fn DIREC(&mut self, mem: &Memory) -> int {
-        let M = (self.DP << 8) | mem.read(self.PC);
-        self.PC += 1;
+        let M = (self.registers.DP << 8) | mem.read(self.registers.PC);
+        self.registers.PC += 1;
         M
     }
 
     fn ETEND(&mut self, mem: &Memory) -> int {
-        let mut M = mem.read(self.PC) << 8;
-        self.PC += 1;
-        M |= mem.read(self.PC);
-        self.PC += 1;
+        let mut M = mem.read(self.registers.PC) << 8;
+        self.registers.PC += 1;
+        M |= mem.read(self.registers.PC);
+        self.registers.PC += 1;
         M
     }
 
     fn INDEXE(&mut self, mem: &Memory) -> int {
-        let mut m = mem.read(self.PC);
-        self.PC += 1;
+        let mut m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         if m < 0x80 {
             // effectue le complement a 2 sur la precision int
             let delta = if (m & 0x10) == 0x10 {
@@ -132,17 +125,17 @@ impl M6809 {
             0x87 => 0, //i_undoc;	/* empty */
             0x88 => {
                 //i_d_8_X;
-                self.CC.m2 = mem.read(self.PC);
-                self.PC += 1;
-                let M = (self.registers.X + signedChar(self.CC.m2)) & 0xFFFF;
+                self.registers.CC.m2 = mem.read(self.registers.PC);
+                self.registers.PC += 1;
+                let M = (self.registers.X + signedChar(self.registers.CC.m2)) & 0xFFFF;
                 self.cl += 1;
                 M
             }
             0x89 => {
                 //i_d_16_X;
-                self.CC.m2 = mem.read_16(self.PC);
-                self.PC += 2;
-                let M = (self.registers.X + signed16bits(self.CC.m2)) & 0xFFFF;
+                self.registers.CC.m2 = mem.read_16(self.registers.PC);
+                self.registers.PC += 2;
+                let M = (self.registers.X + signed16bits(self.registers.CC.m2)) & 0xFFFF;
                 self.cl += 4;
                 M
             }
@@ -157,17 +150,17 @@ impl M6809 {
             }
             0x8C | 0xAC | 0xCC | 0xEC => {
                 //i_d_PC8;
-                m = mem.read(self.PC);
-                self.PC = (self.PC + 1) & 0xFFFF;
-                let M = (self.PC + signedChar(m)) & 0xFFFF;
+                m = mem.read(self.registers.PC);
+                self.registers.PC = (self.registers.PC + 1) & 0xFFFF;
+                let M = (self.registers.PC + signedChar(m)) & 0xFFFF;
                 self.cl += 1;
                 M
             }
             0x8D | 0xAD | 0xCD | 0xED => {
                 //i_d_PC16;
-                let mut M = mem.read_16(self.PC);
-                self.PC = (self.PC + 2) & 0xFFFF;
-                M = (self.PC + signed16bits(M)) & 0xFFFF;
+                let mut M = mem.read_16(self.registers.PC);
+                self.registers.PC = (self.registers.PC + 2) & 0xFFFF;
+                M = (self.registers.PC + signed16bits(M)) & 0xFFFF;
                 self.cl += 5;
                 M
             }
@@ -210,18 +203,18 @@ impl M6809 {
             0x97 => 0, //i_undoc;	/* empty */
             0x98 => {
                 //i_i_8_X;
-                self.CC.m2 = mem.read(self.PC);
-                self.PC = (self.PC + 1) & 0xFFFF;
-                let mut M = (self.registers.X + signedChar(self.CC.m2)) & 0xFFFF;
+                self.registers.CC.m2 = mem.read(self.registers.PC);
+                self.registers.PC = (self.registers.PC + 1) & 0xFFFF;
+                let mut M = (self.registers.X + signedChar(self.registers.CC.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
                 M
             }
             0x99 => {
                 //i_i_16_X;
-                self.CC.m2 = mem.read_16(self.PC);
-                self.PC = (self.PC + 2) & 0xFFFF;
-                let mut M = (self.registers.X + signed16bits(self.CC.m2)) & 0xFFFF;
+                self.registers.CC.m2 = mem.read_16(self.registers.PC);
+                self.registers.PC = (self.registers.PC + 2) & 0xFFFF;
+                let mut M = (self.registers.X + signed16bits(self.registers.CC.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
                 M
@@ -238,18 +231,18 @@ impl M6809 {
             }
             0x9C | 0xBC | 0xDC | 0xFC => {
                 //i_i_PC8;
-                self.CC.m2 = mem.read(self.PC);
-                self.PC = (self.PC + 1) & 0xFFFF;
-                let mut M = (self.PC + signedChar(self.CC.m2)) & 0xFFFF;
+                self.registers.CC.m2 = mem.read(self.registers.PC);
+                self.registers.PC = (self.registers.PC + 1) & 0xFFFF;
+                let mut M = (self.registers.PC + signedChar(self.registers.CC.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
                 M
             }
             0x9D | 0xBD | 0xDD | 0xFD => {
                 //i_i_PC16;
-                self.CC.m2 = mem.read_16(self.PC);
-                self.PC = (self.PC + 2) & 0xFFFF;
-                let mut M = (self.PC + signed16bits(self.CC.m2)) & 0xFFFF;
+                self.registers.CC.m2 = mem.read_16(self.registers.PC);
+                self.registers.PC = (self.registers.PC + 2) & 0xFFFF;
+                let mut M = (self.registers.PC + signed16bits(self.registers.CC.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 8;
                 M
@@ -257,9 +250,9 @@ impl M6809 {
             0x9E => 0, //i_undoc;	/* empty */
             0x9F | 0xBF | 0xDF | 0xFF => {
                 //i_i_e16;
-                self.CC.m2 = mem.read_16(self.PC);
-                self.PC = (self.PC + 2) & 0xFFFF;
-                let M = mem.read_16(self.CC.m2);
+                self.registers.CC.m2 = mem.read_16(self.registers.PC);
+                self.registers.PC = (self.registers.PC + 2) & 0xFFFF;
+                let M = mem.read_16(self.registers.CC.m2);
                 self.cl += 5;
                 M
                 // Y
@@ -308,17 +301,17 @@ impl M6809 {
             0xA7 => 0, //i_undoc;	/* empty */
             0xA8 => {
                 //i_d_8_Y;
-                self.CC.m2 = mem.read(self.PC);
-                self.PC += 1;
-                let M = (self.registers.Y + signedChar(self.CC.m2)) & 0xFFFF;
+                self.registers.CC.m2 = mem.read(self.registers.PC);
+                self.registers.PC += 1;
+                let M = (self.registers.Y + signedChar(self.registers.CC.m2)) & 0xFFFF;
                 self.cl += 1;
                 M
             }
             0xA9 => {
                 //i_d_16_Y;
-                self.CC.m2 = mem.read_16(self.PC);
-                self.PC += 2;
-                let M = (self.registers.Y + signed16bits(self.CC.m2)) & 0xFFFF;
+                self.registers.CC.m2 = mem.read_16(self.registers.PC);
+                self.registers.PC += 2;
+                let M = (self.registers.Y + signed16bits(self.registers.CC.m2)) & 0xFFFF;
                 self.cl += 4;
                 M
             }
@@ -370,18 +363,18 @@ impl M6809 {
             0xB7 => 0, //i_undoc;	/* empty */
             0xB8 => {
                 //i_i_8_Y;
-                self.CC.m2 = mem.read(self.PC);
-                self.PC = (self.PC + 1) & 0xFFFF;
-                let mut M = (self.registers.Y + signedChar(self.CC.m2)) & 0xFFFF;
+                self.registers.CC.m2 = mem.read(self.registers.PC);
+                self.registers.PC = (self.registers.PC + 1) & 0xFFFF;
+                let mut M = (self.registers.Y + signedChar(self.registers.CC.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
                 M
             }
             0xB9 => {
                 //i_i_16_Y;
-                self.CC.m2 = mem.read_16(self.PC);
-                self.PC = (self.PC + 2) & 0xFFFF;
-                let mut M = (self.registers.Y + signed16bits(self.CC.m2)) & 0xFFFF;
+                self.registers.CC.m2 = mem.read_16(self.registers.PC);
+                self.registers.PC = (self.registers.PC + 2) & 0xFFFF;
+                let mut M = (self.registers.Y + signed16bits(self.registers.CC.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
                 M
@@ -441,17 +434,17 @@ impl M6809 {
             0xC7 => 0, //i_undoc;	/* empty */
             0xC8 => {
                 //i_d_8_U;
-                self.CC.m2 = mem.read(self.PC);
-                self.PC += 1;
-                let M = (self.registers.U + signedChar(self.CC.m2)) & 0xFFFF;
+                self.registers.CC.m2 = mem.read(self.registers.PC);
+                self.registers.PC += 1;
+                let M = (self.registers.U + signedChar(self.registers.CC.m2)) & 0xFFFF;
                 self.cl += 1;
                 M
             }
             0xC9 => {
                 //i_d_16_U;
-                self.CC.m2 = mem.read_16(self.PC);
-                self.PC += 2;
-                let M = (self.registers.U + signed16bits(self.CC.m2)) & 0xFFFF;
+                self.registers.CC.m2 = mem.read_16(self.registers.PC);
+                self.registers.PC += 2;
+                let M = (self.registers.U + signed16bits(self.registers.CC.m2)) & 0xFFFF;
                 self.cl += 4;
                 M
             }
@@ -503,18 +496,18 @@ impl M6809 {
             0xD7 => 0, //i_undoc;	/* empty */
             0xD8 => {
                 //i_i_8_U;
-                self.CC.m2 = mem.read(self.PC);
-                self.PC = (self.PC + 1) & 0xFFFF;
-                let mut M = (self.registers.U + signedChar(self.CC.m2)) & 0xFFFF;
+                self.registers.CC.m2 = mem.read(self.registers.PC);
+                self.registers.PC = (self.registers.PC + 1) & 0xFFFF;
+                let mut M = (self.registers.U + signedChar(self.registers.CC.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
                 M
             }
             0xD9 => {
                 //i_i_16_U;
-                self.CC.m2 = mem.read_16(self.PC);
-                self.PC = (self.PC + 2) & 0xFFFF;
-                let mut M = (self.registers.U + signed16bits(self.CC.m2)) & 0xFFFF;
+                self.registers.CC.m2 = mem.read_16(self.registers.PC);
+                self.registers.PC = (self.registers.PC + 2) & 0xFFFF;
+                let mut M = (self.registers.U + signed16bits(self.registers.CC.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
                 M
@@ -574,17 +567,17 @@ impl M6809 {
             0xE7 => 0, //i_undoc;	/* empty */
             0xE8 => {
                 //i_d_8_S;
-                self.CC.m2 = mem.read(self.PC);
-                self.PC += 1;
-                let M = (self.registers.S + signedChar(self.CC.m2)) & 0xFFFF;
+                self.registers.CC.m2 = mem.read(self.registers.PC);
+                self.registers.PC += 1;
+                let M = (self.registers.S + signedChar(self.registers.CC.m2)) & 0xFFFF;
                 self.cl += 1;
                 M
             }
             0xE9 => {
                 //i_d_16_S;
-                self.CC.m2 = mem.read_16(self.PC);
-                self.PC += 2;
-                let M = (self.registers.S + signed16bits(self.CC.m2)) & 0xFFFF;
+                self.registers.CC.m2 = mem.read_16(self.registers.PC);
+                self.registers.PC += 2;
+                let M = (self.registers.S + signed16bits(self.registers.CC.m2)) & 0xFFFF;
                 self.cl += 4;
                 M
             }
@@ -636,18 +629,18 @@ impl M6809 {
             0xF7 => 0, //i_undoc;	/* empty */
             0xF8 => {
                 //i_i_8_S;
-                self.CC.m2 = mem.read(self.PC);
-                self.PC = (self.PC + 1) & 0xFFFF;
-                let mut M = (self.registers.S + signedChar(self.CC.m2)) & 0xFFFF;
+                self.registers.CC.m2 = mem.read(self.registers.PC);
+                self.registers.PC = (self.registers.PC + 1) & 0xFFFF;
+                let mut M = (self.registers.S + signedChar(self.registers.CC.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 4;
                 M
             }
             0xF9 => {
                 //i_i_16_S;
-                self.CC.m2 = mem.read_16(self.PC);
-                self.PC = (self.PC + 2) & 0xFFFF;
-                let mut M = (self.registers.S + signed16bits(self.CC.m2)) & 0xFFFF;
+                self.registers.CC.m2 = mem.read_16(self.registers.PC);
+                self.registers.PC = (self.registers.PC + 2) & 0xFFFF;
+                let mut M = (self.registers.S + signed16bits(self.registers.CC.m2)) & 0xFFFF;
                 M = mem.read_16(M);
                 self.cl += 7;
                 M
@@ -676,18 +669,18 @@ impl M6809 {
 
     // LDx
     fn LD8(&mut self, M: int, c: int, mem: &Memory) -> int {
-        self.CC.sign = mem.read(M);
-        self.CC.m1 = self.CC.ovfl;
-        self.CC.res = (self.CC.res & 0x100) | self.CC.sign;
+        self.registers.CC.sign = mem.read(M);
+        self.registers.CC.m1 = self.registers.CC.ovfl;
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | self.registers.CC.sign;
         self.cl += c;
-        self.CC.sign
+        self.registers.CC.sign
     }
 
     fn LD16(&mut self, M: int, c: int, mem: &Memory) -> int {
         let R = mem.read_16(M) & 0xFFFF;
-        self.CC.m1 = self.CC.ovfl;
-        self.CC.sign = R >> 8;
-        self.CC.res = (self.CC.res & 0x100) | ((self.CC.sign | R) & 0xFF);
+        self.registers.CC.m1 = self.registers.CC.ovfl;
+        self.registers.CC.sign = R >> 8;
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | ((self.registers.CC.sign | R) & 0xFF);
         self.cl += c;
         R
     }
@@ -695,25 +688,25 @@ impl M6809 {
     // STx
     fn ST8(&mut self, R: int, adr: int, c: int, mem: &mut Memory) {
         mem.write(adr, R);
-        self.CC.m1 = self.CC.ovfl;
-        self.CC.sign = R;
-        self.CC.res = (self.CC.res & 0x100) | self.CC.sign;
+        self.registers.CC.m1 = self.registers.CC.ovfl;
+        self.registers.CC.sign = R;
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | self.registers.CC.sign;
         self.cl += c;
     }
 
     fn ST16(&mut self, R: int, adr: int, c: int, mem: &mut Memory) {
         mem.write(adr, R >> 8);
         mem.write(adr + 1, R & 0xFF);
-        self.CC.m1 = self.CC.ovfl;
-        self.CC.sign = R >> 8;
-        self.CC.res = (self.CC.res & 0x100) | ((self.CC.sign | R) & 0xFF);
+        self.registers.CC.m1 = self.registers.CC.ovfl;
+        self.registers.CC.sign = R >> 8;
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | ((self.registers.CC.sign | R) & 0xFF);
         self.cl += c;
     }
 
     // LEA
     fn LEA(&mut self, mem: &Memory) -> int {
         let R = self.INDEXE(mem);
-        self.CC.res = (self.CC.res & 0x100) | ((R | (R >> 8)) & 0xFF);
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | ((R | (R >> 8)) & 0xFF);
         self.cl += 4;
         R
     }
@@ -721,16 +714,16 @@ impl M6809 {
     // CLR
     fn CLR(&mut self, M: int, c: int, mem: &mut Memory) {
         mem.write(M, 0);
-        self.CC.m1 = !self.CC.m2;
-        self.CC.sign = 0;
-        self.CC.res = 0;
+        self.registers.CC.m1 = !self.registers.CC.m2;
+        self.registers.CC.sign = 0;
+        self.registers.CC.res = 0;
         self.cl += c;
     }
 
     // EXG
     fn EXG(&mut self, mem: &Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         let r1 = (m & 0xF0) >> 4;
         // only for javac
         // of match r1
@@ -740,17 +733,17 @@ impl M6809 {
             0x02 => self.registers.Y,
             0x03 => self.registers.U,
             0x04 => self.registers.S,
-            0x05 => self.PC,
-            0x06 => self.CC.getcc() as int,
-            0x07 => self.CC.getcc() as int,
+            0x05 => self.registers.PC,
+            0x06 => self.registers.CC.getcc() as int,
+            0x07 => self.registers.CC.getcc() as int,
             0x08 => self.registers.A,
             0x09 => self.registers.B,
-            0x0A => self.CC.getcc() as int,
-            0x0B => self.DP,
-            0x0C => self.CC.getcc() as int,
-            0x0D => self.CC.getcc() as int,
-            0x0E => self.CC.getcc() as int,
-            0x0F => self.CC.getcc() as int,
+            0x0A => self.registers.CC.getcc() as int,
+            0x0B => self.registers.DP,
+            0x0C => self.registers.CC.getcc() as int,
+            0x0D => self.registers.CC.getcc() as int,
+            0x0E => self.registers.CC.getcc() as int,
+            0x0F => self.registers.CC.getcc() as int,
             _ => 0, // only for javac
         };
         let mut l = 0;
@@ -778,16 +771,16 @@ impl M6809 {
                 self.registers.S = k;
             }
             0x05 => {
-                l = self.PC;
-                self.PC = k;
+                l = self.registers.PC;
+                self.registers.PC = k;
             }
             0x06 => {
-                l = self.CC.getcc() as int;
-                self.CC.setcc(k as u8);
+                l = self.registers.CC.getcc() as int;
+                self.registers.CC.setcc(k as u8);
             }
             0x07 => {
-                l = self.CC.getcc() as int;
-                self.CC.setcc(k as u8);
+                l = self.registers.CC.getcc() as int;
+                self.registers.CC.setcc(k as u8);
             }
             0x08 => {
                 l = self.registers.A;
@@ -798,28 +791,28 @@ impl M6809 {
                 self.registers.B = k & 0xff;
             }
             0x0A => {
-                l = self.CC.getcc() as int;
-                self.CC.setcc(k as u8);
+                l = self.registers.CC.getcc() as int;
+                self.registers.CC.setcc(k as u8);
             }
             0x0B => {
-                l = self.DP;
-                self.DP = k & 0xff;
+                l = self.registers.DP;
+                self.registers.DP = k & 0xff;
             }
             0x0C => {
-                l = self.CC.getcc() as int;
-                self.CC.setcc(k as u8);
+                l = self.registers.CC.getcc() as int;
+                self.registers.CC.setcc(k as u8);
             }
             0x0D => {
-                l = self.CC.getcc() as int;
-                self.CC.setcc(k as u8);
+                l = self.registers.CC.getcc() as int;
+                self.registers.CC.setcc(k as u8);
             }
             0x0E => {
-                l = self.CC.getcc() as int;
-                self.CC.setcc(k as u8);
+                l = self.registers.CC.getcc() as int;
+                self.registers.CC.setcc(k as u8);
             }
             0x0F => {
-                l = self.CC.getcc() as int;
-                self.CC.setcc(k as u8);
+                l = self.registers.CC.getcc() as int;
+                self.registers.CC.setcc(k as u8);
             }
             _ => {}
         } // of match r2
@@ -832,25 +825,25 @@ impl M6809 {
             0x02 => self.registers.Y = l,
             0x03 => self.registers.U = l,
             0x04 => self.registers.S = l,
-            0x05 => self.PC = l,
-            0x06 => self.CC.setcc(l as u8),
-            0x07 => self.CC.setcc(l as u8),
+            0x05 => self.registers.PC = l,
+            0x06 => self.registers.CC.setcc(l as u8),
+            0x07 => self.registers.CC.setcc(l as u8),
             0x08 => self.registers.A = l & 0xff,
             0x09 => self.registers.B = l & 0xff,
-            0x0A => self.CC.setcc(l as u8),
-            0x0B => self.DP = l & 0xff,
-            0x0C => self.CC.setcc(l as u8),
-            0x0D => self.CC.setcc(l as u8),
-            0x0E => self.CC.setcc(l as u8),
-            0x0F => self.CC.setcc(l as u8),
+            0x0A => self.registers.CC.setcc(l as u8),
+            0x0B => self.registers.DP = l & 0xff,
+            0x0C => self.registers.CC.setcc(l as u8),
+            0x0D => self.registers.CC.setcc(l as u8),
+            0x0E => self.registers.CC.setcc(l as u8),
+            0x0F => self.registers.CC.setcc(l as u8),
             _ => {}
         } // of second match r1
         self.cl += 8;
     }
 
     fn TFR(&mut self, mem: &Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         let r1 = (m & 0xF0) >> 4;
         // only for javac
         // of match r1
@@ -860,13 +853,13 @@ impl M6809 {
             0x02 => self.registers.Y,
             0x03 => self.registers.U,
             0x04 => self.registers.S,
-            0x05 => self.PC,
-            0x06 | 0x07 => self.CC.getcc() as int,
+            0x05 => self.registers.PC,
+            0x06 | 0x07 => self.registers.CC.getcc() as int,
             0x08 => self.registers.A,
             0x09 => self.registers.B,
-            0x0A => self.CC.getcc() as int,
-            0x0B => self.DP,
-            0x0C | 0x0D | 0x0E | 0x0F => self.CC.getcc() as int,
+            0x0A => self.registers.CC.getcc() as int,
+            0x0B => self.registers.DP,
+            0x0C | 0x0D | 0x0E | 0x0F => self.registers.CC.getcc() as int,
             _ => 0,
         };
         let r2 = m & 0x0F;
@@ -879,25 +872,25 @@ impl M6809 {
             0x02 => self.registers.Y = k,
             0x03 => self.registers.U = k,
             0x04 => self.registers.S = k,
-            0x05 => self.PC = k,
-            0x06 | 0x07 => self.CC.setcc(k as u8),
+            0x05 => self.registers.PC = k,
+            0x06 | 0x07 => self.registers.CC.setcc(k as u8),
             0x08 => self.registers.A = k & 0xff,
             0x09 => self.registers.B = k & 0xff,
-            0x0A => self.CC.setcc(k as u8),
-            0x0B => self.DP = k & 0xff,
-            0x0C | 0x0D | 0x0E | 0x0F => self.CC.setcc(k as u8),
+            0x0A => self.registers.CC.setcc(k as u8),
+            0x0B => self.registers.DP = k & 0xff,
+            0x0C | 0x0D | 0x0E | 0x0F => self.registers.CC.setcc(k as u8),
             _ => {}
         } // of match r2
     }
 
     fn PSHS(&mut self, mem: &mut Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         if (m & 0x80) != 0 {
             self.registers.S -= 1;
-            mem.write(self.registers.S, self.PC & 0x00FF);
+            mem.write(self.registers.S, self.registers.PC & 0x00FF);
             self.registers.S -= 1;
-            mem.write(self.registers.S, self.PC >> 8);
+            mem.write(self.registers.S, self.registers.PC >> 8);
             self.cl += 2;
         }
         if (m & 0x40) != 0 {
@@ -923,7 +916,7 @@ impl M6809 {
         }
         if (m & 0x08) != 0 {
             self.registers.S -= 1;
-            mem.write(self.registers.S, self.DP);
+            mem.write(self.registers.S, self.registers.DP);
             self.cl += 1;
         }
         if (m & 0x04) != 0 {
@@ -938,21 +931,21 @@ impl M6809 {
         }
         if (m & 0x01) != 0 {
             self.registers.S -= 1;
-            self.CC.getcc();
-            mem.write(self.registers.S, self.CC.value as int);
+            self.registers.CC.getcc();
+            mem.write(self.registers.S, self.registers.CC.value as int);
             self.cl += 1;
         }
         self.cl += 5;
     }
 
     fn PSHU(&mut self, mem: &mut Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         if (m & 0x80) != 0 {
             self.registers.U -= 1;
-            mem.write(self.registers.U, self.PC & 0x00FF);
+            mem.write(self.registers.U, self.registers.PC & 0x00FF);
             self.registers.U -= 1;
-            mem.write(self.registers.U, self.PC >> 8);
+            mem.write(self.registers.U, self.registers.PC >> 8);
             self.cl += 2;
         }
         if (m & 0x40) != 0 {
@@ -978,7 +971,7 @@ impl M6809 {
         }
         if (m & 0x08) != 0 {
             self.registers.U -= 1;
-            mem.write(self.registers.U, self.DP);
+            mem.write(self.registers.U, self.registers.DP);
             self.cl += 1;
         }
         if (m & 0x04) != 0 {
@@ -993,19 +986,19 @@ impl M6809 {
         }
         if (m & 0x01) != 0 {
             self.registers.U -= 1;
-            self.CC.getcc();
-            mem.write(self.registers.U, self.CC.value as int);
+            self.registers.CC.getcc();
+            mem.write(self.registers.U, self.registers.CC.value as int);
             self.cl += 1;
         }
         self.cl += 5;
     }
 
     fn PULS(&mut self, mem: &Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         if (m & 0x01) != 0 {
-            self.CC.value = mem.read(self.registers.S) as u8;
-            self.CC.setcc(self.CC.value);
+            self.registers.CC.value = mem.read(self.registers.S) as u8;
+            self.registers.CC.setcc(self.registers.CC.value);
             self.registers.S += 1;
             self.cl += 1;
         }
@@ -1020,7 +1013,7 @@ impl M6809 {
             self.cl += 1;
         }
         if (m & 0x08) != 0 {
-            self.DP = mem.read(self.registers.S);
+            self.registers.DP = mem.read(self.registers.S);
             self.registers.S += 1;
             self.cl += 1;
         }
@@ -1040,7 +1033,7 @@ impl M6809 {
             self.cl += 2;
         }
         if (m & 0x80) != 0 {
-            self.PC = mem.read_16(self.registers.S);
+            self.registers.PC = mem.read_16(self.registers.S);
             self.registers.S += 2;
             self.cl += 2;
         }
@@ -1048,11 +1041,11 @@ impl M6809 {
     }
 
     fn PULU(&mut self, mem: &Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         if (m & 0x01) != 0 {
-            self.CC.value = mem.read(self.registers.U) as u8;
-            self.CC.setcc(self.CC.value);
+            self.registers.CC.value = mem.read(self.registers.U) as u8;
+            self.registers.CC.setcc(self.registers.CC.value);
             self.registers.U += 1;
             self.cl += 1;
         }
@@ -1067,7 +1060,7 @@ impl M6809 {
             self.cl += 1;
         }
         if (m & 0x08) != 0 {
-            self.DP = mem.read(self.registers.U);
+            self.registers.DP = mem.read(self.registers.U);
             self.registers.U += 1;
             self.cl += 1;
         }
@@ -1087,7 +1080,7 @@ impl M6809 {
             self.cl += 2;
         }
         if (m & 0x80) != 0 {
-            self.PC = mem.read_16(self.registers.U);
+            self.registers.PC = mem.read_16(self.registers.U);
             self.registers.U += 2;
             self.cl += 2;
         }
@@ -1095,249 +1088,249 @@ impl M6809 {
     }
 
     const fn INCA(&mut self) {
-        self.CC.m1 = self.registers.A;
-        self.CC.m2 = 0;
+        self.registers.CC.m1 = self.registers.A;
+        self.registers.CC.m2 = 0;
         self.registers.A = (self.registers.A + 1) & 0xFF;
-        self.CC.ovfl = self.registers.A;
-        self.CC.sign = self.registers.A;
-        self.CC.res = (self.CC.res & 0x100) | self.CC.sign;
+        self.registers.CC.ovfl = self.registers.A;
+        self.registers.CC.sign = self.registers.A;
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | self.registers.CC.sign;
         self.cl += 2;
     }
 
     const fn INCB(&mut self) {
-        self.CC.m1 = self.registers.B;
-        self.CC.m2 = 0;
+        self.registers.CC.m1 = self.registers.B;
+        self.registers.CC.m2 = 0;
         self.registers.B = (self.registers.B + 1) & 0xFF;
-        self.CC.ovfl = self.registers.B;
-        self.CC.sign = self.registers.B;
-        self.CC.res = (self.CC.res & 0x100) | self.CC.sign;
+        self.registers.CC.ovfl = self.registers.B;
+        self.registers.CC.sign = self.registers.B;
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | self.registers.CC.sign;
         self.cl += 2;
     }
 
     fn INC(&mut self, adr: int, c: int, mem: &mut Memory) {
         let mut val = mem.read(adr);
-        self.CC.m1 = val;
-        self.CC.m2 = 0;
+        self.registers.CC.m1 = val;
+        self.registers.CC.m2 = 0;
         val += 1;
         mem.write(adr, val);
-        self.CC.ovfl = val & 0xFF;
-        self.CC.sign = self.CC.ovfl;
-        self.CC.res = (self.CC.res & 0x100) | self.CC.sign;
+        self.registers.CC.ovfl = val & 0xFF;
+        self.registers.CC.sign = self.registers.CC.ovfl;
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | self.registers.CC.sign;
         self.cl += c;
     }
 
     // DEC
     const fn DECA(&mut self) {
-        self.CC.m1 = self.registers.A;
-        self.CC.m2 = 0x80;
+        self.registers.CC.m1 = self.registers.A;
+        self.registers.CC.m2 = 0x80;
         self.registers.A = (self.registers.A - 1) & 0xFF;
-        self.CC.ovfl = self.registers.A;
-        self.CC.sign = self.registers.A;
-        self.CC.res = (self.CC.res & 0x100) | self.CC.sign;
+        self.registers.CC.ovfl = self.registers.A;
+        self.registers.CC.sign = self.registers.A;
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | self.registers.CC.sign;
         self.cl += 2;
     }
 
     const fn DECB(&mut self) {
-        self.CC.m1 = self.registers.B;
-        self.CC.m2 = 0x80;
+        self.registers.CC.m1 = self.registers.B;
+        self.registers.CC.m2 = 0x80;
         self.registers.B = (self.registers.B - 1) & 0xFF;
-        self.CC.ovfl = self.registers.B;
-        self.CC.sign = self.registers.B;
-        self.CC.res = (self.CC.res & 0x100) | self.CC.sign;
+        self.registers.CC.ovfl = self.registers.B;
+        self.registers.CC.sign = self.registers.B;
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | self.registers.CC.sign;
         self.cl += 2;
     }
 
     fn DEC(&mut self, adr: int, c: int, mem: &mut Memory) {
         let mut val = mem.read(adr);
-        self.CC.m1 = val;
-        self.CC.m2 = 0x80;
+        self.registers.CC.m1 = val;
+        self.registers.CC.m2 = 0x80;
         val -= 1;
         mem.write(adr, val);
-        self.CC.ovfl = val & 0xFF;
-        self.CC.sign = self.CC.ovfl;
-        self.CC.res = (self.CC.res & 0x100) | self.CC.sign;
+        self.registers.CC.ovfl = val & 0xFF;
+        self.registers.CC.sign = self.registers.CC.ovfl;
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | self.registers.CC.sign;
         self.cl += c;
     }
 
     fn BIT(&mut self, R: int, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
-        self.CC.m1 = self.CC.ovfl;
-        self.CC.sign = R & val;
-        self.CC.res = (self.CC.res & 0x100) | self.CC.sign;
+        self.registers.CC.m1 = self.registers.CC.ovfl;
+        self.registers.CC.sign = R & val;
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | self.registers.CC.sign;
         self.cl += c;
     }
 
     fn CMP8(&mut self, R: int, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
-        self.CC.m1 = R;
-        self.CC.m2 = -val;
-        self.CC.ovfl = R - val;
-        self.CC.res = self.CC.ovfl;
-        self.CC.sign = self.CC.ovfl;
+        self.registers.CC.m1 = R;
+        self.registers.CC.m2 = -val;
+        self.registers.CC.ovfl = R - val;
+        self.registers.CC.res = self.registers.CC.ovfl;
+        self.registers.CC.sign = self.registers.CC.ovfl;
         self.cl += c;
     }
 
     fn CMP16(&mut self, R: int, adr: int, c: int, mem: &Memory) {
         let val = mem.read_16(adr);
-        self.CC.m1 = R >> 8;
-        self.CC.m2 = (-val) >> 8;
-        self.CC.ovfl = ((R - val) >> 8) & 0xFFFFFF;
-        self.CC.res = self.CC.ovfl;
-        self.CC.sign = self.CC.ovfl;
-        self.CC.res |= (R - val) & 0xFF;
+        self.registers.CC.m1 = R >> 8;
+        self.registers.CC.m2 = (-val) >> 8;
+        self.registers.CC.ovfl = ((R - val) >> 8) & 0xFFFFFF;
+        self.registers.CC.res = self.registers.CC.ovfl;
+        self.registers.CC.sign = self.registers.CC.ovfl;
+        self.registers.CC.res |= (R - val) & 0xFF;
         self.cl += c;
     }
 
     // TST
     const fn TSTAi(&mut self) {
-        self.CC.m1 = self.CC.ovfl;
-        self.CC.sign = self.registers.A;
-        self.CC.res = (self.CC.res & 0x100) | self.CC.sign;
+        self.registers.CC.m1 = self.registers.CC.ovfl;
+        self.registers.CC.sign = self.registers.A;
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | self.registers.CC.sign;
         self.cl += 2;
     }
 
     const fn TSTBi(&mut self) {
-        self.CC.m1 = self.CC.ovfl;
-        self.CC.sign = self.registers.B;
-        self.CC.res = (self.CC.res & 0x100) | self.CC.sign;
+        self.registers.CC.m1 = self.registers.CC.ovfl;
+        self.registers.CC.sign = self.registers.B;
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | self.registers.CC.sign;
         self.cl += 2;
     }
 
     fn TST(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
-        self.CC.m1 = !self.CC.m2;
-        self.CC.sign = val;
-        self.CC.res = (self.CC.res & 0x100) | self.CC.sign;
+        self.registers.CC.m1 = !self.registers.CC.m2;
+        self.registers.CC.sign = val;
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | self.registers.CC.sign;
         self.cl += c;
     }
 
     fn ANDA(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
-        self.CC.m1 = self.CC.ovfl;
+        self.registers.CC.m1 = self.registers.CC.ovfl;
         self.registers.A &= val;
-        self.CC.sign = self.registers.A;
-        self.CC.res = (self.CC.res & 0x100) | self.CC.sign;
+        self.registers.CC.sign = self.registers.A;
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | self.registers.CC.sign;
         self.cl += c;
     }
 
     fn ANDB(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
-        self.CC.m1 = self.CC.ovfl;
+        self.registers.CC.m1 = self.registers.CC.ovfl;
         self.registers.B &= val;
-        self.CC.sign = self.registers.B;
-        self.CC.res = (self.CC.res & 0x100) | self.CC.sign;
+        self.registers.CC.sign = self.registers.B;
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | self.registers.CC.sign;
         self.cl += c;
     }
 
     fn ANDCC(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
         //	getcc();
-        self.CC.value &= val as u8;
-        self.CC.setcc(self.CC.value);
+        self.registers.CC.value &= val as u8;
+        self.registers.CC.setcc(self.registers.CC.value);
         self.cl += c;
     }
 
     fn ORA(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
-        self.CC.m1 = self.CC.ovfl;
+        self.registers.CC.m1 = self.registers.CC.ovfl;
         self.registers.A |= val;
-        self.CC.sign = self.registers.A;
-        self.CC.res = (self.CC.res & 0x100) | self.CC.sign;
+        self.registers.CC.sign = self.registers.A;
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | self.registers.CC.sign;
         self.cl += c;
     }
 
     fn ORB(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
-        self.CC.m1 = self.CC.ovfl;
+        self.registers.CC.m1 = self.registers.CC.ovfl;
         self.registers.B |= val;
-        self.CC.sign = self.registers.B;
-        self.CC.res = (self.CC.res & 0x100) | self.CC.sign;
+        self.registers.CC.sign = self.registers.B;
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | self.registers.CC.sign;
         self.cl += c;
     }
 
     fn ORCC(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
-        self.CC.getcc();
-        self.CC.value |= val as u8;
-        self.CC.setcc(self.CC.value);
+        self.registers.CC.getcc();
+        self.registers.CC.value |= val as u8;
+        self.registers.CC.setcc(self.registers.CC.value);
         self.cl += c;
     }
 
     fn EORA(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
-        self.CC.m1 = self.CC.ovfl;
+        self.registers.CC.m1 = self.registers.CC.ovfl;
         self.registers.A ^= val;
-        self.CC.sign = self.registers.A;
-        self.CC.res = (self.CC.res & 0x100) | self.CC.sign;
+        self.registers.CC.sign = self.registers.A;
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | self.registers.CC.sign;
         self.cl += c;
     }
 
     fn EORB(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
-        self.CC.m1 = self.CC.ovfl;
+        self.registers.CC.m1 = self.registers.CC.ovfl;
         self.registers.B ^= val;
-        self.CC.sign = self.registers.B;
-        self.CC.res = (self.CC.res & 0x100) | self.CC.sign;
+        self.registers.CC.sign = self.registers.B;
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | self.registers.CC.sign;
         self.cl += c;
     }
 
     const fn COMA(&mut self) {
-        self.CC.m1 = self.CC.ovfl;
+        self.registers.CC.m1 = self.registers.CC.ovfl;
         self.registers.A = (!self.registers.A) & 0xFF;
-        self.CC.sign = self.registers.A;
-        self.CC.res = self.CC.sign | 0x100;
+        self.registers.CC.sign = self.registers.A;
+        self.registers.CC.res = self.registers.CC.sign | 0x100;
         self.cl += 2;
     }
 
     const fn COMB(&mut self) {
-        self.CC.m1 = self.CC.ovfl;
+        self.registers.CC.m1 = self.registers.CC.ovfl;
         self.registers.B = (!self.registers.B) & 0xFF;
-        self.CC.sign = self.registers.B;
-        self.CC.res = self.CC.sign | 0x100;
+        self.registers.CC.sign = self.registers.B;
+        self.registers.CC.res = self.registers.CC.sign | 0x100;
         self.cl += 2;
     }
 
     fn COM(&mut self, adr: int, c: int, mem: &mut Memory) {
         let mut val = mem.read(adr);
-        self.CC.m1 = !self.CC.m2;
+        self.registers.CC.m1 = !self.registers.CC.m2;
         val = (!val) & 0xFF;
         mem.write(adr, val);
-        self.CC.sign = val;
-        self.CC.res = self.CC.sign | 0x100;
+        self.registers.CC.sign = val;
+        self.registers.CC.res = self.registers.CC.sign | 0x100;
         self.cl += c;
     }
 
     const fn NEGA(&mut self) {
-        self.CC.m1 = self.registers.A;
-        self.CC.m2 = -self.registers.A;
+        self.registers.CC.m1 = self.registers.A;
+        self.registers.CC.m2 = -self.registers.A;
         self.registers.A = -self.registers.A;
-        self.CC.ovfl = self.registers.A;
-        self.CC.res = self.registers.A;
-        self.CC.sign = self.registers.A;
+        self.registers.CC.ovfl = self.registers.A;
+        self.registers.CC.res = self.registers.A;
+        self.registers.CC.sign = self.registers.A;
         self.registers.A &= 0xFF;
         self.cl += 2;
     }
 
     const fn NEGB(&mut self) {
-        self.CC.m1 = self.registers.B;
-        self.CC.m2 = -self.registers.B;
+        self.registers.CC.m1 = self.registers.B;
+        self.registers.CC.m2 = -self.registers.B;
         self.registers.B = -self.registers.B;
-        self.CC.ovfl = self.registers.B;
-        self.CC.res = self.registers.B;
-        self.CC.sign = self.registers.B;
+        self.registers.CC.ovfl = self.registers.B;
+        self.registers.CC.res = self.registers.B;
+        self.registers.CC.sign = self.registers.B;
         self.registers.B &= 0xFF;
         self.cl += 2;
     }
 
     fn NEG(&mut self, adr: int, c: int, mem: &mut Memory) {
         let mut val = mem.read(adr);
-        self.CC.m1 = val;
-        self.CC.m2 = -val;
+        self.registers.CC.m1 = val;
+        self.registers.CC.m2 = -val;
         val = -val;
         mem.write(adr, val);
-        self.CC.ovfl = val;
-        self.CC.res = val;
-        self.CC.sign = val;
+        self.registers.CC.ovfl = val;
+        self.registers.CC.res = val;
+        self.registers.CC.sign = val;
         self.cl += c;
     }
 
@@ -1348,71 +1341,71 @@ impl M6809 {
 
     fn ADDA(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
-        self.CC.m1 = self.registers.A;
-        self.CC.h1 = self.registers.A;
-        self.CC.m2 = val;
-        self.CC.h2 = val;
+        self.registers.CC.m1 = self.registers.A;
+        self.registers.CC.h1 = self.registers.A;
+        self.registers.CC.m2 = val;
+        self.registers.CC.h2 = val;
         self.registers.A += val;
-        self.CC.ovfl = self.registers.A;
-        self.CC.res = self.registers.A;
-        self.CC.sign = self.registers.A;
+        self.registers.CC.ovfl = self.registers.A;
+        self.registers.CC.res = self.registers.A;
+        self.registers.CC.sign = self.registers.A;
         self.registers.A &= 0xFF;
         self.cl += c;
     }
 
     fn ADDB(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
-        self.CC.m1 = self.registers.B;
-        self.CC.h1 = self.registers.B;
-        self.CC.m2 = val;
-        self.CC.h2 = val;
+        self.registers.CC.m1 = self.registers.B;
+        self.registers.CC.h1 = self.registers.B;
+        self.registers.CC.m2 = val;
+        self.registers.CC.h2 = val;
         self.registers.B += val;
-        self.CC.ovfl = self.registers.B;
-        self.CC.res = self.registers.B;
-        self.CC.sign = self.registers.B;
+        self.registers.CC.ovfl = self.registers.B;
+        self.registers.CC.res = self.registers.B;
+        self.registers.CC.sign = self.registers.B;
         self.registers.B &= 0xFF;
         self.cl += c;
     }
 
     fn ADDD(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read_16(adr);
-        self.CC.m1 = self.registers.A;
-        self.CC.m2 = val >> 8;
+        self.registers.CC.m1 = self.registers.A;
+        self.registers.CC.m2 = val >> 8;
         self.registers.D = (self.registers.A << 8) + self.registers.B + val;
         self.registers.A = self.registers.D >> 8;
         self.registers.B = self.registers.D & 0xFF;
-        self.CC.ovfl = self.registers.A;
-        self.CC.res = self.registers.A;
-        self.CC.sign = self.registers.A;
-        self.CC.res |= self.registers.B;
+        self.registers.CC.ovfl = self.registers.A;
+        self.registers.CC.res = self.registers.A;
+        self.registers.CC.sign = self.registers.A;
+        self.registers.CC.res |= self.registers.B;
         self.registers.A &= 0xFF;
         self.cl += c;
     }
 
     fn ADCA(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
-        self.CC.m1 = self.registers.A;
-        self.CC.h1 = self.registers.A;
-        self.CC.m2 = val;
-        self.CC.h2 = val + ((self.CC.res & 0x100) >> 8);
-        self.registers.A += self.CC.h2;
-        self.CC.ovfl = self.registers.A;
-        self.CC.res = self.registers.A;
-        self.CC.sign = self.registers.A;
+        self.registers.CC.m1 = self.registers.A;
+        self.registers.CC.h1 = self.registers.A;
+        self.registers.CC.m2 = val;
+        self.registers.CC.h2 = val + ((self.registers.CC.res & 0x100) >> 8);
+        self.registers.A += self.registers.CC.h2;
+        self.registers.CC.ovfl = self.registers.A;
+        self.registers.CC.res = self.registers.A;
+        self.registers.CC.sign = self.registers.A;
         self.registers.A &= 0xFF;
         self.cl += c;
     }
 
     fn ADCB(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
-        self.CC.m1 = self.registers.B;
-        self.CC.h1 = self.registers.B;
-        self.CC.m2 = val;
-        self.CC.h2 = val + ((self.CC.res & 0x100) >> 8);
-        self.registers.B += self.CC.h2;
-        self.CC.ovfl = self.registers.B;
-        self.CC.res = self.registers.B;
-        self.CC.sign = self.registers.B;
+        self.registers.CC.m1 = self.registers.B;
+        self.registers.CC.h1 = self.registers.B;
+        self.registers.CC.m2 = val;
+        self.registers.CC.h2 = val + ((self.registers.CC.res & 0x100) >> 8);
+        self.registers.B += self.registers.CC.h2;
+        self.registers.CC.ovfl = self.registers.B;
+        self.registers.CC.res = self.registers.B;
+        self.registers.CC.sign = self.registers.B;
         self.registers.B &= 0xFF;
         self.cl += c;
     }
@@ -1421,69 +1414,69 @@ impl M6809 {
         let k = self.registers.A * self.registers.B;
         self.registers.A = (k >> 8) & 0xFF;
         self.registers.B = k & 0xFF;
-        self.CC.res = ((self.registers.B & 0x80) << 1) | ((k | (k >> 8)) & 0xFF);
+        self.registers.CC.res = ((self.registers.B & 0x80) << 1) | ((k | (k >> 8)) & 0xFF);
         self.cl += 11;
     }
 
     fn SBCA(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
-        self.CC.m1 = self.registers.A;
-        self.CC.m2 = -val;
-        self.registers.A -= val + ((self.CC.res & 0x100) >> 8);
-        self.CC.ovfl = self.registers.A;
-        self.CC.res = self.registers.A;
-        self.CC.sign = self.registers.A;
+        self.registers.CC.m1 = self.registers.A;
+        self.registers.CC.m2 = -val;
+        self.registers.A -= val + ((self.registers.CC.res & 0x100) >> 8);
+        self.registers.CC.ovfl = self.registers.A;
+        self.registers.CC.res = self.registers.A;
+        self.registers.CC.sign = self.registers.A;
         self.registers.A &= 0xFF;
         self.cl += c;
     }
 
     fn SBCB(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
-        self.CC.m1 = self.registers.B;
-        self.CC.m2 = -val;
-        self.registers.B -= val + ((self.CC.res & 0x100) >> 8);
-        self.CC.ovfl = self.registers.B;
-        self.CC.res = self.registers.B;
-        self.CC.sign = self.registers.B;
+        self.registers.CC.m1 = self.registers.B;
+        self.registers.CC.m2 = -val;
+        self.registers.B -= val + ((self.registers.CC.res & 0x100) >> 8);
+        self.registers.CC.ovfl = self.registers.B;
+        self.registers.CC.res = self.registers.B;
+        self.registers.CC.sign = self.registers.B;
         self.registers.B &= 0xFF;
         self.cl += c;
     }
 
     fn SUBA(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
-        self.CC.m1 = self.registers.A;
-        self.CC.m2 = -val;
+        self.registers.CC.m1 = self.registers.A;
+        self.registers.CC.m2 = -val;
         self.registers.A -= val;
-        self.CC.ovfl = self.registers.A;
-        self.CC.res = self.registers.A;
-        self.CC.sign = self.registers.A;
+        self.registers.CC.ovfl = self.registers.A;
+        self.registers.CC.res = self.registers.A;
+        self.registers.CC.sign = self.registers.A;
         self.registers.A &= 0xFF;
         self.cl += c;
     }
 
     fn SUBB(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read(adr);
-        self.CC.m1 = self.registers.B;
-        self.CC.m2 = -val;
+        self.registers.CC.m1 = self.registers.B;
+        self.registers.CC.m2 = -val;
         self.registers.B -= val;
-        self.CC.ovfl = self.registers.B;
-        self.CC.res = self.registers.B;
-        self.CC.sign = self.registers.B;
+        self.registers.CC.ovfl = self.registers.B;
+        self.registers.CC.res = self.registers.B;
+        self.registers.CC.sign = self.registers.B;
         self.registers.B &= 0xFF;
         self.cl += c;
     }
 
     fn SUBD(&mut self, adr: int, c: int, mem: &Memory) {
         let val = mem.read_16(adr);
-        self.CC.m1 = self.registers.A;
-        self.CC.m2 = (-val) >> 8;
+        self.registers.CC.m1 = self.registers.A;
+        self.registers.CC.m2 = (-val) >> 8;
         self.registers.D = (self.registers.A << 8) + self.registers.B - val;
         self.registers.A = self.registers.D >> 8;
         self.registers.B = self.registers.D & 0xFF;
-        self.CC.ovfl = self.registers.A;
-        self.CC.res = self.registers.A;
-        self.CC.sign = self.registers.A;
-        self.CC.res |= self.registers.B;
+        self.registers.CC.ovfl = self.registers.A;
+        self.registers.CC.res = self.registers.A;
+        self.registers.CC.sign = self.registers.A;
+        self.registers.CC.res |= self.registers.B;
         self.registers.A &= 0xFF;
         self.cl += c;
     }
@@ -1494,144 +1487,144 @@ impl M6809 {
         } else {
             self.registers.A = 0;
         }
-        self.CC.sign = self.registers.B;
-        self.CC.res = (self.CC.res & 0x100) | self.CC.sign;
+        self.registers.CC.sign = self.registers.B;
+        self.registers.CC.res = (self.registers.CC.res & 0x100) | self.registers.CC.sign;
         self.cl += 2;
     }
 
     const fn ASLA(&mut self) {
-        self.CC.m1 = self.registers.A;
-        self.CC.m2 = self.registers.A;
+        self.registers.CC.m1 = self.registers.A;
+        self.registers.CC.m2 = self.registers.A;
         self.registers.A <<= 1;
-        self.CC.ovfl = self.registers.A;
-        self.CC.sign = self.registers.A;
-        self.CC.res = self.registers.A;
+        self.registers.CC.ovfl = self.registers.A;
+        self.registers.CC.sign = self.registers.A;
+        self.registers.CC.res = self.registers.A;
         self.registers.A &= 0xFF;
         self.cl += 2;
     }
 
     const fn ASLB(&mut self) {
-        self.CC.m1 = self.registers.B;
-        self.CC.m2 = self.registers.B;
+        self.registers.CC.m1 = self.registers.B;
+        self.registers.CC.m2 = self.registers.B;
         self.registers.B <<= 1;
-        self.CC.ovfl = self.registers.B;
-        self.CC.sign = self.registers.B;
-        self.CC.res = self.registers.B;
+        self.registers.CC.ovfl = self.registers.B;
+        self.registers.CC.sign = self.registers.B;
+        self.registers.CC.res = self.registers.B;
         self.registers.B &= 0xFF;
         self.cl += 2;
     }
 
     fn ASL(&mut self, adr: int, c: int, mem: &mut Memory) {
         let mut val = mem.read(adr);
-        self.CC.m1 = val;
-        self.CC.m2 = val;
+        self.registers.CC.m1 = val;
+        self.registers.CC.m2 = val;
         val <<= 1;
         mem.write(adr, val);
-        self.CC.ovfl = val;
-        self.CC.sign = val;
-        self.CC.res = val;
+        self.registers.CC.ovfl = val;
+        self.registers.CC.sign = val;
+        self.registers.CC.res = val;
         self.cl += c;
     }
 
     const fn ASRA(&mut self) {
-        self.CC.res = (self.registers.A & 1) << 8;
+        self.registers.CC.res = (self.registers.A & 1) << 8;
         self.registers.A = (self.registers.A >> 1) | (self.registers.A & 0x80);
-        self.CC.sign = self.registers.A;
-        self.CC.res |= self.CC.sign;
+        self.registers.CC.sign = self.registers.A;
+        self.registers.CC.res |= self.registers.CC.sign;
         self.cl += 2;
     }
 
     const fn ASRB(&mut self) {
-        self.CC.res = (self.registers.B & 1) << 8;
+        self.registers.CC.res = (self.registers.B & 1) << 8;
         self.registers.B = (self.registers.B >> 1) | (self.registers.B & 0x80);
-        self.CC.sign = self.registers.B;
-        self.CC.res |= self.CC.sign;
+        self.registers.CC.sign = self.registers.B;
+        self.registers.CC.res |= self.registers.CC.sign;
         self.cl += 2;
     }
 
     fn ASR(&mut self, adr: int, c: int, mem: &mut Memory) {
         let mut val = mem.read(adr);
-        self.CC.res = (val & 1) << 8;
+        self.registers.CC.res = (val & 1) << 8;
         val = (val >> 1) | (val & 0x80);
         mem.write(adr, val);
-        self.CC.sign = val;
-        self.CC.res |= self.CC.sign;
+        self.registers.CC.sign = val;
+        self.registers.CC.res |= self.registers.CC.sign;
         self.cl += c;
     }
 
     const fn LSRA(&mut self) {
-        self.CC.res = (self.registers.A & 1) << 8;
+        self.registers.CC.res = (self.registers.A & 1) << 8;
         self.registers.A >>= 1;
-        self.CC.sign = 0;
-        self.CC.res |= self.registers.A;
+        self.registers.CC.sign = 0;
+        self.registers.CC.res |= self.registers.A;
         self.cl += 2;
     }
 
     const fn LSRB(&mut self) {
-        self.CC.res = (self.registers.B & 1) << 8;
+        self.registers.CC.res = (self.registers.B & 1) << 8;
         self.registers.B >>= 1;
-        self.CC.sign = 0;
-        self.CC.res |= self.registers.B;
+        self.registers.CC.sign = 0;
+        self.registers.CC.res |= self.registers.B;
         self.cl += 2;
     }
 
     fn LSR(&mut self, adr: int, c: int, mem: &mut Memory) {
         let mut val = mem.read(adr);
-        self.CC.res = (val & 1) << 8;
+        self.registers.CC.res = (val & 1) << 8;
         val >>= 1;
         mem.write(adr, val);
-        self.CC.sign = 0;
-        self.CC.res |= val;
+        self.registers.CC.sign = 0;
+        self.registers.CC.res |= val;
         self.cl += c;
     }
 
     const fn ROLA(&mut self) {
-        self.CC.m1 = self.registers.A;
-        self.CC.m2 = self.registers.A;
-        self.registers.A = (self.registers.A << 1) | ((self.CC.res & 0x100) >> 8);
-        self.CC.ovfl = self.registers.A;
-        self.CC.sign = self.registers.A;
-        self.CC.res = self.registers.A;
+        self.registers.CC.m1 = self.registers.A;
+        self.registers.CC.m2 = self.registers.A;
+        self.registers.A = (self.registers.A << 1) | ((self.registers.CC.res & 0x100) >> 8);
+        self.registers.CC.ovfl = self.registers.A;
+        self.registers.CC.sign = self.registers.A;
+        self.registers.CC.res = self.registers.A;
         self.registers.A &= 0xFF;
         self.cl += 2;
     }
 
     const fn ROLB(&mut self) {
-        self.CC.m1 = self.registers.B;
-        self.CC.m2 = self.registers.B;
-        self.registers.B = (self.registers.B << 1) | ((self.CC.res & 0x100) >> 8);
-        self.CC.ovfl = self.registers.B;
-        self.CC.sign = self.registers.B;
-        self.CC.res = self.registers.B;
+        self.registers.CC.m1 = self.registers.B;
+        self.registers.CC.m2 = self.registers.B;
+        self.registers.B = (self.registers.B << 1) | ((self.registers.CC.res & 0x100) >> 8);
+        self.registers.CC.ovfl = self.registers.B;
+        self.registers.CC.sign = self.registers.B;
+        self.registers.CC.res = self.registers.B;
         self.registers.B &= 0xFF;
         self.cl += 2;
     }
 
     fn ROL(&mut self, adr: int, c: int, mem: &mut Memory) {
         let mut val = mem.read(adr);
-        self.CC.m1 = val;
-        self.CC.m2 = val;
-        val = (val << 1) | ((self.CC.res & 0x100) >> 8);
+        self.registers.CC.m1 = val;
+        self.registers.CC.m2 = val;
+        val = (val << 1) | ((self.registers.CC.res & 0x100) >> 8);
         mem.write(adr, val);
-        self.CC.ovfl = val;
-        self.CC.sign = val;
-        self.CC.res = val;
+        self.registers.CC.ovfl = val;
+        self.registers.CC.sign = val;
+        self.registers.CC.res = val;
         self.cl += c;
     }
 
     const fn RORA(&mut self) {
         let i = self.registers.A;
-        self.registers.A = (self.registers.A | (self.CC.res & 0x100)) >> 1;
-        self.CC.sign = self.registers.A;
-        self.CC.res = ((i & 1) << 8) | self.CC.sign;
+        self.registers.A = (self.registers.A | (self.registers.CC.res & 0x100)) >> 1;
+        self.registers.CC.sign = self.registers.A;
+        self.registers.CC.res = ((i & 1) << 8) | self.registers.CC.sign;
         self.cl += 2;
     }
 
     const fn RORB(&mut self) {
         let i = self.registers.B;
-        self.registers.B = (self.registers.B | (self.CC.res & 0x100)) >> 1;
-        self.CC.sign = self.registers.B;
-        self.CC.res = ((i & 1) << 8) | self.CC.sign;
+        self.registers.B = (self.registers.B | (self.registers.CC.res & 0x100)) >> 1;
+        self.registers.CC.sign = self.registers.B;
+        self.registers.CC.res = ((i & 1) << 8) | self.registers.CC.sign;
         self.cl += 2;
     }
 
@@ -1639,116 +1632,116 @@ impl M6809 {
         let mut val;
         let i = mem.read(adr);
         val = i;
-        val = (val | (self.CC.res & 0x100)) >> 1;
+        val = (val | (self.registers.CC.res & 0x100)) >> 1;
         mem.write(adr, val);
-        self.CC.sign = val;
-        self.CC.res = ((i & 1) << 8) | self.CC.sign;
+        self.registers.CC.sign = val;
+        self.registers.CC.res = ((i & 1) << 8) | self.registers.CC.sign;
         self.cl += c;
     }
 
     fn BRA(&mut self, mem: &Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
-        self.PC += signedChar(m);
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
+        self.registers.PC += signedChar(m);
         self.cl += 3;
     }
 
     fn LBRA(&mut self, mem: &Memory) {
-        let mut m = mem.read(self.PC);
-        self.PC += 1;
+        let mut m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         let mut off = m << 8;
-        m = mem.read(self.PC);
-        self.PC += 1;
+        m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         off |= m;
-        self.PC = (self.PC + off) & 0xFFFF;
+        self.registers.PC = (self.registers.PC + off) & 0xFFFF;
         self.cl += 5;
     }
 
     fn JMPd(&mut self, mem: &Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
-        self.PC = (self.DP << 8) | m;
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
+        self.registers.PC = (self.registers.DP << 8) | m;
         self.cl += 3;
     }
 
     fn JMPe(&mut self, mem: &Memory) {
-        self.PC = self.ETEND(mem);
+        self.registers.PC = self.ETEND(mem);
         self.cl += 4;
     }
 
     fn JMPx(&mut self, mem: &Memory) {
-        self.PC = self.INDEXE(mem);
+        self.registers.PC = self.INDEXE(mem);
         self.cl += 3;
     }
 
     fn BSR(&mut self, mem: &mut Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         self.registers.S -= 1;
-        mem.write(self.registers.S, self.PC & 0x00FF);
+        mem.write(self.registers.S, self.registers.PC & 0x00FF);
         self.registers.S -= 1;
-        mem.write(self.registers.S, self.PC >> 8);
-        self.PC += signedChar(m);
+        mem.write(self.registers.S, self.registers.PC >> 8);
+        self.registers.PC += signedChar(m);
         self.cl += 7;
     }
 
     fn LBSR(&mut self, mem: &mut Memory) {
-        let mut m = mem.read(self.PC);
-        self.PC += 1;
+        let mut m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         let mut off = m << 8;
-        m = mem.read(self.PC);
-        self.PC += 1;
+        m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         off |= m;
         self.registers.S -= 1;
-        mem.write(self.registers.S, self.PC & 0x00FF);
+        mem.write(self.registers.S, self.registers.PC & 0x00FF);
         self.registers.S -= 1;
-        mem.write(self.registers.S, self.PC >> 8);
-        self.PC = (self.PC + off) & 0xFFFF;
+        mem.write(self.registers.S, self.registers.PC >> 8);
+        self.registers.PC = (self.registers.PC + off) & 0xFFFF;
         self.cl += 9;
     }
 
     fn JSRd(&mut self, mem: &mut Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         self.registers.S -= 1;
-        mem.write(self.registers.S, self.PC & 0x00FF);
+        mem.write(self.registers.S, self.registers.PC & 0x00FF);
         self.registers.S -= 1;
-        mem.write(self.registers.S, self.PC >> 8);
-        self.PC = (self.DP << 8) | m;
+        mem.write(self.registers.S, self.registers.PC >> 8);
+        self.registers.PC = (self.registers.DP << 8) | m;
         self.cl += 7;
     }
 
     fn JSRe(&mut self, mem: &mut Memory) {
         let adr = self.ETEND(mem);
         self.registers.S -= 1;
-        mem.write(self.registers.S, self.PC & 0x00FF);
+        mem.write(self.registers.S, self.registers.PC & 0x00FF);
         self.registers.S -= 1;
-        mem.write(self.registers.S, self.PC >> 8);
-        self.PC = adr;
+        mem.write(self.registers.S, self.registers.PC >> 8);
+        self.registers.PC = adr;
         self.cl += 8;
     }
 
     fn JSRx(&mut self, mem: &mut Memory) {
         let adr = self.INDEXE(mem);
         self.registers.S -= 1;
-        mem.write(self.registers.S, self.PC & 0x00FF);
+        mem.write(self.registers.S, self.registers.PC & 0x00FF);
         self.registers.S -= 1;
-        mem.write(self.registers.S, self.PC >> 8);
-        self.PC = adr;
+        mem.write(self.registers.S, self.registers.PC >> 8);
+        self.registers.PC = adr;
         self.cl += 7;
     }
 
     fn BRN(&mut self, mem: &Memory) {
-        mem.read(self.PC);
-        self.PC += 1;
+        mem.read(self.registers.PC);
+        self.registers.PC += 1;
         self.cl += 3;
     }
 
     fn LBRN(&mut self, mem: &Memory) {
-        mem.read(self.PC);
-        self.PC += 1;
-        mem.read(self.PC);
-        self.PC += 1;
+        mem.read(self.registers.PC);
+        self.registers.PC += 1;
+        mem.read(self.registers.PC);
+        self.registers.PC += 1;
         self.cl += 5;
     }
 
@@ -1757,7 +1750,7 @@ impl M6809 {
     }
 
     fn RTS(&mut self, mem: &Memory) {
-        self.PC = mem.read_16(self.registers.S);
+        self.registers.PC = mem.read_16(self.registers.S);
         self.registers.S += 2;
         self.cl += 5;
     }
@@ -1765,23 +1758,23 @@ impl M6809 {
     /* Branchements conditionnels */
 
     fn BCC(&mut self, mem: &Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
-        if (self.CC.res & 0x100) != 0x100 {
-            self.PC += signedChar(m);
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
+        if (self.registers.CC.res & 0x100) != 0x100 {
+            self.registers.PC += signedChar(m);
         }
         self.cl += 3;
     }
 
     fn LBCC(&mut self, mem: &Memory) {
-        let mut m = mem.read(self.PC);
-        self.PC += 1;
+        let mut m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         let mut off = m << 8;
-        m = mem.read(self.PC);
-        self.PC += 1;
+        m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         off |= m;
-        if (self.CC.res & 0x100) != 0x100 {
-            self.PC = (self.PC + off) & 0xFFFF;
+        if (self.registers.CC.res & 0x100) != 0x100 {
+            self.registers.PC = (self.registers.PC + off) & 0xFFFF;
             self.cl += 6;
         } else {
             self.cl += 5;
@@ -1789,23 +1782,23 @@ impl M6809 {
     }
 
     fn BCS(&mut self, mem: &Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
-        if (self.CC.res & 0x100) == 0x100 {
-            self.PC += signedChar(m);
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
+        if (self.registers.CC.res & 0x100) == 0x100 {
+            self.registers.PC += signedChar(m);
         }
         self.cl += 3;
     }
 
     fn LBCS(&mut self, mem: &Memory) {
-        let mut m = mem.read(self.PC);
-        self.PC += 1;
+        let mut m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         let mut off = m << 8;
-        m = mem.read(self.PC);
-        self.PC += 1;
+        m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         off |= m;
-        if (self.CC.res & 0x100) == 0x100 {
-            self.PC = (self.PC + off) & 0xFFFF;
+        if (self.registers.CC.res & 0x100) == 0x100 {
+            self.registers.PC = (self.registers.PC + off) & 0xFFFF;
             self.cl += 6;
         } else {
             self.cl += 5;
@@ -1813,45 +1806,45 @@ impl M6809 {
     }
 
     fn BEQ(&mut self, mem: &Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
-        if (self.CC.res & 0xff) == 0x00 {
-            self.PC += signedChar(m);
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
+        if (self.registers.CC.res & 0xff) == 0x00 {
+            self.registers.PC += signedChar(m);
         }
         self.cl += 3;
     }
 
     fn LBEQ(&mut self, mem: &Memory) {
-        let mut m = mem.read(self.PC);
-        self.PC += 1;
+        let mut m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         let mut off = m << 8;
-        m = mem.read(self.PC);
-        self.PC += 1;
+        m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         off |= m;
-        if (self.CC.res & 0xff) == 0x00 {
-            self.PC = (self.PC + off) & 0xFFFF;
+        if (self.registers.CC.res & 0xff) == 0x00 {
+            self.registers.PC = (self.registers.PC + off) & 0xFFFF;
         }
         self.cl += 6;
     }
 
     fn BNE(&mut self, mem: &Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
-        if (self.CC.res & 0xff) != 0 {
-            self.PC += signedChar(m);
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
+        if (self.registers.CC.res & 0xff) != 0 {
+            self.registers.PC += signedChar(m);
         }
         self.cl += 3;
     }
 
     fn LBNE(&mut self, mem: &Memory) {
-        let mut m = mem.read(self.PC);
-        self.PC += 1;
+        let mut m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         let mut off = m << 8;
-        m = mem.read(self.PC);
-        self.PC += 1;
+        m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         off |= m;
-        if (self.CC.res & 0xff) != 0 {
-            self.PC = (self.PC + off) & 0xFFFF;
+        if (self.registers.CC.res & 0xff) != 0 {
+            self.registers.PC = (self.registers.PC + off) & 0xFFFF;
             self.cl += 6;
         } else {
             self.cl += 5;
@@ -1859,27 +1852,27 @@ impl M6809 {
     }
 
     fn BGE(&mut self, mem: &Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
-        if ((self.CC.sign ^ ((!(self.CC.m1 ^ self.CC.m2)) & (self.CC.m1 ^ self.CC.ovfl))) & 0x80)
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
+        if ((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl))) & 0x80)
             == 0
         {
-            self.PC += signedChar(m);
+            self.registers.PC += signedChar(m);
         }
         self.cl += 3;
     }
 
     fn LBGE(&mut self, mem: &Memory) {
-        let mut m = mem.read(self.PC);
-        self.PC += 1;
+        let mut m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         let mut off = m << 8;
-        m = mem.read(self.PC);
-        self.PC += 1;
+        m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         off |= m;
-        if ((self.CC.sign ^ ((!(self.CC.m1 ^ self.CC.m2)) & (self.CC.m1 ^ self.CC.ovfl))) & 0x80)
+        if ((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl))) & 0x80)
             == 0
         {
-            self.PC = (self.PC + off) & 0xFFFF;
+            self.registers.PC = (self.registers.PC + off) & 0xFFFF;
             self.cl += 6;
         } else {
             self.cl += 5;
@@ -1887,31 +1880,31 @@ impl M6809 {
     }
 
     fn BLE(&mut self, mem: &Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
-        if ((self.CC.res & 0xff) == 0)
-            || (((self.CC.sign ^ ((!(self.CC.m1 ^ self.CC.m2)) & (self.CC.m1 ^ self.CC.ovfl)))
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
+        if ((self.registers.CC.res & 0xff) == 0)
+            || (((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl)))
                 & 0x80)
                 != 0)
         {
-            self.PC += signedChar(m);
+            self.registers.PC += signedChar(m);
         }
         self.cl += 3;
     }
 
     fn LBLE(&mut self, mem: &Memory) {
-        let mut m = mem.read(self.PC);
-        self.PC += 1;
+        let mut m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         let mut off = m << 8;
-        m = mem.read(self.PC);
-        self.PC += 1;
+        m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         off |= m;
-        if ((self.CC.res & 0xff) == 0)
-            || (((self.CC.sign ^ ((!(self.CC.m1 ^ self.CC.m2)) & (self.CC.m1 ^ self.CC.ovfl)))
+        if ((self.registers.CC.res & 0xff) == 0)
+            || (((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl)))
                 & 0x80)
                 != 0)
         {
-            self.PC = (self.PC + off) & 0xFFFF;
+            self.registers.PC = (self.registers.PC + off) & 0xFFFF;
             self.cl += 6;
         } else {
             self.cl += 5;
@@ -1919,23 +1912,23 @@ impl M6809 {
     }
 
     fn BLS(&mut self, mem: &Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
-        if ((self.CC.res & 0x100) != 0) || ((self.CC.res & 0xff) == 0) {
-            self.PC += signedChar(m);
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
+        if ((self.registers.CC.res & 0x100) != 0) || ((self.registers.CC.res & 0xff) == 0) {
+            self.registers.PC += signedChar(m);
         }
         self.cl += 3;
     }
 
     fn LBLS(&mut self, mem: &Memory) {
-        let mut m = mem.read(self.PC);
-        self.PC += 1;
+        let mut m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         let mut off = m << 8;
-        m = mem.read(self.PC);
-        self.PC += 1;
+        m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         off |= m;
-        if ((self.CC.res & 0x100) != 0) || ((self.CC.res & 0xff) == 0) {
-            self.PC = (self.PC + off) & 0xFFFF;
+        if ((self.registers.CC.res & 0x100) != 0) || ((self.registers.CC.res & 0xff) == 0) {
+            self.registers.PC = (self.registers.PC + off) & 0xFFFF;
             self.cl += 6;
         } else {
             self.cl += 5;
@@ -1943,31 +1936,31 @@ impl M6809 {
     }
 
     fn BGT(&mut self, mem: &Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
-        if ((self.CC.res & 0xff) != 0)
-            && (((self.CC.sign ^ ((!(self.CC.m1 ^ self.CC.m2)) & (self.CC.m1 ^ self.CC.ovfl)))
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
+        if ((self.registers.CC.res & 0xff) != 0)
+            && (((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl)))
                 & 0x80)
                 == 0)
         {
-            self.PC += signedChar(m);
+            self.registers.PC += signedChar(m);
         }
         self.cl += 3;
     }
 
     fn LBGT(&mut self, mem: &Memory) {
-        let mut m = mem.read(self.PC);
-        self.PC += 1;
+        let mut m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         let mut off = m << 8;
-        m = mem.read(self.PC);
-        self.PC += 1;
+        m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         off |= m;
-        if ((self.CC.res & 0xff) != 0)
-            && (((self.CC.sign ^ ((!(self.CC.m1 ^ self.CC.m2)) & (self.CC.m1 ^ self.CC.ovfl)))
+        if ((self.registers.CC.res & 0xff) != 0)
+            && (((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl)))
                 & 0x80)
                 == 0)
         {
-            self.PC = (self.PC + off) & 0xFFFF;
+            self.registers.PC = (self.registers.PC + off) & 0xFFFF;
             self.cl += 6;
         } else {
             self.cl += 5;
@@ -1975,27 +1968,27 @@ impl M6809 {
     }
 
     fn BLT(&mut self, mem: &Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
-        if ((self.CC.sign ^ ((!(self.CC.m1 ^ self.CC.m2)) & (self.CC.m1 ^ self.CC.ovfl))) & 0x80)
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
+        if ((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl))) & 0x80)
             != 0
         {
-            self.PC += signedChar(m);
+            self.registers.PC += signedChar(m);
         }
         self.cl += 3;
     }
 
     fn LBLT(&mut self, mem: &Memory) {
-        let mut m = mem.read(self.PC);
-        self.PC += 1;
+        let mut m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         let mut off = m << 8;
-        m = mem.read(self.PC);
-        self.PC += 1;
+        m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         off |= m;
-        if ((self.CC.sign ^ ((!(self.CC.m1 ^ self.CC.m2)) & (self.CC.m1 ^ self.CC.ovfl))) & 0x80)
+        if ((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl))) & 0x80)
             != 0
         {
-            self.PC = (self.PC + off) & 0xFFFF;
+            self.registers.PC = (self.registers.PC + off) & 0xFFFF;
             self.cl += 6;
         } else {
             self.cl += 5;
@@ -2003,46 +1996,46 @@ impl M6809 {
     }
 
     fn BHI(&mut self, mem: &Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
-        if ((self.CC.res & 0x100) == 0) && ((self.CC.res & 0xff) != 0) {
-            self.PC += signedChar(m);
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
+        if ((self.registers.CC.res & 0x100) == 0) && ((self.registers.CC.res & 0xff) != 0) {
+            self.registers.PC += signedChar(m);
         }
         self.cl += 3;
     }
 
     fn LBHI(&mut self, mem: &Memory) {
-        let mut m = mem.read(self.PC);
-        self.PC += 1;
+        let mut m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         let mut off = m << 8;
-        m = mem.read(self.PC);
-        self.PC += 1;
+        m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         off |= m;
-        if ((self.CC.res & 0x100) == 0) && ((self.CC.res & 0xff) != 0) {
-            self.PC = (self.PC + off) & 0xFFFF;
+        if ((self.registers.CC.res & 0x100) == 0) && ((self.registers.CC.res & 0xff) != 0) {
+            self.registers.PC = (self.registers.PC + off) & 0xFFFF;
             self.cl += 6;
         }
         self.cl += 5;
     }
 
     fn BMI(&mut self, mem: &Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
-        if (self.CC.sign() & 0x80) != 0 {
-            self.PC += signedChar(m);
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
+        if (self.registers.CC.sign() & 0x80) != 0 {
+            self.registers.PC += signedChar(m);
         }
         self.cl += 3;
     }
 
     fn LBMI(&mut self, mem: &Memory) {
-        let mut m = mem.read(self.PC);
-        self.PC += 1;
+        let mut m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         let mut off = m << 8;
-        m = mem.read(self.PC);
-        self.PC += 1;
+        m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         off |= m;
-        if (self.CC.sign() & 0x80) != 0 {
-            self.PC = (self.PC + off) & 0xFFFF;
+        if (self.registers.CC.sign() & 0x80) != 0 {
+            self.registers.PC = (self.registers.PC + off) & 0xFFFF;
             self.cl += 6;
         } else {
             self.cl += 5;
@@ -2050,23 +2043,23 @@ impl M6809 {
     }
 
     fn BPL(&mut self, mem: &Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
-        if (self.CC.sign() & 0x80) == 0 {
-            self.PC += signedChar(m);
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
+        if (self.registers.CC.sign() & 0x80) == 0 {
+            self.registers.PC += signedChar(m);
         }
         self.cl += 3;
     }
 
     fn LBPL(&mut self, mem: &Memory) {
-        let mut m = mem.read(self.PC);
-        self.PC += 1;
+        let mut m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         let mut off = m << 8;
-        m = mem.read(self.PC);
-        self.PC += 1;
+        m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         off |= m;
-        if (self.CC.sign() & 0x80) == 0 {
-            self.PC = (self.PC + off) & 0xFFFF;
+        if (self.registers.CC.sign() & 0x80) == 0 {
+            self.registers.PC = (self.registers.PC + off) & 0xFFFF;
             self.cl += 6;
         } else {
             self.cl += 5;
@@ -2074,25 +2067,25 @@ impl M6809 {
     }
 
     fn BVS(&mut self, mem: &Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
-        if (((self.CC.m1 ^ self.CC.m2) & 0x80) == 0) && (((self.CC.m1 ^ self.CC.ovfl) & 0x80) != 0)
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
+        if (((self.registers.CC.m1 ^ self.registers.CC.m2) & 0x80) == 0) && (((self.registers.CC.m1 ^ self.registers.CC.ovfl) & 0x80) != 0)
         {
-            self.PC += signedChar(m);
+            self.registers.PC += signedChar(m);
         }
         self.cl += 3;
     }
 
     fn LBVS(&mut self, mem: &Memory) {
-        let mut m = mem.read(self.PC);
-        self.PC += 1;
+        let mut m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         let mut off = m << 8;
-        m = mem.read(self.PC);
-        self.PC += 1;
+        m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         off |= m;
-        if (((self.CC.m1 ^ self.CC.m2) & 0x80) == 0) && (((self.CC.m1 ^ self.CC.ovfl) & 0x80) != 0)
+        if (((self.registers.CC.m1 ^ self.registers.CC.m2) & 0x80) == 0) && (((self.registers.CC.m1 ^ self.registers.CC.ovfl) & 0x80) != 0)
         {
-            self.PC = (self.PC + off) & 0xFFFF;
+            self.registers.PC = (self.registers.PC + off) & 0xFFFF;
             self.cl += 6;
         } else {
             self.cl += 5;
@@ -2100,25 +2093,25 @@ impl M6809 {
     }
 
     fn BVC(&mut self, mem: &Memory) {
-        let m = mem.read(self.PC);
-        self.PC += 1;
-        if (((self.CC.m1 ^ self.CC.m2) & 0x80) != 0) || (((self.CC.m1 ^ self.CC.ovfl) & 0x80) == 0)
+        let m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
+        if (((self.registers.CC.m1 ^ self.registers.CC.m2) & 0x80) != 0) || (((self.registers.CC.m1 ^ self.registers.CC.ovfl) & 0x80) == 0)
         {
-            self.PC += signedChar(m);
+            self.registers.PC += signedChar(m);
         }
         self.cl += 3;
     }
 
     fn LBVC(&mut self, mem: &Memory) {
-        let mut m = mem.read(self.PC);
-        self.PC += 1;
+        let mut m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         let mut off = m << 8;
-        m = mem.read(self.PC);
-        self.PC += 1;
+        m = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         off |= m;
-        if (((self.CC.m1 ^ self.CC.m2) & 0x80) != 0) || (((self.CC.m1 ^ self.CC.ovfl) & 0x80) == 0)
+        if (((self.registers.CC.m1 ^ self.registers.CC.m2) & 0x80) != 0) || (((self.registers.CC.m1 ^ self.registers.CC.ovfl) & 0x80) == 0)
         {
-            self.PC = (self.PC + off) & 0xFFFF;
+            self.registers.PC = (self.registers.PC + off) & 0xFFFF;
             self.cl += 6;
         } else {
             self.cl += 5;
@@ -2126,13 +2119,13 @@ impl M6809 {
     }
 
     fn SWI(&mut self, mem: &mut Memory) {
-        self.CC.getcc();
-        self.CC.value |= 0x80; /* bit E � 1 */
-        self.CC.setcc(self.CC.value);
+        self.registers.CC.getcc();
+        self.registers.CC.value |= 0x80; /* bit E � 1 */
+        self.registers.CC.setcc(self.registers.CC.value);
         self.registers.S -= 1;
-        mem.write(self.registers.S, self.PC & 0x00FF);
+        mem.write(self.registers.S, self.registers.PC & 0x00FF);
         self.registers.S -= 1;
-        mem.write(self.registers.S, self.PC >> 8);
+        mem.write(self.registers.S, self.registers.PC >> 8);
         self.registers.S -= 1;
         mem.write(self.registers.S, self.registers.U & 0x00FF);
         self.registers.S -= 1;
@@ -2146,28 +2139,28 @@ impl M6809 {
         self.registers.S -= 1;
         mem.write(self.registers.S, self.registers.X >> 8);
         self.registers.S -= 1;
-        mem.write(self.registers.S, self.DP);
+        mem.write(self.registers.S, self.registers.DP);
         self.registers.S -= 1;
         mem.write(self.registers.S, self.registers.B);
         self.registers.S -= 1;
         mem.write(self.registers.S, self.registers.A);
         self.registers.S -= 1;
-        mem.write(self.registers.S, self.CC.value as int);
+        mem.write(self.registers.S, self.registers.CC.value as int);
 
-        self.PC = mem.read_16(0xFFFA);
+        self.registers.PC = mem.read_16(0xFFFA);
         self.cl += 19;
     }
 
     fn RTI(&mut self, mem: &Memory) {
-        self.CC.set_value(mem.read(self.registers.S) as u8);
-        self.CC.setcc(self.CC.value);
+        self.registers.CC.set_value(mem.read(self.registers.S) as u8);
+        self.registers.CC.setcc(self.registers.CC.value);
         self.registers.S += 1;
-        if (self.CC.value() & 0x80) == 0x80 {
+        if (self.registers.CC.value() & 0x80) == 0x80 {
             self.registers.A = mem.read(self.registers.S);
             self.registers.S += 1;
             self.registers.B = mem.read(self.registers.S);
             self.registers.S += 1;
-            self.DP = mem.read(self.registers.S);
+            self.registers.DP = mem.read(self.registers.S);
             self.registers.S += 1;
             self.registers.X = mem.read_16(self.registers.S);
             self.registers.S += 2;
@@ -2180,19 +2173,19 @@ impl M6809 {
             self.cl += 6;
         }
 
-        self.PC = mem.read_16(self.registers.S);
+        self.registers.PC = mem.read_16(self.registers.S);
         self.registers.S += 2;
     }
 
     pub(crate) fn IRQ(&mut self, mem: &mut Memory) {
         /* mise � 1 du bit E sur le CC */
-        self.CC.getcc();
-        self.CC.value |= 0x80;
-        self.CC.setcc(self.CC.value);
+        self.registers.CC.getcc();
+        self.registers.CC.value |= 0x80;
+        self.registers.CC.setcc(self.registers.CC.value);
         self.registers.S -= 1;
-        mem.write(self.registers.S, self.PC & 0x00FF);
+        mem.write(self.registers.S, self.registers.PC & 0x00FF);
         self.registers.S -= 1;
-        mem.write(self.registers.S, self.PC >> 8);
+        mem.write(self.registers.S, self.registers.PC >> 8);
         self.registers.S -= 1;
         mem.write(self.registers.S, self.registers.U & 0x00FF);
         self.registers.S -= 1;
@@ -2206,38 +2199,38 @@ impl M6809 {
         self.registers.S -= 1;
         mem.write(self.registers.S, self.registers.X >> 8);
         self.registers.S -= 1;
-        mem.write(self.registers.S, self.DP);
+        mem.write(self.registers.S, self.registers.DP);
         self.registers.S -= 1;
         mem.write(self.registers.S, self.registers.B);
         self.registers.S -= 1;
         mem.write(self.registers.S, self.registers.A);
         self.registers.S -= 1;
-        mem.write(self.registers.S, self.CC.value.into());
-        self.PC = mem.read_16(0xFFF8);
-        self.CC.value |= 0x10;
-        self.CC.setcc(self.CC.value.into());
+        mem.write(self.registers.S, self.registers.CC.value.into());
+        self.registers.PC = mem.read_16(0xFFF8);
+        self.registers.CC.value |= 0x10;
+        self.registers.CC.setcc(self.registers.CC.value.into());
         self.cl += 19;
     }
 
     const fn DAA(&mut self) {
-        let mut i = self.registers.A + (self.CC.res & 0x100);
-        if ((self.registers.A & 15) > 9) || ((self.CC.h1 & 15) + (self.CC.h2 & 15) > 15) {
+        let mut i = self.registers.A + (self.registers.CC.res & 0x100);
+        if ((self.registers.A & 15) > 9) || ((self.registers.CC.h1 & 15) + (self.registers.CC.h2 & 15) > 15) {
             i += 6;
         }
         if i > 0x99 {
             i += 0x60;
         }
-        self.CC.res = i;
-        self.CC.sign = i;
+        self.registers.CC.res = i;
+        self.registers.CC.sign = i;
         self.registers.A = i & 255;
         self.cl += 2;
     }
 
     fn CWAI(&mut self, mem: &Memory) {
-        self.CC.getcc();
-        self.CC.value &= mem.read(self.PC) as u8;
-        self.CC.setcc(self.CC.value);
-        self.PC += 1;
+        self.registers.CC.getcc();
+        self.registers.CC.value &= mem.read(self.registers.PC) as u8;
+        self.registers.CC.setcc(self.registers.CC.value);
+        self.registers.PC += 1;
         self.cl += 20;
     }
 
@@ -2256,8 +2249,8 @@ impl M6809 {
     }
 
     fn Fetch(&mut self, mem: &mut Memory, screen: &mut Screen, sound: &mut Sound) {
-        let opcode = mem.read(self.PC);
-        self.PC += 1;
+        let opcode = mem.read(self.registers.PC);
+        self.registers.PC += 1;
         // 	Sound emulation process
         if self.sound_buffer.push(mem.sound_mem) {
             sound.play_sound(self);
@@ -2266,11 +2259,11 @@ impl M6809 {
         match opcode {
             // the mystery undocumented opcode
             0x01 => {
-                self.PC += 1;
+                self.registers.PC += 1;
                 self.cl += 2;
                 // PER (instruction d'emulation de périphérique)
             }
-            0x02 => mem.periph(self.PC, self.registers.S, self.registers.A, screen), // LDA
+            0x02 => mem.periph(self.registers.PC, self.registers.S, self.registers.A, screen), // LDA
             0x86 => {
                 let M = self.IMMED8();
                 self.registers.A = self.LD8(M, 2, mem);
@@ -2438,17 +2431,17 @@ impl M6809 {
             // CLRA
             0x4F => {
                 self.registers.A = 0;
-                self.CC.m1 = self.CC.ovfl;
-                self.CC.sign = 0;
-                self.CC.res = 0;
+                self.registers.CC.m1 = self.registers.CC.ovfl;
+                self.registers.CC.sign = 0;
+                self.registers.CC.res = 0;
                 self.cl += 2;
             }
             // CLRB
             0x5F => {
                 self.registers.B = 0;
-                self.CC.m1 = self.CC.ovfl;
-                self.CC.sign = 0;
-                self.CC.res = 0;
+                self.registers.CC.m1 = self.registers.CC.ovfl;
+                self.registers.CC.sign = 0;
+                self.registers.CC.res = 0;
                 self.cl += 2;
             }
             // CLR
@@ -3015,8 +3008,8 @@ impl M6809 {
             0x3C => self.CWAI(mem),
             // extended mode
             0x10 => {
-                let opcode0x10 = mem.read(self.PC);
-                self.PC += 1;
+                let opcode0x10 = mem.read(self.registers.PC);
+                self.registers.PC += 1;
                 match opcode0x10 {
                     // LDS
                     0xCE => {
@@ -3138,8 +3131,8 @@ impl M6809 {
                 } // of case opcode0x10
             }
             0x11 => {
-                let opcode0x11 = mem.read(self.PC);
-                self.PC += 1;
+                let opcode0x11 = mem.read(self.registers.PC);
+                self.registers.PC += 1;
 
                 match opcode0x11 {
                     // CMP
@@ -3190,18 +3183,18 @@ impl M6809 {
 
     // UNASSEMBLE/DEBUG PART
     pub(crate) fn print_state(&mut self) -> String {
-        self.CC.value = self.CC.getcc() as u8;
+        self.registers.CC.value = self.registers.CC.getcc() as u8;
         let s = format!(
             "A={:02X} B={:02X} X={:04X} Y={:04X}\nPC={:04X} DP={:02X} U={:04X} S={:04X} CC={:02X}",
             self.registers.A,
             self.registers.B,
             self.registers.X,
             self.registers.Y,
-            self.PC,
-            self.DP,
+            self.registers.PC,
+            self.registers.DP,
             self.registers.U,
             self.registers.S,
-            self.CC.value
+            self.registers.CC.value
         );
         s
     }
@@ -3991,30 +3984,30 @@ mod tests {
 
         // Test X + 5 (0x05: 000 00101 -> X, +5)
         cpu.registers.X = 0x1000;
-        cpu.PC = 0x2000;
+        cpu.registers.PC = 0x2000;
         mem.write(0x2000, 0x05);
         let addr = cpu.INDEXE(&mut mem);
         assert_eq!(addr, 0x1005);
-        assert_eq!(cpu.PC, 0x2001);
+        assert_eq!(cpu.registers.PC, 0x2001);
 
         // Test Y - 1 (0x3F: 001 11111 -> Y, -1 because 0x1F is -1 in 5-bit signed)
         // 5-bit signed: 0x10 is -16, 0x1F is -1
         cpu.registers.Y = 0x1000;
-        cpu.PC = 0x2000;
+        cpu.registers.PC = 0x2000;
         mem.write(0x2000, 0x3F);
         let addr = cpu.INDEXE(&mut mem);
         assert_eq!(addr, 0x0FFF);
 
         // Test U + 15 (0x4F: 010 01111 -> U, +15)
         cpu.registers.U = 0x1000;
-        cpu.PC = 0x2000;
+        cpu.registers.PC = 0x2000;
         mem.write(0x2000, 0x4F);
         let addr = cpu.INDEXE(&mut mem);
         assert_eq!(addr, 0x100F);
 
         // Test S - 16 (0x70: 011 10000 -> S, -16)
         cpu.registers.S = 0x1000;
-        cpu.PC = 0x2000;
+        cpu.registers.PC = 0x2000;
         mem.write(0x2000, 0x70);
         let addr = cpu.INDEXE(&mut mem);
         assert_eq!(addr, 0x0FF0);
@@ -4027,7 +4020,7 @@ mod tests {
 
         // Post-increment X by 1 (0x80)
         cpu.registers.X = 0x1000;
-        cpu.PC = 0x2000;
+        cpu.registers.PC = 0x2000;
         mem.write(0x2000, 0x80);
         let addr = cpu.INDEXE(&mut mem);
         assert_eq!(addr, 0x1000);
@@ -4035,7 +4028,7 @@ mod tests {
 
         // Post-increment X by 2 (0x81)
         cpu.registers.X = 0x1000;
-        cpu.PC = 0x2000;
+        cpu.registers.PC = 0x2000;
         mem.write(0x2000, 0x81);
         let addr = cpu.INDEXE(&mut mem);
         assert_eq!(addr, 0x1000);
@@ -4043,7 +4036,7 @@ mod tests {
 
         // Pre-decrement X by 1 (0x82)
         cpu.registers.X = 0x1000;
-        cpu.PC = 0x2000;
+        cpu.registers.PC = 0x2000;
         mem.write(0x2000, 0x82);
         let addr = cpu.INDEXE(&mut mem);
         assert_eq!(addr, 0x0FFF);
@@ -4051,7 +4044,7 @@ mod tests {
 
         // Pre-decrement X by 2 (0x83)
         cpu.registers.X = 0x1000;
-        cpu.PC = 0x2000;
+        cpu.registers.PC = 0x2000;
         mem.write(0x2000, 0x83);
         let addr = cpu.INDEXE(&mut mem);
         assert_eq!(addr, 0x0FFE);
@@ -4066,14 +4059,14 @@ mod tests {
         // B offset (0x85)
         cpu.registers.X = 0x1000;
         cpu.registers.B = 0x05;
-        cpu.PC = 0x2000;
+        cpu.registers.PC = 0x2000;
         mem.write(0x2000, 0x85);
         assert_eq!(cpu.INDEXE(&mut mem), 0x1005);
 
         // A offset (0x86)
         cpu.registers.X = 0x1000;
         cpu.registers.A = 0xFF; // -1
-        cpu.PC = 0x2000;
+        cpu.registers.PC = 0x2000;
         mem.write(0x2000, 0x86);
         assert_eq!(cpu.INDEXE(&mut mem), 0x0FFF);
 
@@ -4081,7 +4074,7 @@ mod tests {
         cpu.registers.X = 0x1000;
         cpu.registers.A = 0x00;
         cpu.registers.B = 0x10;
-        cpu.PC = 0x2000;
+        cpu.registers.PC = 0x2000;
         mem.write(0x2000, 0x8B);
         assert_eq!(cpu.INDEXE(&mut mem), 0x1010);
     }
@@ -4093,20 +4086,20 @@ mod tests {
 
         // 8-bit offset (0x88)
         cpu.registers.X = 0x1000;
-        cpu.PC = 0x2000;
+        cpu.registers.PC = 0x2000;
         mem.write(0x2000, 0x88);
         mem.write(0x2001, 0x12);
         assert_eq!(cpu.INDEXE(&mut mem), 0x1012);
-        assert_eq!(cpu.PC, 0x2002);
+        assert_eq!(cpu.registers.PC, 0x2002);
 
         // 16-bit offset (0x89)
         cpu.registers.X = 0x1000;
-        cpu.PC = 0x2000;
+        cpu.registers.PC = 0x2000;
         mem.write(0x2000, 0x89);
         mem.write(0x2001, 0x12);
         mem.write(0x2002, 0x34);
         assert_eq!(cpu.INDEXE(&mut mem), 0x1000 + 0x1234);
-        assert_eq!(cpu.PC, 0x2003);
+        assert_eq!(cpu.registers.PC, 0x2003);
     }
 
     #[test]
@@ -4115,17 +4108,17 @@ mod tests {
         let mut cpu = M6809::new(&mem);
 
         // PC 8-bit offset (0x8C)
-        cpu.PC = 0x2000;
+        cpu.registers.PC = 0x2000;
         mem.write(0x2000, 0x8C);
         mem.write(0x2001, 0x05); // Offset +5 from PC after reading offset byte
         // After reading 0x8C, PC is 0x2001.
         // Inside INDEXE for 0x8C: m = mem.read(0x2001) [0x05], PC = 0x2002.
         // Result is PC + signedChar(m) = 0x2002 + 5 = 0x2007.
         assert_eq!(cpu.INDEXE(&mut mem), 0x2007);
-        assert_eq!(cpu.PC, 0x2002);
+        assert_eq!(cpu.registers.PC, 0x2002);
 
         // PC 16-bit offset (0x8D)
-        cpu.PC = 0x2000;
+        cpu.registers.PC = 0x2000;
         mem.write(0x2000, 0x8D);
         mem.write(0x2001, 0x10);
         mem.write(0x2002, 0x00);
@@ -4133,7 +4126,7 @@ mod tests {
         // Inside INDEXE for 0x8D: M = read_16(0x2001) [0x1000], PC = 0x2003.
         // Result is PC + signed16bits(M) = 0x2003 + 0x1000 = 0x3003.
         assert_eq!(cpu.INDEXE(&mut mem), 0x3003);
-        assert_eq!(cpu.PC, 0x2003);
+        assert_eq!(cpu.registers.PC, 0x2003);
     }
 
     #[test]
@@ -4143,7 +4136,7 @@ mod tests {
 
         // Indirect with 8-bit offset from X (0x98)
         cpu.registers.X = 0x1000;
-        cpu.PC = 0x2000;
+        cpu.registers.PC = 0x2000;
         mem.write(0x2000, 0x98);
         mem.write(0x2001, 0x02); // Offset 2 -> 0x1002
         mem.write(0x1002, 0xAB);
@@ -4151,7 +4144,7 @@ mod tests {
         assert_eq!(cpu.INDEXE(&mut mem), 0xABCD);
 
         // Indirect Extended (0x9F)
-        cpu.PC = 0x2000;
+        cpu.registers.PC = 0x2000;
         mem.write(0x2000, 0x9F);
         mem.write(0x2001, 0x30);
         mem.write(0x2002, 0x00); // Address 0x3000

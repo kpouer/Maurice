@@ -118,7 +118,7 @@ impl Machine {
             /* Positionne le bit 7 de CRB */
             self.mem.registers_6821.CRB |= 0x80;
             self.mem.set(0xA7C3, self.mem.registers_6821.CRB);
-            let cc = self.micro.CC.readCC();
+            let cc = self.micro.registers.CC.readCC();
             if (cc & 0x10) == 0 {
                 self.micro.IRQ(&mut self.mem);
             }
@@ -195,7 +195,7 @@ impl Machine {
     }
 
     pub(crate) fn unassemble_from_pc(&self, nblines: int, mem: &Memory) -> String {
-        unassemble(self.micro.PC, nblines, mem)
+        unassemble(self.micro.registers.PC, nblines, mem)
     }
 }
 

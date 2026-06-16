@@ -4,10 +4,12 @@ use crate::int;
 use rstest::rstest;
 
 #[derive(Debug, Default)]
-pub(super) struct Registers {
+pub(crate) struct Registers {
     // 8bits registers
     pub(super) A: int,
     pub(super) B: int,
+    pub DP: int,
+    pub(crate) CC: CCRegister,
 
     pub(super) D: int, // D is A+B
 
@@ -16,6 +18,7 @@ pub(super) struct Registers {
     pub(super) Y: int,
     pub(super) U: int,
     pub(super) S: int,
+    pub(crate) PC: int,
 }
 
 impl Registers {
