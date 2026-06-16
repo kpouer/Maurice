@@ -96,7 +96,7 @@ impl CCRegister {
     }
 
     // cc register recalculate from separate bits
-    pub(super) const fn getcc(&mut self) -> int {
+    pub(super) const fn getcc(&mut self) -> u8 {
         if (self.res & 0xff) == 0 {
             self.value = (((((self.h1 & 15) + (self.h2 & 15)) & 16) << 1)
                 | ((self.sign & 0x80) >> 4)
@@ -112,11 +112,11 @@ impl CCRegister {
                 | self.ccrest) as u8;
         }
 
-        self.value as int
+        self.value
     }
 
-    pub(crate) const fn readCC(&mut self) -> int {
+    pub(crate) const fn readCC(&mut self) -> u8 {
         self.getcc();
-        self.value as int
+        self.value
     }
 }

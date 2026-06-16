@@ -741,16 +741,16 @@ impl M6809 {
             0x03 => self.registers.U,
             0x04 => self.registers.S,
             0x05 => self.PC,
-            0x06 => self.CC.getcc(),
-            0x07 => self.CC.getcc(),
+            0x06 => self.CC.getcc() as int,
+            0x07 => self.CC.getcc() as int,
             0x08 => self.registers.A,
             0x09 => self.registers.B,
-            0x0A => self.CC.getcc(),
+            0x0A => self.CC.getcc() as int,
             0x0B => self.DP,
-            0x0C => self.CC.getcc(),
-            0x0D => self.CC.getcc(),
-            0x0E => self.CC.getcc(),
-            0x0F => self.CC.getcc(),
+            0x0C => self.CC.getcc() as int,
+            0x0D => self.CC.getcc() as int,
+            0x0E => self.CC.getcc() as int,
+            0x0F => self.CC.getcc() as int,
             _ => 0, // only for javac
         };
         let mut l = 0;
@@ -782,11 +782,11 @@ impl M6809 {
                 self.PC = k;
             }
             0x06 => {
-                l = self.CC.getcc();
+                l = self.CC.getcc() as int;
                 self.CC.setcc(k);
             }
             0x07 => {
-                l = self.CC.getcc();
+                l = self.CC.getcc() as int;
                 self.CC.setcc(k);
             }
             0x08 => {
@@ -798,7 +798,7 @@ impl M6809 {
                 self.registers.B = k & 0xff;
             }
             0x0A => {
-                l = self.CC.getcc();
+                l = self.CC.getcc() as int;
                 self.CC.setcc(k);
             }
             0x0B => {
@@ -806,19 +806,19 @@ impl M6809 {
                 self.DP = k & 0xff;
             }
             0x0C => {
-                l = self.CC.getcc();
+                l = self.CC.getcc() as int;
                 self.CC.setcc(k);
             }
             0x0D => {
-                l = self.CC.getcc();
+                l = self.CC.getcc() as int;
                 self.CC.setcc(k);
             }
             0x0E => {
-                l = self.CC.getcc();
+                l = self.CC.getcc() as int;
                 self.CC.setcc(k);
             }
             0x0F => {
-                l = self.CC.getcc();
+                l = self.CC.getcc() as int;
                 self.CC.setcc(k);
             }
             _ => {}
@@ -861,12 +861,12 @@ impl M6809 {
             0x03 => self.registers.U,
             0x04 => self.registers.S,
             0x05 => self.PC,
-            0x06 | 0x07 => self.CC.getcc(),
+            0x06 | 0x07 => self.CC.getcc() as int,
             0x08 => self.registers.A,
             0x09 => self.registers.B,
-            0x0A => self.CC.getcc(),
+            0x0A => self.CC.getcc() as int,
             0x0B => self.DP,
-            0x0C | 0x0D | 0x0E | 0x0F => self.CC.getcc(),
+            0x0C | 0x0D | 0x0E | 0x0F => self.CC.getcc() as int,
             _ => 0,
         };
         let r2 = m & 0x0F;
