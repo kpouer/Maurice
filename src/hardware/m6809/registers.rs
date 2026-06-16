@@ -52,15 +52,16 @@ impl CCRegister {
     }
 
     // calculate CC fast bits from CC register
-    pub(super) const fn setcc(&mut self, i: int) {
+    pub(super) const fn setcc(&mut self, i: u8) {
+        let i = i as int;
         self.m1 = 0;
         self.m2 = 0;
-        self.res = ((i & 1) << 8) | (4 - (i & 4));
-        self.ovfl = (i & 2) << 6;
-        self.sign = (i & 8) << 4;
-        self.h1 = (i & 32) >> 2;
+        self.res = (((i & 1) << 8) | (4 - (i & 4))) as int;
+        self.ovfl = ((i & 2) << 6) as int;
+        self.sign = ((i & 8) << 4) as int;
+        self.h1 = ((i & 32) >> 2) as int;
         self.h2 = self.h1;
-        self.ccrest = i & 0xd0;
+        self.ccrest = (i & 0xd0) as int;
     }
 
     pub(super) fn res(&self) -> int {

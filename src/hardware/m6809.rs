@@ -783,11 +783,11 @@ impl M6809 {
             }
             0x06 => {
                 l = self.CC.getcc() as int;
-                self.CC.setcc(k);
+                self.CC.setcc(k as u8);
             }
             0x07 => {
                 l = self.CC.getcc() as int;
-                self.CC.setcc(k);
+                self.CC.setcc(k as u8);
             }
             0x08 => {
                 l = self.registers.A;
@@ -799,7 +799,7 @@ impl M6809 {
             }
             0x0A => {
                 l = self.CC.getcc() as int;
-                self.CC.setcc(k);
+                self.CC.setcc(k as u8);
             }
             0x0B => {
                 l = self.DP;
@@ -807,19 +807,19 @@ impl M6809 {
             }
             0x0C => {
                 l = self.CC.getcc() as int;
-                self.CC.setcc(k);
+                self.CC.setcc(k as u8);
             }
             0x0D => {
                 l = self.CC.getcc() as int;
-                self.CC.setcc(k);
+                self.CC.setcc(k as u8);
             }
             0x0E => {
                 l = self.CC.getcc() as int;
-                self.CC.setcc(k);
+                self.CC.setcc(k as u8);
             }
             0x0F => {
                 l = self.CC.getcc() as int;
-                self.CC.setcc(k);
+                self.CC.setcc(k as u8);
             }
             _ => {}
         } // of match r2
@@ -833,16 +833,16 @@ impl M6809 {
             0x03 => self.registers.U = l,
             0x04 => self.registers.S = l,
             0x05 => self.PC = l,
-            0x06 => self.CC.setcc(l),
-            0x07 => self.CC.setcc(l),
+            0x06 => self.CC.setcc(l as u8),
+            0x07 => self.CC.setcc(l as u8),
             0x08 => self.registers.A = l & 0xff,
             0x09 => self.registers.B = l & 0xff,
-            0x0A => self.CC.setcc(l),
+            0x0A => self.CC.setcc(l as u8),
             0x0B => self.DP = l & 0xff,
-            0x0C => self.CC.setcc(l),
-            0x0D => self.CC.setcc(l),
-            0x0E => self.CC.setcc(l),
-            0x0F => self.CC.setcc(l),
+            0x0C => self.CC.setcc(l as u8),
+            0x0D => self.CC.setcc(l as u8),
+            0x0E => self.CC.setcc(l as u8),
+            0x0F => self.CC.setcc(l as u8),
             _ => {}
         } // of second match r1
         self.cl += 8;
@@ -880,12 +880,12 @@ impl M6809 {
             0x03 => self.registers.U = k,
             0x04 => self.registers.S = k,
             0x05 => self.PC = k,
-            0x06 | 0x07 => self.CC.setcc(k),
+            0x06 | 0x07 => self.CC.setcc(k as u8),
             0x08 => self.registers.A = k & 0xff,
             0x09 => self.registers.B = k & 0xff,
-            0x0A => self.CC.setcc(k),
+            0x0A => self.CC.setcc(k as u8),
             0x0B => self.DP = k & 0xff,
-            0x0C | 0x0D | 0x0E | 0x0F => self.CC.setcc(k),
+            0x0C | 0x0D | 0x0E | 0x0F => self.CC.setcc(k as u8),
             _ => {}
         } // of match r2
     }
@@ -1005,7 +1005,7 @@ impl M6809 {
         self.PC += 1;
         if (m & 0x01) != 0 {
             self.CC.value = mem.read(self.registers.S) as u8;
-            self.CC.setcc(self.CC.value as int);
+            self.CC.setcc(self.CC.value);
             self.registers.S += 1;
             self.cl += 1;
         }
@@ -1052,7 +1052,7 @@ impl M6809 {
         self.PC += 1;
         if (m & 0x01) != 0 {
             self.CC.value = mem.read(self.registers.U) as u8;
-            self.CC.setcc(self.CC.value as int);
+            self.CC.setcc(self.CC.value);
             self.registers.U += 1;
             self.cl += 1;
         }
@@ -1233,7 +1233,7 @@ impl M6809 {
         let val = mem.read(adr);
         //	getcc();
         self.CC.value &= val as u8;
-        self.CC.setcc(self.CC.value as int);
+        self.CC.setcc(self.CC.value);
         self.cl += c;
     }
 
@@ -1259,7 +1259,7 @@ impl M6809 {
         let val = mem.read(adr);
         self.CC.getcc();
         self.CC.value |= val as u8;
-        self.CC.setcc(self.CC.value as int);
+        self.CC.setcc(self.CC.value);
         self.cl += c;
     }
 
@@ -2128,7 +2128,7 @@ impl M6809 {
     fn SWI(&mut self, mem: &mut Memory) {
         self.CC.getcc();
         self.CC.value |= 0x80; /* bit E � 1 */
-        self.CC.setcc(self.CC.value as int);
+        self.CC.setcc(self.CC.value);
         self.registers.S -= 1;
         mem.write(self.registers.S, self.PC & 0x00FF);
         self.registers.S -= 1;
@@ -2160,7 +2160,7 @@ impl M6809 {
 
     fn RTI(&mut self, mem: &Memory) {
         self.CC.set_value(mem.read(self.registers.S) as u8);
-        self.CC.setcc(self.CC.value as int);
+        self.CC.setcc(self.CC.value);
         self.registers.S += 1;
         if (self.CC.value() & 0x80) == 0x80 {
             self.registers.A = mem.read(self.registers.S);
@@ -2188,7 +2188,7 @@ impl M6809 {
         /* mise � 1 du bit E sur le CC */
         self.CC.getcc();
         self.CC.value |= 0x80;
-        self.CC.setcc(self.CC.value as int);
+        self.CC.setcc(self.CC.value);
         self.registers.S -= 1;
         mem.write(self.registers.S, self.PC & 0x00FF);
         self.registers.S -= 1;
@@ -2236,7 +2236,7 @@ impl M6809 {
     fn CWAI(&mut self, mem: &Memory) {
         self.CC.getcc();
         self.CC.value &= mem.read(self.PC) as u8;
-        self.CC.setcc(self.CC.value as int);
+        self.CC.setcc(self.CC.value);
         self.PC += 1;
         self.cl += 20;
     }
