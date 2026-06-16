@@ -1,5 +1,8 @@
 use crate::int;
 
+#[cfg(test)]
+use rstest::rstest;
+
 #[derive(Debug, Default)]
 pub(super) struct Registers {
     // 8bits registers
@@ -56,12 +59,12 @@ impl CCRegister {
         let i = i as int;
         self.m1 = 0;
         self.m2 = 0;
-        self.res = (((i & 1) << 8) | (4 - (i & 4))) as int;
-        self.ovfl = ((i & 2) << 6) as int;
-        self.sign = ((i & 8) << 4) as int;
-        self.h1 = ((i & 32) >> 2) as int;
+        self.res = (((i & 1) << 8) | (4 - (i & 4)));
+        self.ovfl = ((i & 2) << 6);
+        self.sign = ((i & 8) << 4);
+        self.h1 = ((i & 32) >> 2);
         self.h2 = self.h1;
-        self.ccrest = (i & 0xd0) as int;
+        self.ccrest = (i & 0xd0);
     }
 
     pub(super) fn res(&self) -> int {
@@ -119,5 +122,86 @@ impl CCRegister {
     pub(crate) const fn readCC(&mut self) -> u8 {
         self.getcc();
         self.value
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[rstest]
+    #[case(0x00, 0, 0, 4, 0, 0x00, 0, 0, 0)]
+    #[case(0x01, 0, 0, 260, 0, 0x00, 0, 0, 0)]
+    #[case(0x02, 0, 0, 4, 0x80, 0x00, 0, 0, 0)]
+    #[case(0x04, 0, 0, 0, 0, 0x00, 0, 0, 0)]
+    #[case(0x08, 0, 0, 4, 0, 0x80, 0, 0, 0)]
+    #[case(0x20, 0, 0, 4, 0, 0x00, 8, 8, 0)]
+    #[case(0xd0, 0, 0, 4, 0, 0x00, 0, 0, 0xd0)]
+    #[case(0xff, 0, 0, 0x100, 0x80, 0x80, 8, 8, 0xd0)]
+    fn test_setcc(
+        #[case] input: u8,
+        #[case] expected_m1: int,
+        #[case] expected_m2: int,
+        #[case] expected_res: int,
+        #[case] expected_ovfl: int,
+        #[case] expected_sign: int,
+        #[case] expected_h1: int,
+        #[case] expected_h2: int,
+        #[case] expected_ccrest: int,
+    ) {
+        let mut cc = CCRegister::default();
+        cc.setcc(input);
+
+        assert_eq!(cc.m1(), expected_m1, "m1 mismatch for input 0x{:02x}", input);
+        assert_eq!(cc.m2(), expected_m2, "m2 mismatch for input 0x{:02x}", input);
+        assert_eq!(cc.res(), expected_res, "res mismatch for input 0x{:02x}", input);
+        assert_eq!(cc.ovfl(), expected_ovfl, "ovfl mismatch for input 0x{:02x}", input);
+        assert_eq!(cc.sign(), expected_sign, "sign mismatch for input 0x{:02x}", input);
+        assert_eq!(cc.h1(), expected_h1, "h1 mismatch for input 0x{:02x}", input);
+        assert_eq!(cc.h2(), expected_h2, "h2 mismatch for input 0x{:02x}", input);
+        assert_eq!(cc.ccrest(), expected_ccrest, "ccrest mismatch for input 0x{:02x}", input);
+    }
+
+    #[test]
+    fn test_setcc_bit_zero_carry() {
+        let mut cc = CCRegister::default();
+        cc.setcc(0x01);
+        assert_eq!(cc.res(), 260);
+    }
+
+    #[test]
+    fn test_setcc_bit_zero_no_carry() {
+        let mut cc = CCRegister::default();
+        cc.setcc(0x00);
+        assert_eq!(cc.res(), 4);
+    }
+
+    #[test]
+    fn test_setcc_bit_two_overflow() {
+        let mut cc = CCRegister::default();
+        cc.setcc(0x02);
+        assert_eq!(cc.ovfl(), 0x80);
+    }
+
+    #[test]
+    fn test_setcc_bit_three_sign() {
+        let mut cc = CCRegister::default();
+        cc.setcc(0x08);
+        assert_eq!(cc.sign(), 0x80);
+    }
+
+    #[test]
+    fn test_setcc_bit_five_half_carry() {
+        let mut cc = CCRegister::default();
+        cc.setcc(0x20);
+        assert_eq!(cc.h1(), 8);
+        assert_eq!(cc.h2(), 8);
+    }
+
+    #[test]
+    fn test_setcc_upper_bits_preserved() {
+        let mut cc = CCRegister::default();
+        cc.setcc(0xd0);
+        assert_eq!(cc.ccrest(), 0xd0);
     }
 }
