@@ -36,33 +36,33 @@ impl M6809 {
     // basic 6809 addressing modes
     const fn IMMED8(&mut self) -> int {
         let M = self.registers.PC;
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         M
     }
 
     const fn IMMED16(&mut self) -> int {
         let M = self.registers.PC;
-        self.registers.PC += 2;
+        self.registers.inc_PC(2);
         M
     }
 
     fn DIREC(&mut self, mem: &Memory) -> int {
         let M = (self.registers.DP << 8) | mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         M
     }
 
     fn ETEND(&mut self, mem: &Memory) -> int {
         let mut M = mem.read(self.registers.PC) << 8;
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         M |= mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         M
     }
 
     fn INDEXE(&mut self, mem: &Memory) -> int {
         let mut m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         if m < 0x80 {
             // effectue le complement a 2 sur la precision int
             let delta = if (m & 0x10) == 0x10 {
@@ -126,7 +126,7 @@ impl M6809 {
             0x88 => {
                 //i_d_8_X;
                 self.registers.CC.m2 = mem.read(self.registers.PC);
-                self.registers.PC += 1;
+                self.registers.inc_PC(1);
                 let M = (self.registers.X + signedChar(self.registers.CC.m2)) & 0xFFFF;
                 self.cl += 1;
                 M
@@ -134,7 +134,7 @@ impl M6809 {
             0x89 => {
                 //i_d_16_X;
                 self.registers.CC.m2 = mem.read_16(self.registers.PC);
-                self.registers.PC += 2;
+                self.registers.inc_PC(2);
                 let M = (self.registers.X + signed16bits(self.registers.CC.m2)) & 0xFFFF;
                 self.cl += 4;
                 M
@@ -302,7 +302,7 @@ impl M6809 {
             0xA8 => {
                 //i_d_8_Y;
                 self.registers.CC.m2 = mem.read(self.registers.PC);
-                self.registers.PC += 1;
+                self.registers.inc_PC(1);
                 let M = (self.registers.Y + signedChar(self.registers.CC.m2)) & 0xFFFF;
                 self.cl += 1;
                 M
@@ -310,7 +310,7 @@ impl M6809 {
             0xA9 => {
                 //i_d_16_Y;
                 self.registers.CC.m2 = mem.read_16(self.registers.PC);
-                self.registers.PC += 2;
+                self.registers.inc_PC(2);
                 let M = (self.registers.Y + signed16bits(self.registers.CC.m2)) & 0xFFFF;
                 self.cl += 4;
                 M
@@ -435,7 +435,7 @@ impl M6809 {
             0xC8 => {
                 //i_d_8_U;
                 self.registers.CC.m2 = mem.read(self.registers.PC);
-                self.registers.PC += 1;
+                self.registers.inc_PC(1);
                 let M = (self.registers.U + signedChar(self.registers.CC.m2)) & 0xFFFF;
                 self.cl += 1;
                 M
@@ -443,7 +443,7 @@ impl M6809 {
             0xC9 => {
                 //i_d_16_U;
                 self.registers.CC.m2 = mem.read_16(self.registers.PC);
-                self.registers.PC += 2;
+                self.registers.inc_PC(2);
                 let M = (self.registers.U + signed16bits(self.registers.CC.m2)) & 0xFFFF;
                 self.cl += 4;
                 M
@@ -568,7 +568,7 @@ impl M6809 {
             0xE8 => {
                 //i_d_8_S;
                 self.registers.CC.m2 = mem.read(self.registers.PC);
-                self.registers.PC += 1;
+                self.registers.inc_PC(1);
                 let M = (self.registers.S + signedChar(self.registers.CC.m2)) & 0xFFFF;
                 self.cl += 1;
                 M
@@ -576,7 +576,7 @@ impl M6809 {
             0xE9 => {
                 //i_d_16_S;
                 self.registers.CC.m2 = mem.read_16(self.registers.PC);
-                self.registers.PC += 2;
+                self.registers.inc_PC(2);
                 let M = (self.registers.S + signed16bits(self.registers.CC.m2)) & 0xFFFF;
                 self.cl += 4;
                 M
@@ -723,7 +723,7 @@ impl M6809 {
     // EXG
     fn EXG(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         let r1 = (m & 0xF0) >> 4;
         // only for javac
         // of match r1
@@ -843,7 +843,7 @@ impl M6809 {
 
     fn TFR(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         let r1 = (m & 0xF0) >> 4;
         // only for javac
         // of match r1
@@ -885,7 +885,7 @@ impl M6809 {
 
     fn PSHS(&mut self, mem: &mut Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         if (m & 0x80) != 0 {
             self.registers.S -= 1;
             mem.write(self.registers.S, self.registers.PC & 0x00FF);
@@ -940,7 +940,7 @@ impl M6809 {
 
     fn PSHU(&mut self, mem: &mut Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         if (m & 0x80) != 0 {
             self.registers.U -= 1;
             mem.write(self.registers.U, self.registers.PC & 0x00FF);
@@ -995,7 +995,7 @@ impl M6809 {
 
     fn PULS(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         if (m & 0x01) != 0 {
             self.registers.CC.value = mem.read(self.registers.S) as u8;
             self.registers.CC.setcc(self.registers.CC.value);
@@ -1042,7 +1042,7 @@ impl M6809 {
 
     fn PULU(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         if (m & 0x01) != 0 {
             self.registers.CC.value = mem.read(self.registers.U) as u8;
             self.registers.CC.setcc(self.registers.CC.value);
@@ -1641,17 +1641,17 @@ impl M6809 {
 
     fn BRA(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
-        self.registers.PC += signedChar(m);
+        self.registers.inc_PC(1);
+        self.registers.inc_PC(signedChar(m));
         self.cl += 3;
     }
 
     fn LBRA(&mut self, mem: &Memory) {
         let mut m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         let mut off = m << 8;
         m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         off |= m;
         self.registers.PC = (self.registers.PC + off) & 0xFFFF;
         self.cl += 5;
@@ -1659,7 +1659,7 @@ impl M6809 {
 
     fn JMPd(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         self.registers.PC = (self.registers.DP << 8) | m;
         self.cl += 3;
     }
@@ -1676,21 +1676,21 @@ impl M6809 {
 
     fn BSR(&mut self, mem: &mut Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         self.registers.S -= 1;
         mem.write(self.registers.S, self.registers.PC & 0x00FF);
         self.registers.S -= 1;
         mem.write(self.registers.S, self.registers.PC >> 8);
-        self.registers.PC += signedChar(m);
+        self.registers.inc_PC(signedChar(m));
         self.cl += 7;
     }
 
     fn LBSR(&mut self, mem: &mut Memory) {
         let mut m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         let mut off = m << 8;
         m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         off |= m;
         self.registers.S -= 1;
         mem.write(self.registers.S, self.registers.PC & 0x00FF);
@@ -1702,7 +1702,7 @@ impl M6809 {
 
     fn JSRd(&mut self, mem: &mut Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         self.registers.S -= 1;
         mem.write(self.registers.S, self.registers.PC & 0x00FF);
         self.registers.S -= 1;
@@ -1733,15 +1733,15 @@ impl M6809 {
 
     fn BRN(&mut self, mem: &Memory) {
         mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         self.cl += 3;
     }
 
     fn LBRN(&mut self, mem: &Memory) {
         mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         self.cl += 5;
     }
 
@@ -1759,19 +1759,19 @@ impl M6809 {
 
     fn BCC(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         if (self.registers.CC.res & 0x100) != 0x100 {
-            self.registers.PC += signedChar(m);
+            self.registers.inc_PC(signedChar(m));
         }
         self.cl += 3;
     }
 
     fn LBCC(&mut self, mem: &Memory) {
         let mut m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         let mut off = m << 8;
         m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         off |= m;
         if (self.registers.CC.res & 0x100) != 0x100 {
             self.registers.PC = (self.registers.PC + off) & 0xFFFF;
@@ -1783,19 +1783,19 @@ impl M6809 {
 
     fn BCS(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         if (self.registers.CC.res & 0x100) == 0x100 {
-            self.registers.PC += signedChar(m);
+            self.registers.inc_PC(signedChar(m));
         }
         self.cl += 3;
     }
 
     fn LBCS(&mut self, mem: &Memory) {
         let mut m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         let mut off = m << 8;
         m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         off |= m;
         if (self.registers.CC.res & 0x100) == 0x100 {
             self.registers.PC = (self.registers.PC + off) & 0xFFFF;
@@ -1807,19 +1807,19 @@ impl M6809 {
 
     fn BEQ(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         if (self.registers.CC.res & 0xff) == 0x00 {
-            self.registers.PC += signedChar(m);
+            self.registers.inc_PC(signedChar(m));
         }
         self.cl += 3;
     }
 
     fn LBEQ(&mut self, mem: &Memory) {
         let mut m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         let mut off = m << 8;
         m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         off |= m;
         if (self.registers.CC.res & 0xff) == 0x00 {
             self.registers.PC = (self.registers.PC + off) & 0xFFFF;
@@ -1829,19 +1829,19 @@ impl M6809 {
 
     fn BNE(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         if (self.registers.CC.res & 0xff) != 0 {
-            self.registers.PC += signedChar(m);
+            self.registers.inc_PC(signedChar(m));
         }
         self.cl += 3;
     }
 
     fn LBNE(&mut self, mem: &Memory) {
         let mut m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         let mut off = m << 8;
         m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         off |= m;
         if (self.registers.CC.res & 0xff) != 0 {
             self.registers.PC = (self.registers.PC + off) & 0xFFFF;
@@ -1853,21 +1853,21 @@ impl M6809 {
 
     fn BGE(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         if ((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl))) & 0x80)
             == 0
         {
-            self.registers.PC += signedChar(m);
+            self.registers.inc_PC(signedChar(m));
         }
         self.cl += 3;
     }
 
     fn LBGE(&mut self, mem: &Memory) {
         let mut m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         let mut off = m << 8;
         m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         off |= m;
         if ((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl))) & 0x80)
             == 0
@@ -1881,23 +1881,23 @@ impl M6809 {
 
     fn BLE(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         if ((self.registers.CC.res & 0xff) == 0)
             || (((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl)))
                 & 0x80)
                 != 0)
         {
-            self.registers.PC += signedChar(m);
+            self.registers.inc_PC(signedChar(m));
         }
         self.cl += 3;
     }
 
     fn LBLE(&mut self, mem: &Memory) {
         let mut m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         let mut off = m << 8;
         m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         off |= m;
         if ((self.registers.CC.res & 0xff) == 0)
             || (((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl)))
@@ -1913,19 +1913,19 @@ impl M6809 {
 
     fn BLS(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         if ((self.registers.CC.res & 0x100) != 0) || ((self.registers.CC.res & 0xff) == 0) {
-            self.registers.PC += signedChar(m);
+            self.registers.inc_PC(signedChar(m));
         }
         self.cl += 3;
     }
 
     fn LBLS(&mut self, mem: &Memory) {
         let mut m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         let mut off = m << 8;
         m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         off |= m;
         if ((self.registers.CC.res & 0x100) != 0) || ((self.registers.CC.res & 0xff) == 0) {
             self.registers.PC = (self.registers.PC + off) & 0xFFFF;
@@ -1937,23 +1937,23 @@ impl M6809 {
 
     fn BGT(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         if ((self.registers.CC.res & 0xff) != 0)
             && (((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl)))
                 & 0x80)
                 == 0)
         {
-            self.registers.PC += signedChar(m);
+            self.registers.inc_PC(signedChar(m));
         }
         self.cl += 3;
     }
 
     fn LBGT(&mut self, mem: &Memory) {
         let mut m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         let mut off = m << 8;
         m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         off |= m;
         if ((self.registers.CC.res & 0xff) != 0)
             && (((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl)))
@@ -1969,21 +1969,21 @@ impl M6809 {
 
     fn BLT(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         if ((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl))) & 0x80)
             != 0
         {
-            self.registers.PC += signedChar(m);
+            self.registers.inc_PC(signedChar(m));
         }
         self.cl += 3;
     }
 
     fn LBLT(&mut self, mem: &Memory) {
         let mut m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         let mut off = m << 8;
         m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         off |= m;
         if ((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl))) & 0x80)
             != 0
@@ -1997,19 +1997,19 @@ impl M6809 {
 
     fn BHI(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         if ((self.registers.CC.res & 0x100) == 0) && ((self.registers.CC.res & 0xff) != 0) {
-            self.registers.PC += signedChar(m);
+            self.registers.inc_PC(signedChar(m));
         }
         self.cl += 3;
     }
 
     fn LBHI(&mut self, mem: &Memory) {
         let mut m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         let mut off = m << 8;
         m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         off |= m;
         if ((self.registers.CC.res & 0x100) == 0) && ((self.registers.CC.res & 0xff) != 0) {
             self.registers.PC = (self.registers.PC + off) & 0xFFFF;
@@ -2020,19 +2020,19 @@ impl M6809 {
 
     fn BMI(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         if (self.registers.CC.sign() & 0x80) != 0 {
-            self.registers.PC += signedChar(m);
+            self.registers.inc_PC(signedChar(m));
         }
         self.cl += 3;
     }
 
     fn LBMI(&mut self, mem: &Memory) {
         let mut m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         let mut off = m << 8;
         m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         off |= m;
         if (self.registers.CC.sign() & 0x80) != 0 {
             self.registers.PC = (self.registers.PC + off) & 0xFFFF;
@@ -2044,19 +2044,19 @@ impl M6809 {
 
     fn BPL(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         if (self.registers.CC.sign() & 0x80) == 0 {
-            self.registers.PC += signedChar(m);
+            self.registers.inc_PC(signedChar(m));
         }
         self.cl += 3;
     }
 
     fn LBPL(&mut self, mem: &Memory) {
         let mut m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         let mut off = m << 8;
         m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         off |= m;
         if (self.registers.CC.sign() & 0x80) == 0 {
             self.registers.PC = (self.registers.PC + off) & 0xFFFF;
@@ -2068,20 +2068,20 @@ impl M6809 {
 
     fn BVS(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         if (((self.registers.CC.m1 ^ self.registers.CC.m2) & 0x80) == 0) && (((self.registers.CC.m1 ^ self.registers.CC.ovfl) & 0x80) != 0)
         {
-            self.registers.PC += signedChar(m);
+            self.registers.inc_PC(signedChar(m));
         }
         self.cl += 3;
     }
 
     fn LBVS(&mut self, mem: &Memory) {
         let mut m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         let mut off = m << 8;
         m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         off |= m;
         if (((self.registers.CC.m1 ^ self.registers.CC.m2) & 0x80) == 0) && (((self.registers.CC.m1 ^ self.registers.CC.ovfl) & 0x80) != 0)
         {
@@ -2094,20 +2094,20 @@ impl M6809 {
 
     fn BVC(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         if (((self.registers.CC.m1 ^ self.registers.CC.m2) & 0x80) != 0) || (((self.registers.CC.m1 ^ self.registers.CC.ovfl) & 0x80) == 0)
         {
-            self.registers.PC += signedChar(m);
+            self.registers.inc_PC(signedChar(m));
         }
         self.cl += 3;
     }
 
     fn LBVC(&mut self, mem: &Memory) {
         let mut m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         let mut off = m << 8;
         m = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         off |= m;
         if (((self.registers.CC.m1 ^ self.registers.CC.m2) & 0x80) != 0) || (((self.registers.CC.m1 ^ self.registers.CC.ovfl) & 0x80) == 0)
         {
@@ -2230,7 +2230,7 @@ impl M6809 {
         self.registers.CC.getcc();
         self.registers.CC.value &= mem.read(self.registers.PC) as u8;
         self.registers.CC.setcc(self.registers.CC.value);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         self.cl += 20;
     }
 
@@ -2250,7 +2250,7 @@ impl M6809 {
 
     fn Fetch(&mut self, mem: &mut Memory, screen: &mut Screen, sound: &mut Sound) {
         let opcode = mem.read(self.registers.PC);
-        self.registers.PC += 1;
+        self.registers.inc_PC(1);
         // 	Sound emulation process
         if self.sound_buffer.push(mem.sound_mem) {
             sound.play_sound(self);
@@ -2259,7 +2259,7 @@ impl M6809 {
         match opcode {
             // the mystery undocumented opcode
             0x01 => {
-                self.registers.PC += 1;
+                self.registers.inc_PC(1);
                 self.cl += 2;
                 // PER (instruction d'emulation de périphérique)
             }
@@ -3009,7 +3009,7 @@ impl M6809 {
             // extended mode
             0x10 => {
                 let opcode0x10 = mem.read(self.registers.PC);
-                self.registers.PC += 1;
+                self.registers.inc_PC(1);
                 match opcode0x10 {
                     // LDS
                     0xCE => {
@@ -3132,7 +3132,7 @@ impl M6809 {
             }
             0x11 => {
                 let opcode0x11 = mem.read(self.registers.PC);
-                self.registers.PC += 1;
+                self.registers.inc_PC(1);
 
                 match opcode0x11 {
                     // CMP

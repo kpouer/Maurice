@@ -31,6 +31,10 @@ impl Registers {
         self.A = self.D >> 8;
         self.B = self.D & 0xFF;
     }
+
+    pub const fn inc_PC(&mut self, amount: int) {
+        self.PC = self.PC.saturating_add(amount);
+    }
 }
 
 #[derive(Debug, Default)]
