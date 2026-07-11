@@ -175,7 +175,7 @@ impl Machine {
     pub(crate) fn reset_soft(&mut self) {
         info!("Machine::reset_soft()");
         self.running = false;
-        self.micro.reset(&self.mem);
+        self.micro.registers.reset(&self.mem);
         self.running = true;
     }
 
@@ -186,7 +186,7 @@ impl Machine {
         for i in 0x2000..0x3000 {
             self.mem.set(i, 0);
         }
-        self.micro.reset(&self.mem);
+        self.micro.registers.reset(&self.mem);
         self.running = true;
     }
 

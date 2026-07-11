@@ -22,42 +22,32 @@ pub struct M6809 {
 impl M6809 {
     pub fn new(mem: &Memory) -> Self {
         let mut m6809 = M6809::default();
-        m6809.reset(mem);
+        m6809.registers.reset(mem);
         m6809
-    }
-
-    pub(crate) fn reset(&mut self, mem: &Memory) {
-        self.registers.PC = mem.read_16(0xFFFE);
-        self.registers.DP = 0x00;
-        self.registers.S = 0x8000;
-        self.registers.CC.value = 0x00;
     }
 
     // basic 6809 addressing modes
     const fn IMMED8(&mut self) -> int {
-        let M = self.registers.PC;
-        self.registers.inc_PC(1);
-        M
+        self.registers.inc_PC(1)
     }
 
     const fn IMMED16(&mut self) -> int {
-        let M = self.registers.PC;
-        self.registers.inc_PC(2);
-        M
+        self.registers.inc_PC(2)
     }
 
     fn DIREC(&mut self, mem: &Memory) -> int {
-        let M = (self.registers.DP << 8) | mem.read(self.registers.PC);
+        let M = u16::from_be_bytes([self.registers.DP as u8, mem.read(self.registers.PC) as u8]);
         self.registers.inc_PC(1);
-        M
+        M as int
     }
 
     fn ETEND(&mut self, mem: &Memory) -> int {
-        let mut M = mem.read(self.registers.PC) << 8;
-        self.registers.inc_PC(1);
-        M |= mem.read(self.registers.PC);
-        self.registers.inc_PC(1);
-        M
+        let M = u16::from_be_bytes([
+            mem.read(self.registers.PC) as u8,
+            mem.read(self.registers.PC + 1) as u8,
+        ]);
+        self.registers.inc_PC(2);
+        M as int
     }
 
     fn INDEXE(&mut self, mem: &Memory) -> int {
@@ -680,7 +670,8 @@ impl M6809 {
         let R = mem.read_16(M) & 0xFFFF;
         self.registers.CC.m1 = self.registers.CC.ovfl;
         self.registers.CC.sign = R >> 8;
-        self.registers.CC.res = (self.registers.CC.res & 0x100) | ((self.registers.CC.sign | R) & 0xFF);
+        self.registers.CC.res =
+            (self.registers.CC.res & 0x100) | ((self.registers.CC.sign | R) & 0xFF);
         self.cl += c;
         R
     }
@@ -699,7 +690,8 @@ impl M6809 {
         mem.write(adr + 1, R & 0xFF);
         self.registers.CC.m1 = self.registers.CC.ovfl;
         self.registers.CC.sign = R >> 8;
-        self.registers.CC.res = (self.registers.CC.res & 0x100) | ((self.registers.CC.sign | R) & 0xFF);
+        self.registers.CC.res =
+            (self.registers.CC.res & 0x100) | ((self.registers.CC.sign | R) & 0xFF);
         self.cl += c;
     }
 
@@ -1854,7 +1846,10 @@ impl M6809 {
     fn BGE(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
         self.registers.inc_PC(1);
-        if ((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl))) & 0x80)
+        if ((self.registers.CC.sign
+            ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2))
+                & (self.registers.CC.m1 ^ self.registers.CC.ovfl)))
+            & 0x80)
             == 0
         {
             self.registers.inc_PC(signedChar(m));
@@ -1869,7 +1864,10 @@ impl M6809 {
         m = mem.read(self.registers.PC);
         self.registers.inc_PC(1);
         off |= m;
-        if ((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl))) & 0x80)
+        if ((self.registers.CC.sign
+            ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2))
+                & (self.registers.CC.m1 ^ self.registers.CC.ovfl)))
+            & 0x80)
             == 0
         {
             self.registers.PC = (self.registers.PC + off) & 0xFFFF;
@@ -1883,7 +1881,9 @@ impl M6809 {
         let m = mem.read(self.registers.PC);
         self.registers.inc_PC(1);
         if ((self.registers.CC.res & 0xff) == 0)
-            || (((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl)))
+            || (((self.registers.CC.sign
+                ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2))
+                    & (self.registers.CC.m1 ^ self.registers.CC.ovfl)))
                 & 0x80)
                 != 0)
         {
@@ -1900,7 +1900,9 @@ impl M6809 {
         self.registers.inc_PC(1);
         off |= m;
         if ((self.registers.CC.res & 0xff) == 0)
-            || (((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl)))
+            || (((self.registers.CC.sign
+                ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2))
+                    & (self.registers.CC.m1 ^ self.registers.CC.ovfl)))
                 & 0x80)
                 != 0)
         {
@@ -1939,7 +1941,9 @@ impl M6809 {
         let m = mem.read(self.registers.PC);
         self.registers.inc_PC(1);
         if ((self.registers.CC.res & 0xff) != 0)
-            && (((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl)))
+            && (((self.registers.CC.sign
+                ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2))
+                    & (self.registers.CC.m1 ^ self.registers.CC.ovfl)))
                 & 0x80)
                 == 0)
         {
@@ -1956,7 +1960,9 @@ impl M6809 {
         self.registers.inc_PC(1);
         off |= m;
         if ((self.registers.CC.res & 0xff) != 0)
-            && (((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl)))
+            && (((self.registers.CC.sign
+                ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2))
+                    & (self.registers.CC.m1 ^ self.registers.CC.ovfl)))
                 & 0x80)
                 == 0)
         {
@@ -1970,7 +1976,10 @@ impl M6809 {
     fn BLT(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
         self.registers.inc_PC(1);
-        if ((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl))) & 0x80)
+        if ((self.registers.CC.sign
+            ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2))
+                & (self.registers.CC.m1 ^ self.registers.CC.ovfl)))
+            & 0x80)
             != 0
         {
             self.registers.inc_PC(signedChar(m));
@@ -1985,7 +1994,10 @@ impl M6809 {
         m = mem.read(self.registers.PC);
         self.registers.inc_PC(1);
         off |= m;
-        if ((self.registers.CC.sign ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2)) & (self.registers.CC.m1 ^ self.registers.CC.ovfl))) & 0x80)
+        if ((self.registers.CC.sign
+            ^ ((!(self.registers.CC.m1 ^ self.registers.CC.m2))
+                & (self.registers.CC.m1 ^ self.registers.CC.ovfl)))
+            & 0x80)
             != 0
         {
             self.registers.PC = (self.registers.PC + off) & 0xFFFF;
@@ -2069,7 +2081,8 @@ impl M6809 {
     fn BVS(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
         self.registers.inc_PC(1);
-        if (((self.registers.CC.m1 ^ self.registers.CC.m2) & 0x80) == 0) && (((self.registers.CC.m1 ^ self.registers.CC.ovfl) & 0x80) != 0)
+        if (((self.registers.CC.m1 ^ self.registers.CC.m2) & 0x80) == 0)
+            && (((self.registers.CC.m1 ^ self.registers.CC.ovfl) & 0x80) != 0)
         {
             self.registers.inc_PC(signedChar(m));
         }
@@ -2083,7 +2096,8 @@ impl M6809 {
         m = mem.read(self.registers.PC);
         self.registers.inc_PC(1);
         off |= m;
-        if (((self.registers.CC.m1 ^ self.registers.CC.m2) & 0x80) == 0) && (((self.registers.CC.m1 ^ self.registers.CC.ovfl) & 0x80) != 0)
+        if (((self.registers.CC.m1 ^ self.registers.CC.m2) & 0x80) == 0)
+            && (((self.registers.CC.m1 ^ self.registers.CC.ovfl) & 0x80) != 0)
         {
             self.registers.PC = (self.registers.PC + off) & 0xFFFF;
             self.cl += 6;
@@ -2095,7 +2109,8 @@ impl M6809 {
     fn BVC(&mut self, mem: &Memory) {
         let m = mem.read(self.registers.PC);
         self.registers.inc_PC(1);
-        if (((self.registers.CC.m1 ^ self.registers.CC.m2) & 0x80) != 0) || (((self.registers.CC.m1 ^ self.registers.CC.ovfl) & 0x80) == 0)
+        if (((self.registers.CC.m1 ^ self.registers.CC.m2) & 0x80) != 0)
+            || (((self.registers.CC.m1 ^ self.registers.CC.ovfl) & 0x80) == 0)
         {
             self.registers.inc_PC(signedChar(m));
         }
@@ -2109,7 +2124,8 @@ impl M6809 {
         m = mem.read(self.registers.PC);
         self.registers.inc_PC(1);
         off |= m;
-        if (((self.registers.CC.m1 ^ self.registers.CC.m2) & 0x80) != 0) || (((self.registers.CC.m1 ^ self.registers.CC.ovfl) & 0x80) == 0)
+        if (((self.registers.CC.m1 ^ self.registers.CC.m2) & 0x80) != 0)
+            || (((self.registers.CC.m1 ^ self.registers.CC.ovfl) & 0x80) == 0)
         {
             self.registers.PC = (self.registers.PC + off) & 0xFFFF;
             self.cl += 6;
@@ -2152,7 +2168,9 @@ impl M6809 {
     }
 
     fn RTI(&mut self, mem: &Memory) {
-        self.registers.CC.set_value(mem.read(self.registers.S) as u8);
+        self.registers
+            .CC
+            .set_value(mem.read(self.registers.S) as u8);
         self.registers.CC.setcc(self.registers.CC.value);
         self.registers.S += 1;
         if (self.registers.CC.value() & 0x80) == 0x80 {
@@ -2214,7 +2232,9 @@ impl M6809 {
 
     const fn DAA(&mut self) {
         let mut i = self.registers.A + (self.registers.CC.res & 0x100);
-        if ((self.registers.A & 15) > 9) || ((self.registers.CC.h1 & 15) + (self.registers.CC.h2 & 15) > 15) {
+        if ((self.registers.A & 15) > 9)
+            || ((self.registers.CC.h1 & 15) + (self.registers.CC.h2 & 15) > 15)
+        {
             i += 6;
         }
         if i > 0x99 {
@@ -2263,7 +2283,12 @@ impl M6809 {
                 self.cl += 2;
                 // PER (instruction d'emulation de périphérique)
             }
-            0x02 => mem.periph(self.registers.PC, self.registers.S, self.registers.A, screen), // LDA
+            0x02 => mem.periph(
+                self.registers.PC,
+                self.registers.S,
+                self.registers.A,
+                screen,
+            ), // LDA
             0x86 => {
                 let M = self.IMMED8();
                 self.registers.A = self.LD8(M, 2, mem);

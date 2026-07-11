@@ -1,7 +1,26 @@
 use crate::int;
 
+use crate::hardware::memory::Memory;
 #[cfg(test)]
 use rstest::rstest;
+
+#[derive(Debug, Clone, Copy)]
+pub enum Register8bit {
+    A,
+    B,
+    DP,
+    CC,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Register16bit {
+    D,
+    X,
+    Y,
+    U,
+    S,
+    PC,
+}
 
 #[derive(Debug, Default)]
 pub(crate) struct Registers {
@@ -22,6 +41,53 @@ pub(crate) struct Registers {
 }
 
 impl Registers {
+    pub const fn read_8(&self, register: Register8bit) -> int {
+        match register {
+            Register8bit::A => self.A,
+            Register8bit::B => self.B,
+            Register8bit::DP => self.DP,
+            Register8bit::CC => self.CC.value as int,
+        }
+    }
+
+    pub const fn read_16(&self, register: Register16bit) -> int {
+        match register {
+            Register16bit::D => self.D,
+            Register16bit::X => self.X,
+            Register16bit::Y => self.Y,
+            Register16bit::U => self.U,
+            Register16bit::S => self.S,
+            Register16bit::PC => self.PC,
+        }
+    }
+
+    pub const fn write_8(&mut self, register: Register8bit, value: int) {
+        match register {
+            Register8bit::A => self.A = value,
+            Register8bit::B => self.B = value,
+            Register8bit::DP => self.DP = value,
+            Register8bit::CC => self.CC.setcc(value as u8),
+        }
+    }
+
+    pub const fn write_16(&mut self, register: Register16bit, value: int) {
+        match register {
+            Register16bit::D => self.D = value,
+            Register16bit::X => self.X = value,
+            Register16bit::Y => self.Y = value,
+            Register16bit::U => self.U = value,
+            Register16bit::S => self.S = value,
+            Register16bit::PC => self.PC = value,
+        }
+    }
+
+    pub(crate) fn reset(&mut self, mem: &Memory) {
+        self.PC = mem.read_16(0xFFFE);
+        self.DP = 0x00;
+        self.S = 0x8000;
+        self.CC.value = 0x00;
+    }
+
     // recalculate A and B or D
     pub(super) const fn CALCD(&mut self) {
         self.D = (self.A << 8) | self.B;
@@ -32,8 +98,11 @@ impl Registers {
         self.B = self.D & 0xFF;
     }
 
-    pub const fn inc_PC(&mut self, amount: int) {
+    /// Increment PC and return the previous value
+    pub const fn inc_PC(&mut self, amount: int) -> int {
+        let old_pc = self.PC;
         self.PC = self.PC.saturating_add(amount);
+        old_pc
     }
 }
 
@@ -159,14 +228,54 @@ mod tests {
         let mut cc = CCRegister::default();
         cc.setcc(input);
 
-        assert_eq!(cc.m1(), expected_m1, "m1 mismatch for input 0x{:02x}", input);
-        assert_eq!(cc.m2(), expected_m2, "m2 mismatch for input 0x{:02x}", input);
-        assert_eq!(cc.res(), expected_res, "res mismatch for input 0x{:02x}", input);
-        assert_eq!(cc.ovfl(), expected_ovfl, "ovfl mismatch for input 0x{:02x}", input);
-        assert_eq!(cc.sign(), expected_sign, "sign mismatch for input 0x{:02x}", input);
-        assert_eq!(cc.h1(), expected_h1, "h1 mismatch for input 0x{:02x}", input);
-        assert_eq!(cc.h2(), expected_h2, "h2 mismatch for input 0x{:02x}", input);
-        assert_eq!(cc.ccrest(), expected_ccrest, "ccrest mismatch for input 0x{:02x}", input);
+        assert_eq!(
+            cc.m1(),
+            expected_m1,
+            "m1 mismatch for input 0x{:02x}",
+            input
+        );
+        assert_eq!(
+            cc.m2(),
+            expected_m2,
+            "m2 mismatch for input 0x{:02x}",
+            input
+        );
+        assert_eq!(
+            cc.res(),
+            expected_res,
+            "res mismatch for input 0x{:02x}",
+            input
+        );
+        assert_eq!(
+            cc.ovfl(),
+            expected_ovfl,
+            "ovfl mismatch for input 0x{:02x}",
+            input
+        );
+        assert_eq!(
+            cc.sign(),
+            expected_sign,
+            "sign mismatch for input 0x{:02x}",
+            input
+        );
+        assert_eq!(
+            cc.h1(),
+            expected_h1,
+            "h1 mismatch for input 0x{:02x}",
+            input
+        );
+        assert_eq!(
+            cc.h2(),
+            expected_h2,
+            "h2 mismatch for input 0x{:02x}",
+            input
+        );
+        assert_eq!(
+            cc.ccrest(),
+            expected_ccrest,
+            "ccrest mismatch for input 0x{:02x}",
+            input
+        );
     }
 
     #[rstest]
