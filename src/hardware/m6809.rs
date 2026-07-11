@@ -1604,31 +1604,26 @@ impl M6809 {
         self.cl += c;
     }
 
-    const fn RORA(&mut self) {
-        let i = self.registers.A;
-        self.registers.A = (self.registers.A | (self.registers.CC.res & 0x100)) >> 1;
-        self.registers.CC.sign = self.registers.A;
+    const fn ror(&mut self, value: int, cl_inc: int) -> int {
+        let i = value;
+        let result = (value | (self.registers.CC.res & 0x100)) >> 1;
+        self.registers.CC.sign = value;
         self.registers.CC.res = ((i & 1) << 8) | self.registers.CC.sign;
         self.cl += 2;
+        result
+    }
+
+    const fn RORA(&mut self) {
+        self.registers.A = self.ror(self.registers.A, 2);
     }
 
     const fn RORB(&mut self) {
-        let i = self.registers.B;
-        self.registers.B = (self.registers.B | (self.registers.CC.res & 0x100)) >> 1;
-        self.registers.CC.sign = self.registers.B;
-        self.registers.CC.res = ((i & 1) << 8) | self.registers.CC.sign;
-        self.cl += 2;
+        self.registers.B = self.ror(self.registers.B, 2);
     }
 
     fn ROR(&mut self, adr: int, c: int, mem: &mut Memory) {
-        let mut val;
-        let i = mem.read(adr);
-        val = i;
-        val = (val | (self.registers.CC.res & 0x100)) >> 1;
-        mem.write(adr, val);
-        self.registers.CC.sign = val;
-        self.registers.CC.res = ((i & 1) << 8) | self.registers.CC.sign;
-        self.cl += c;
+        let new_val = self.ror(mem.read(adr), c);
+        mem.write(adr, new_val);
     }
 
     fn BRA(&mut self, mem: &Memory) {
