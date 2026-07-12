@@ -81,6 +81,35 @@ impl Registers {
         }
     }
 
+    pub const fn decrement(&mut self, register: Register16bit, amount: i32) -> int {
+        match register {
+            Register16bit::D => {
+                self.D = self.D.saturating_sub(amount);
+                self.D
+            }
+            Register16bit::X => {
+                self.X = self.X.saturating_sub(amount);
+                self.X
+            }
+            Register16bit::Y => {
+                self.Y = self.Y.saturating_sub(amount);
+                self.Y
+            }
+            Register16bit::U => {
+                self.U = self.U.saturating_sub(amount);
+                self.U
+            }
+            Register16bit::S => {
+                self.S = self.S.saturating_sub(amount);
+                self.S
+            }
+            Register16bit::PC => {
+                self.PC = self.PC.saturating_sub(amount);
+                self.PC
+            }
+        }
+    }
+
     pub(crate) fn reset(&mut self, mem: &Memory) {
         self.PC = mem.read_16(0xFFFE);
         self.DP = 0x00;

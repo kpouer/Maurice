@@ -2,7 +2,7 @@
 
 pub mod registers;
 
-use crate::hardware::m6809::registers::{CCRegister, Registers};
+use crate::hardware::m6809::registers::{CCRegister, Register16bit, Registers};
 use crate::hardware::memory::Memory;
 use crate::hardware::screen::Screen;
 use crate::hardware::sound::Sound;
@@ -1664,10 +1664,7 @@ impl M6809 {
     fn BSR(&mut self, mem: &mut Memory) {
         let m = mem.read(self.registers.PC);
         self.registers.inc_PC(1);
-        self.registers.S -= 1;
-        mem.write(self.registers.S, self.registers.PC & 0x00FF);
-        self.registers.S -= 1;
-        mem.write(self.registers.S, self.registers.PC >> 8);
+        self.write_pc(Register16bit::S, mem);
         self.registers.inc_PC(signedChar(m));
         self.cl += 7;
     }
@@ -1679,10 +1676,7 @@ impl M6809 {
         m = mem.read(self.registers.PC);
         self.registers.inc_PC(1);
         off |= m;
-        self.registers.S -= 1;
-        mem.write(self.registers.S, self.registers.PC & 0x00FF);
-        self.registers.S -= 1;
-        mem.write(self.registers.S, self.registers.PC >> 8);
+        self.write_pc(Register16bit::S, mem);
         self.registers.PC = (self.registers.PC + off) & 0xFFFF;
         self.cl += 9;
     }
@@ -1690,32 +1684,30 @@ impl M6809 {
     fn JSRd(&mut self, mem: &mut Memory) {
         let m = mem.read(self.registers.PC);
         self.registers.inc_PC(1);
-        self.registers.S -= 1;
-        mem.write(self.registers.S, self.registers.PC & 0x00FF);
-        self.registers.S -= 1;
-        mem.write(self.registers.S, self.registers.PC >> 8);
+        self.write_pc(Register16bit::S, mem);
         self.registers.PC = (self.registers.DP << 8) | m;
         self.cl += 7;
     }
 
     fn JSRe(&mut self, mem: &mut Memory) {
         let adr = self.ETEND(mem);
-        self.registers.S -= 1;
-        mem.write(self.registers.S, self.registers.PC & 0x00FF);
-        self.registers.S -= 1;
-        mem.write(self.registers.S, self.registers.PC >> 8);
+        self.write_pc(Register16bit::S, mem);
         self.registers.PC = adr;
         self.cl += 8;
     }
 
     fn JSRx(&mut self, mem: &mut Memory) {
         let adr = self.INDEXE(mem);
-        self.registers.S -= 1;
-        mem.write(self.registers.S, self.registers.PC & 0x00FF);
-        self.registers.S -= 1;
-        mem.write(self.registers.S, self.registers.PC >> 8);
+        self.write_pc(Register16bit::S, mem);
         self.registers.PC = adr;
         self.cl += 7;
+    }
+
+    fn write_pc(&mut self, register: Register16bit, mem: &mut Memory) {
+        let value = self.registers.decrement(register, 1);
+        mem.write(value, self.registers.PC & 0xFF);
+        let value = self.registers.decrement(register, 1);
+        mem.write(value, self.registers.PC >> 8);
     }
 
     fn BRN(&mut self, mem: &Memory) {
