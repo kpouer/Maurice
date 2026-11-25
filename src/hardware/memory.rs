@@ -459,7 +459,241 @@ mod tests {
     #[test]
     fn test_set_key() {
         let mut memory = Memory::default();
+        assert!(!memory.key[3]);
         memory.set_key(3);
-        memory.key[3] = true;
+        assert!(memory.key[3]);
+    }
+
+    #[test]
+    fn test_rem_key() {
+        let mut memory = Memory::default();
+        memory.set_key(5);
+        memory.rem_key(5);
+        assert!(!memory.key[5]);
+        // removing a key that is not pressed is a no-op
+        memory.rem_key(5);
+        assert!(!memory.key[5]);
+    }
+
+    #[test]
+    fn test_rem_key_slice() {
+        let mut memory = Memory::default();
+        for i in 10..15 {
+            memory.set_key(i);
+        }
+        memory.rem_key_slice(11, 14);
+        assert!(memory.key[10]);
+        assert!(!memory.key[11]);
+        assert!(!memory.key[12]);
+        assert!(!memory.key[13]);
+        assert!(memory.key[14]);
+    }
+
+    #[test]
+    fn test_write_read_ram() {
+        let mut memory = Memory::default();
+        memory.write(0x2000, 0x1234);
+        // values are truncated to 8 bits
+        assert_eq!(memory.read(0x2000), 0x34);
+    }
+
+    #[test]
+    fn test_read_16_is_big_endian() {
+        let mut memory = Memory::default();
+        memory.write(0x2000, 0x12);
+        memory.write(0x2001, 0x34);
+        assert_eq!(memory.read_16(0x2000), 0x1234);
+    }
+
+    #[test]
+    fn test_rom_is_write_protected() {
+        let mut memory = Memory::default();
+        memory.set(0xC000, 0x55);
+        memory.write(0xC000, 0xAA);
+        assert_eq!(memory.read(0xC000), 0x55);
+        memory.write(0xFFFF, 0xAA);
+        assert_eq!(memory.read(0xFFFF), 0x00);
+    }
+
+    #[test]
+    fn test_set_bypasses_rom_protection() {
+        let mut memory = Memory::default();
+        memory.set(0xF000, 0x1AB);
+        assert_eq!(memory.read(0xF000), 0xAB);
+        assert_eq!(memory.get(0xF000), 0xAB);
+    }
+
+    #[test]
+    fn test_write_marks_line_dirty() {
+        let mut memory = Memory::default();
+        assert!(!memory.is_dirty(1));
+        // 40 bytes per screen line: address 40 is on line 1
+        memory.write(40, 1);
+        assert!(memory.is_dirty(1));
+        // is_dirty clears the flag
+        assert!(!memory.is_dirty(1));
+        assert!(!memory.is_dirty(0));
+    }
+
+    #[test]
+    fn test_write_above_screen_does_not_mark_dirty() {
+        let mut memory = Memory::default();
+        memory.write(0x1F40, 1);
+        memory.write(0x2000, 1);
+        assert!((0..200).all(|line| !memory.is_dirty(line)));
+    }
+
+    #[test]
+    fn test_set_does_not_mark_dirty() {
+        let mut memory = Memory::default();
+        memory.set(0, 1);
+        assert!(!memory.is_dirty(0));
+    }
+
+    #[test]
+    fn test_set_all_dirty() {
+        let mut memory = Memory::default();
+        memory.set_all_dirty();
+        assert!((0..200).all(|line| memory.is_dirty(line)));
+        assert!((0..200).all(|line| !memory.is_dirty(line)));
+    }
+
+    #[test]
+    fn test_point_and_color_planes() {
+        let mut memory = Memory::default();
+        // ORA bit 0 set -> POINT plane mapped at 0x0000
+        memory.registers_6821.CRA = 0x04;
+        memory.write(0xA7C0, 0x01);
+        memory.write(0x0010, 0xAA);
+        // ORA bit 0 cleared -> COLOR plane mapped at 0x0000
+        memory.write(0xA7C0, 0x00);
+        memory.write(0x0010, 0x55);
+
+        assert_eq!(memory.POINT(0x0010), 0xAA);
+        assert_eq!(memory.COLOR(0x0010), 0x55);
+        assert_eq!(memory.read(0x0010), 0x55);
+        memory.write(0xA7C0, 0x01);
+        assert_eq!(memory.read(0x0010), 0xAA);
+    }
+
+    #[test]
+    fn test_cra_crb_keep_top_bits() {
+        let mut memory = Memory::default();
+        memory.registers_6821.CRA = 0xC0;
+        memory.write(0xA7C2, 0xFF);
+        // only bits 0-5 are writable, bits 6-7 (IRQ flags) are kept
+        assert_eq!(memory.registers_6821.CRA, 0xC0 | 0x3F);
+        assert_eq!(memory.read(0xA7C2), 0xC0 | 0x3F);
+
+        memory.registers_6821.CRB = 0x00;
+        memory.write(0xA7C3, 0xFF);
+        assert_eq!(memory.registers_6821.CRB, 0x3F);
+        assert_eq!(memory.read(0xA7C3), 0x3F);
+    }
+
+    #[test]
+    fn test_ddra_access_when_cra_bit2_clear() {
+        let mut memory = Memory::default();
+        memory.registers_6821.CRA = 0x00;
+        memory.write(0xA7C0, 0x5F);
+        assert_eq!(memory.registers_6821.DDRA, 0x5F);
+        assert_eq!(memory.read(0xA7C0), 0x5F);
+    }
+
+    #[test]
+    fn test_ddrb_access_when_crb_bit2_clear() {
+        let mut memory = Memory::default();
+        memory.registers_6821.CRB = 0x00;
+        memory.write(0xA7C1, 0x7F);
+        assert_eq!(memory.registers_6821.DDRB, 0x7F);
+        assert_eq!(memory.read(0xA7C1), 0x7F);
+    }
+
+    #[test]
+    fn test_ora_masked_by_ddra() {
+        let mut memory = Memory::default();
+        memory.registers_6821.CRA = 0x04;
+        memory.registers_6821.DDRA = 0x0F;
+        memory.write(0xA7C0, 0xFF);
+        // only DDRA bits are taken from the written value; bits 5 and 7 are forced in OP
+        // but masked out by DDRA here
+        assert_eq!(memory.registers_6821.ORA, 0x0F);
+    }
+
+    #[test]
+    fn test_light_pen_click_sets_bit_5() {
+        let mut memory = Memory::default();
+        memory.registers_6821.CRA = 0x04;
+        memory.registers_6821.DDRA = 0xFF;
+        memory.light_pen_clic = true;
+        memory.write(0xA7C0, 0x00);
+        assert_eq!(memory.read(0xA7C0) & 0x20, 0x20);
+        memory.light_pen_clic = false;
+        memory.write(0xA7C0, 0x00);
+        assert_eq!(memory.read(0xA7C0) & 0x20, 0x00);
+    }
+
+    #[test]
+    fn test_orb_keyboard_scan() {
+        let mut memory = Memory::default();
+        memory.registers_6821.CRB = 0x04;
+        memory.registers_6821.DDRB = 0x7F;
+
+        // key not pressed -> bit 7 set
+        memory.write(0xA7C1, 0x10);
+        assert_eq!(memory.read(0xA7C1) & 0x80, 0x80);
+
+        // key (0x10 & 0x7E) pressed -> bit 7 cleared
+        memory.set_key(0x10);
+        memory.write(0xA7C1, 0x10);
+        assert_eq!(memory.read(0xA7C1) & 0x80, 0x00);
+    }
+
+    #[test]
+    fn test_orb_bit_0_drives_sound() {
+        let mut memory = Memory::default();
+        memory.registers_6821.CRB = 0x04;
+        memory.registers_6821.DDRB = 0x7F;
+        memory.write(0xA7C1, 0x01);
+        assert_eq!(memory.sound_mem, 0x20);
+        memory.write(0xA7C1, 0x00);
+        assert_eq!(memory.sound_mem, 0x00);
+    }
+
+    #[test]
+    fn test_reset_loads_rom_and_pia_defaults() {
+        let mut memory = Memory::default();
+        memory.set(0x2000, 0x42);
+        memory.reset();
+
+        assert_eq!(memory.read(0x2000), 0x00);
+        assert_eq!(memory.registers_6821.CRA, 0x00);
+        assert_eq!(memory.registers_6821.CRB, 0x00);
+        assert_eq!(memory.registers_6821.DDRA, 0x5F);
+        assert_eq!(memory.registers_6821.DDRB, 0x7F);
+        // the reset vector comes from the ROM and points into it
+        assert!(memory.read_16(0xFFFE) >= 0xC000);
+    }
+
+    #[test]
+    fn test_patch_k7_installs_illegal_opcode_traps() {
+        let mut memory = Memory::default();
+        memory.reset();
+        for address in [0xF168, 0xF18B] {
+            assert_eq!(memory.read(address), 0x02, "trap at 0x{address:04X}");
+        }
+        // RTS after the tape bit read trap
+        assert_eq!(memory.read(0xF16B), 0x39);
+        assert_eq!(memory.read(0xF18C), 0x39);
+    }
+
+    #[test]
+    fn test_set_k7_and_rewind_reset_state() {
+        let mut memory = Memory::default();
+        memory.k7_bit = 3;
+        memory.k7_char = 7;
+        memory.rewind_k7(); // no tape: nothing changes
+        assert_eq!(memory.k7_bit, 3);
+        assert_eq!(memory.k7_char, 7);
     }
 }

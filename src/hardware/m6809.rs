@@ -4136,4 +4136,437 @@ mod tests {
         mem.write(0x3001, 0xFE); // [0x3000] contains 0xCAFE
         assert_eq!(cpu.INDEXE(&mut mem), 0xCAFE);
     }
+
+    const C: u8 = 0x01;
+    const V: u8 = 0x02;
+    const Z: u8 = 0x04;
+    const N: u8 = 0x08;
+
+    fn setup() -> (M6809, Memory) {
+        let mem = Memory::default();
+        let mut cpu = M6809::new(&mem);
+        cpu.registers.PC = 0x2000;
+        cpu.registers.S = 0x4000;
+        cpu.registers.U = 0x5000;
+        (cpu, mem)
+    }
+
+    /// CC flags restricted to C, V, Z and N
+    fn flags(cpu: &mut M6809) -> u8 {
+        cpu.registers.CC.readCC() & (C | V | Z | N)
+    }
+
+    #[test]
+    fn test_immed_and_direct_addressing() {
+        let (mut cpu, mut mem) = setup();
+        assert_eq!(cpu.IMMED8(), 0x2000);
+        assert_eq!(cpu.registers.PC, 0x2001);
+        assert_eq!(cpu.IMMED16(), 0x2001);
+        assert_eq!(cpu.registers.PC, 0x2003);
+
+        cpu.registers.PC = 0x2000;
+        cpu.registers.DP = 0x30;
+        mem.write(0x2000, 0x45);
+        assert_eq!(cpu.DIREC(&mem), 0x3045);
+        assert_eq!(cpu.registers.PC, 0x2001);
+    }
+
+    #[test]
+    fn test_extended_addressing() {
+        let (mut cpu, mut mem) = setup();
+        mem.write(0x2000, 0x12);
+        mem.write(0x2001, 0x34);
+        assert_eq!(cpu.ETEND(&mem), 0x1234);
+        assert_eq!(cpu.registers.PC, 0x2002);
+    }
+
+    #[rstest]
+    #[case(Register16bit::S, 0x4000)]
+    #[case(Register16bit::U, 0x5000)]
+    fn test_write_u8(#[case] register: Register16bit, #[case] start: int) {
+        let (mut cpu, mut mem) = setup();
+        cpu.write_u8(register, 0xAB, &mut mem);
+        assert_eq!(cpu.registers.read_16(register), start - 1);
+        assert_eq!(mem.read(start - 1), 0xAB);
+    }
+
+    #[rstest]
+    #[case(Register16bit::S, 0x4000)]
+    #[case(Register16bit::U, 0x5000)]
+    fn test_write_u16_is_big_endian_on_stack(#[case] register: Register16bit, #[case] start: int) {
+        let (mut cpu, mut mem) = setup();
+        cpu.write_u16(register, 0x1234, &mut mem);
+        assert_eq!(cpu.registers.read_16(register), start - 2);
+        assert_eq!(mem.read(start - 2), 0x12, "high byte at the lowest address");
+        assert_eq!(mem.read(start - 1), 0x34);
+        assert_eq!(mem.read_16(start - 2), 0x1234);
+    }
+
+    // ror: (value, carry in, expected result, expected flags)
+    #[rstest]
+    #[case(0x00, false, 0x00, Z)]
+    #[case(0x02, false, 0x01, 0)]
+    #[case(0xFF, true, 0xFF, N | C)]
+    fn test_ror(
+        #[case] value: int,
+        #[case] carry: bool,
+        #[case] expected: int,
+        #[case] expected_flags: u8,
+    ) {
+        let (mut cpu, _mem) = setup();
+        cpu.registers.CC.res = if carry { 0x100 } else { 0 };
+        let result = cpu.ror(value, 2);
+        assert_eq!(result & 0xFF, expected);
+        assert_eq!(flags(&mut cpu), expected_flags);
+    }
+
+    // Known bug (introduced by the `ror` refactoring): N and Z are computed from the
+    // operand instead of the result, so these flags are wrong.
+    #[rstest]
+    #[case(0x01, false, 0x00, Z | C)]
+    #[case(0x00, true, 0x80, N)]
+    #[case(0x01, true, 0x80, N | C)]
+    #[case(0xFE, false, 0x7F, 0)]
+    #[ignore = "known bug: ror computes N/Z from the operand instead of the result"]
+    fn test_ror_flags_reflect_result(
+        #[case] value: int,
+        #[case] carry: bool,
+        #[case] expected: int,
+        #[case] expected_flags: u8,
+    ) {
+        let (mut cpu, _mem) = setup();
+        cpu.registers.CC.res = if carry { 0x100 } else { 0 };
+        let result = cpu.ror(value, 2);
+        assert_eq!(result & 0xFF, expected);
+        assert_eq!(flags(&mut cpu), expected_flags);
+    }
+
+    #[test]
+    #[ignore = "known bug: ror ignores its cl_inc parameter (always adds 2 cycles)"]
+    fn test_ror_memory_cycles() {
+        let (mut cpu, mut mem) = setup();
+        mem.write(0x3000, 0x03);
+        cpu.ROR(0x3000, 6, &mut mem);
+        assert_eq!(cpu.cl, 6);
+    }
+
+    #[test]
+    fn test_rora_and_rorb_use_registers() {
+        let (mut cpu, _mem) = setup();
+        cpu.registers.A = 0x02;
+        cpu.registers.B = 0x04;
+        cpu.RORA();
+        cpu.RORB();
+        assert_eq!(cpu.registers.A, 0x01);
+        assert_eq!(cpu.registers.B, 0x02);
+    }
+
+    #[test]
+    fn test_ror_memory() {
+        let (mut cpu, mut mem) = setup();
+        mem.write(0x3000, 0x03);
+        cpu.ROR(0x3000, 6, &mut mem);
+        assert_eq!(mem.read(0x3000), 0x01);
+        assert_eq!(flags(&mut cpu), C);
+    }
+
+    // (initial A, operand, expected A, expected flags)
+    #[rstest]
+    #[case(0x01, 0x01, 0x02, 0)]
+    #[case(0x7F, 0x01, 0x80, N | V)]
+    #[case(0xFF, 0x01, 0x00, Z | C)]
+    #[case(0x80, 0x80, 0x00, Z | V | C)]
+    #[case(0x00, 0x00, 0x00, Z)]
+    #[case(0x40, 0x40, 0x80, N | V)]
+    fn test_adda(
+        #[case] a: int,
+        #[case] operand: int,
+        #[case] expected: int,
+        #[case] expected_flags: u8,
+    ) {
+        let (mut cpu, mut mem) = setup();
+        mem.write(0x3000, operand);
+        cpu.registers.A = a;
+        cpu.ADDA(0x3000, 4, &mem);
+        assert_eq!(cpu.registers.A, expected);
+        assert_eq!(flags(&mut cpu), expected_flags);
+    }
+
+    #[test]
+    fn test_adda_half_carry() {
+        let (mut cpu, mut mem) = setup();
+        mem.write(0x3000, 0x01);
+        cpu.registers.A = 0x0F;
+        cpu.ADDA(0x3000, 4, &mem);
+        assert_eq!(cpu.registers.CC.readCC() & 0x20, 0x20);
+    }
+
+    #[test]
+    fn test_addb() {
+        let (mut cpu, mut mem) = setup();
+        mem.write(0x3000, 0xFF);
+        cpu.registers.B = 0x01;
+        cpu.ADDB(0x3000, 4, &mem);
+        assert_eq!(cpu.registers.B, 0x00);
+        assert_eq!(flags(&mut cpu), Z | C);
+    }
+
+    #[test]
+    fn test_adda_adds_cycles() {
+        let (mut cpu, mut mem) = setup();
+        mem.write(0x3000, 1);
+        let before = cpu.cl;
+        cpu.ADDA(0x3000, 4, &mem);
+        assert_eq!(cpu.cl, before + 4);
+    }
+
+    #[rstest]
+    #[case(0x05, 0x03, 0x02, 0)]
+    #[case(0x03, 0x03, 0x00, Z)]
+    #[case(0x00, 0x01, 0xFF, N | C)]
+    #[case(0x80, 0x01, 0x7F, V)]
+    #[case(0x7F, 0xFF, 0x80, N | V | C)]
+    fn test_suba(
+        #[case] a: int,
+        #[case] operand: int,
+        #[case] expected: int,
+        #[case] expected_flags: u8,
+    ) {
+        let (mut cpu, mut mem) = setup();
+        mem.write(0x3000, operand);
+        cpu.registers.A = a;
+        cpu.SUBA(0x3000, 4, &mem);
+        assert_eq!(cpu.registers.A, expected);
+        assert_eq!(flags(&mut cpu), expected_flags);
+    }
+
+    #[rstest]
+    #[case(0x00, 0x00, Z)]
+    #[case(0x01, 0xFF, N | C)]
+    #[case(0xFF, 0x01, C)]
+    fn test_nega(#[case] a: int, #[case] expected: int, #[case] expected_flags: u8) {
+        let (mut cpu, _mem) = setup();
+        cpu.registers.A = a;
+        cpu.NEGA();
+        assert_eq!(cpu.registers.A, expected);
+        assert_eq!(flags(&mut cpu), expected_flags);
+    }
+
+    #[test]
+    #[ignore = "known bug: NEG of 0x80 should set the overflow flag (6809 datasheet)"]
+    fn test_nega_overflow() {
+        let (mut cpu, _mem) = setup();
+        cpu.registers.A = 0x80;
+        cpu.NEGA();
+        assert_eq!(cpu.registers.A, 0x80);
+        assert_eq!(flags(&mut cpu), N | V | C);
+    }
+
+    #[rstest]
+    #[case(0x01, 0x02, 0)]
+    #[case(0x40, 0x80, N | V)]
+    #[case(0x80, 0x00, Z | V | C)]
+    #[case(0xC0, 0x80, N | C)]
+    fn test_asla(#[case] a: int, #[case] expected: int, #[case] expected_flags: u8) {
+        let (mut cpu, _mem) = setup();
+        cpu.registers.A = a;
+        cpu.ASLA();
+        assert_eq!(cpu.registers.A, expected);
+        assert_eq!(flags(&mut cpu), expected_flags);
+    }
+
+    #[rstest]
+    #[case(0x02, 0x01, 0)]
+    #[case(0x01, 0x00, Z | C)]
+    #[case(0xFF, 0x7F, C)]
+    fn test_lsra(#[case] a: int, #[case] expected: int, #[case] expected_flags: u8) {
+        let (mut cpu, _mem) = setup();
+        cpu.registers.A = a;
+        cpu.LSRA();
+        assert_eq!(cpu.registers.A, expected);
+        assert_eq!(flags(&mut cpu), expected_flags);
+    }
+
+    #[rstest]
+    #[case(0x01, false, 0x02)]
+    #[case(0x01, true, 0x03)]
+    #[case(0x80, false, 0x00)]
+    #[case(0x80, true, 0x01)]
+    fn test_rola(#[case] a: int, #[case] carry: bool, #[case] expected: int) {
+        let (mut cpu, _mem) = setup();
+        cpu.registers.CC.res = if carry { 0x100 } else { 0 };
+        cpu.registers.A = a;
+        cpu.ROLA();
+        assert_eq!(cpu.registers.A, expected);
+        assert_eq!(
+            cpu.registers.CC.readCC() & C,
+            if a & 0x80 != 0 { C } else { 0 }
+        );
+    }
+
+    #[test]
+    fn test_inca_and_deca_wrap() {
+        let (mut cpu, _mem) = setup();
+        cpu.registers.A = 0xFF;
+        cpu.INCA();
+        assert_eq!(cpu.registers.A, 0x00);
+        assert_eq!(flags(&mut cpu) & Z, Z);
+        cpu.DECA();
+        assert_eq!(cpu.registers.A, 0xFF);
+        assert_eq!(flags(&mut cpu) & N, N);
+    }
+
+    #[test]
+    fn test_inc_does_not_touch_carry() {
+        let (mut cpu, mut mem) = setup();
+        cpu.registers.CC.setcc(C);
+        mem.write(0x3000, 0x7F);
+        cpu.INC(0x3000, 6, &mut mem);
+        assert_eq!(mem.read(0x3000), 0x80);
+        assert_eq!(flags(&mut cpu), N | V | C);
+    }
+
+    #[test]
+    fn test_clr() {
+        let (mut cpu, mut mem) = setup();
+        mem.write(0x3000, 0x55);
+        cpu.CLR(0x3000, 6, &mut mem);
+        assert_eq!(mem.read(0x3000), 0);
+        assert_eq!(flags(&mut cpu), Z);
+    }
+
+    #[test]
+    fn test_cmp8_does_not_modify_register() {
+        let (mut cpu, mut mem) = setup();
+        mem.write(0x3000, 0x10);
+        cpu.registers.A = 0x10;
+        let a = cpu.registers.A;
+        cpu.CMP8(a, 0x3000, 4, &mem);
+        assert_eq!(cpu.registers.A, 0x10);
+        assert_eq!(flags(&mut cpu), Z);
+
+        cpu.CMP8(0x05, 0x3000, 4, &mem);
+        assert_eq!(flags(&mut cpu), N | C);
+    }
+
+    #[test]
+    fn test_ld8_sets_flags() {
+        let (mut cpu, mut mem) = setup();
+        mem.write(0x3000, 0x80);
+        assert_eq!(cpu.LD8(0x3000, 4, &mem), 0x80);
+        assert_eq!(flags(&mut cpu), N);
+        mem.write(0x3000, 0x00);
+        assert_eq!(cpu.LD8(0x3000, 4, &mem), 0x00);
+        assert_eq!(flags(&mut cpu), Z);
+    }
+
+    #[test]
+    fn test_bra_forward() {
+        let (mut cpu, mut mem) = setup();
+        mem.write(0x2000, 0x10);
+        cpu.BRA(&mem);
+        assert_eq!(cpu.registers.PC, 0x2011);
+    }
+
+    #[test]
+    fn test_bra_backward() {
+        let (mut cpu, mut mem) = setup();
+        mem.write(0x2000, 0xFE); // -2
+        cpu.BRA(&mem);
+        assert_eq!(cpu.registers.PC, 0x1FFF);
+    }
+
+    #[rstest]
+    #[case(0, false)]
+    #[case(Z, true)]
+    #[case(C, false)]
+    fn test_beq(#[case] cc: u8, #[case] taken: bool) {
+        let (mut cpu, mut mem) = setup();
+        cpu.registers.CC.setcc(cc);
+        mem.write(0x2000, 0x10);
+        cpu.BEQ(&mem);
+        assert_eq!(cpu.registers.PC == 0x2011, taken);
+    }
+
+    #[rstest]
+    #[case(0, true)]
+    #[case(Z, false)]
+    fn test_bne(#[case] cc: u8, #[case] taken: bool) {
+        let (mut cpu, mut mem) = setup();
+        cpu.registers.CC.setcc(cc);
+        mem.write(0x2000, 0x10);
+        cpu.BNE(&mem);
+        assert_eq!(cpu.registers.PC == 0x2011, taken);
+    }
+
+    #[rstest]
+    #[case(0, true)]
+    #[case(C, false)]
+    fn test_bcc(#[case] cc: u8, #[case] taken: bool) {
+        let (mut cpu, mut mem) = setup();
+        cpu.registers.CC.setcc(cc);
+        mem.write(0x2000, 0x10);
+        cpu.BCC(&mem);
+        assert_eq!(cpu.registers.PC == 0x2011, taken);
+    }
+
+    #[test]
+    fn test_bsr_and_rts_roundtrip() {
+        let (mut cpu, mut mem) = setup();
+        mem.write(0x2000, 0x10);
+        cpu.BSR(&mut mem);
+        // return address (after the operand) is pushed on S
+        assert_eq!(cpu.registers.S, 0x3FFE);
+        assert_eq!(mem.read_16(0x3FFE), 0x2001);
+        assert_eq!(cpu.registers.PC, 0x2011);
+
+        cpu.RTS(&mem);
+        assert_eq!(cpu.registers.PC, 0x2001);
+        assert_eq!(cpu.registers.S, 0x4000);
+    }
+
+    #[test]
+    fn test_jsre_pushes_return_address() {
+        let (mut cpu, mut mem) = setup();
+        mem.write(0x2000, 0x30);
+        mem.write(0x2001, 0x00);
+        cpu.JSRe(&mut mem);
+        assert_eq!(cpu.registers.PC, 0x3000);
+        assert_eq!(mem.read_16(cpu.registers.S), 0x2002);
+    }
+
+    #[test]
+    fn test_nop_takes_two_cycles() {
+        let (mut cpu, _mem) = setup();
+        cpu.NOP();
+        assert_eq!(cpu.cl, 2);
+        assert_eq!(cpu.registers.PC, 0x2000);
+    }
+
+    #[test]
+    fn test_abx() {
+        let (mut cpu, _mem) = setup();
+        cpu.registers.X = 0xFFFF;
+        cpu.registers.B = 0x02;
+        cpu.ABX();
+        assert_eq!(cpu.registers.X, 0x0001);
+    }
+
+    #[test]
+    fn test_unassemble_known_opcode() {
+        let mut mem = Memory::default();
+        mem.write(0x2000, 0x86); // LDA #
+        mem.write(0x2001, 0x42);
+        let text = unassemble(0x2000, 1, &mem);
+        assert!(text.contains("LDA"), "unexpected output: {text}");
+        assert!(text.contains("42"), "unexpected output: {text}");
+    }
+
+    #[test]
+    fn test_unassemble_unknown_opcode() {
+        let mut mem = Memory::default();
+        mem.write(0x2000, 0x00); // no mnemonic for this opcode
+        let text = unassemble(0x2000, 1, &mem);
+        assert!(!text.is_empty());
+    }
 }

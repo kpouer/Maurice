@@ -382,4 +382,123 @@ mod tests {
         cc.setcc(0xd0);
         assert_eq!(cc.ccrest(), 0xd0);
     }
+
+    #[rstest]
+    #[case(Register8bit::A, 0x12)]
+    #[case(Register8bit::B, 0x34)]
+    #[case(Register8bit::DP, 0x56)]
+    fn test_read_write_8(#[case] register: Register8bit, #[case] value: int) {
+        let mut registers = Registers::default();
+        registers.write_8(register, value);
+        assert_eq!(registers.read_8(register), value);
+    }
+
+    #[test]
+    fn test_write_8_cc_goes_through_setcc() {
+        let mut registers = Registers::default();
+        registers.write_8(Register8bit::CC, 0xFF);
+        assert_eq!(registers.read_8(Register8bit::CC), 0, "value is lazy");
+        assert_eq!(registers.CC.readCC(), 0xFF);
+        assert_eq!(registers.read_8(Register8bit::CC), 0xFF);
+    }
+
+    #[rstest]
+    #[case(Register16bit::D)]
+    #[case(Register16bit::X)]
+    #[case(Register16bit::Y)]
+    #[case(Register16bit::U)]
+    #[case(Register16bit::S)]
+    #[case(Register16bit::PC)]
+    fn test_read_write_16(#[case] register: Register16bit) {
+        let mut registers = Registers::default();
+        registers.write_16(register, 0x1234);
+        assert_eq!(registers.read_16(register), 0x1234);
+    }
+
+    #[test]
+    fn test_registers_are_independent() {
+        let mut registers = Registers::default();
+        registers.write_16(Register16bit::X, 0x1111);
+        registers.write_16(Register16bit::Y, 0x2222);
+        registers.write_16(Register16bit::U, 0x3333);
+        registers.write_16(Register16bit::S, 0x4444);
+        assert_eq!(registers.read_16(Register16bit::X), 0x1111);
+        assert_eq!(registers.read_16(Register16bit::Y), 0x2222);
+        assert_eq!(registers.read_16(Register16bit::U), 0x3333);
+        assert_eq!(registers.read_16(Register16bit::S), 0x4444);
+        assert_eq!(registers.read_16(Register16bit::PC), 0);
+    }
+
+    #[rstest]
+    #[case(Register16bit::D)]
+    #[case(Register16bit::X)]
+    #[case(Register16bit::Y)]
+    #[case(Register16bit::U)]
+    #[case(Register16bit::S)]
+    #[case(Register16bit::PC)]
+    fn test_decrement(#[case] register: Register16bit) {
+        let mut registers = Registers::default();
+        registers.write_16(register, 0x100);
+        assert_eq!(registers.decrement(register, 1), 0xFF);
+        assert_eq!(registers.read_16(register), 0xFF);
+        assert_eq!(registers.decrement(register, 2), 0xFD);
+    }
+
+    #[test]
+    fn test_inc_pc_returns_previous_value() {
+        let mut registers = Registers::default();
+        registers.PC = 0x1000;
+        assert_eq!(registers.inc_PC(2), 0x1000);
+        assert_eq!(registers.PC, 0x1002);
+        assert_eq!(registers.inc_PC(1), 0x1002);
+        assert_eq!(registers.PC, 0x1003);
+    }
+
+    #[test]
+    fn test_calcd_and_calcab() {
+        let mut registers = Registers::default();
+        registers.A = 0x12;
+        registers.B = 0x34;
+        registers.CALCD();
+        assert_eq!(registers.D, 0x1234);
+
+        registers.D = 0xABCD;
+        registers.CALCAB();
+        assert_eq!(registers.A, 0xAB);
+        assert_eq!(registers.B, 0xCD);
+    }
+
+    #[test]
+    fn test_reset() {
+        let mut memory = Memory::default();
+        memory.set(0xFFFE, 0xF0);
+        memory.set(0xFFFF, 0x12);
+
+        let mut registers = Registers::default();
+        registers.DP = 0x55;
+        registers.S = 0x1234;
+        registers.CC.value = 0xFF;
+        registers.reset(&memory);
+
+        assert_eq!(registers.PC, 0xF012);
+        assert_eq!(registers.DP, 0);
+        assert_eq!(registers.S, 0x8000);
+        assert_eq!(registers.CC.value(), 0);
+    }
+
+    #[test]
+    fn test_setcc_getcc_roundtrip_all_values() {
+        for value in 0..=255u8 {
+            let mut cc = CCRegister::default();
+            cc.setcc(value);
+            assert_eq!(cc.getcc(), value, "roundtrip failed for 0x{value:02x}");
+        }
+    }
+
+    #[test]
+    fn test_value_and_set_value() {
+        let mut cc = CCRegister::default();
+        cc.set_value(0x2A);
+        assert_eq!(cc.value(), 0x2A);
+    }
 }
