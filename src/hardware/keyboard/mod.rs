@@ -98,3 +98,50 @@ fn key_memory(key: usize, press: bool, mem: &mut Memory) {
         mem.rem_key(key);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn press_and_release_plain_key() {
+        let mut kb = Keyboard::default();
+        let mut mem = Memory::default();
+        kb.key_pressed(MO5VirtualKeyCode::A, &mut mem);
+        assert!(mem.is_key_down(0x5a));
+        kb.key_released(MO5VirtualKeyCode::A, &mut mem);
+        assert!(!mem.is_key_down(0x5a));
+    }
+
+    #[test]
+    fn key_pressed_releases_previous_keys() {
+        let mut kb = Keyboard::default();
+        let mut mem = Memory::default();
+        kb.key_pressed(MO5VirtualKeyCode::A, &mut mem);
+        kb.key_pressed(MO5VirtualKeyCode::Z, &mut mem);
+        assert!(!mem.is_key_down(0x5a));
+        assert!(mem.is_key_down(0x4a));
+    }
+
+    #[test]
+    fn shiftable_key_without_shift() {
+        let mut kb = Keyboard::default();
+        let mut mem = Memory::default();
+        kb.key_pressed(MO5VirtualKeyCode::Key1, &mut mem);
+        assert!(mem.is_key_down(0x5e));
+        assert!(!mem.is_key_down(0x70));
+    }
+
+    #[test]
+    fn shiftable_key_with_shift_presses_shift_too() {
+        let mut kb = Keyboard::default();
+        kb.modifiers.shift = true;
+        let mut mem = Memory::default();
+        kb.key_pressed(MO5VirtualKeyCode::Key1, &mut mem);
+        assert!(mem.is_key_down(0x5e));
+        assert!(mem.is_key_down(0x70));
+        kb.key_released(MO5VirtualKeyCode::Key1, &mut mem);
+        assert!(!mem.is_key_down(0x5e));
+        assert!(!mem.is_key_down(0x70));
+    }
+}

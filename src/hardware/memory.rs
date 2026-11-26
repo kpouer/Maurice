@@ -281,6 +281,11 @@ impl Memory {
         }
     }
 
+    #[cfg(test)]
+    pub(crate) fn is_key_down(&self, i: usize) -> bool {
+        self.key[i]
+    }
+
     pub(crate) fn rem_key_slice(&mut self, start: usize, end: usize) {
         debug!("key up from {start} to {}", end - 1);
         self.key[start..end].fill(false);
@@ -465,6 +470,26 @@ mod tests {
     fn test_set_key() {
         let mut memory = Memory::default();
         memory.set_key(3);
-        memory.key[3] = true;
+        assert!(memory.key[3]);
+    }
+
+    #[test]
+    fn test_rem_key() {
+        let mut memory = Memory::default();
+        memory.set_key(5);
+        memory.rem_key(5);
+        assert!(!memory.key[5]);
+    }
+
+    #[test]
+    fn test_rem_key_slice() {
+        let mut memory = Memory::default();
+        memory.set_key(0);
+        memory.set_key(126);
+        memory.set_key(127);
+        memory.rem_key_slice(0, 127);
+        assert!(!memory.key[0]);
+        assert!(!memory.key[126]);
+        assert!(memory.key[127]);
     }
 }

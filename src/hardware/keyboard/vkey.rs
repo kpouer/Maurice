@@ -124,3 +124,31 @@ impl TryFrom<egui::Key> for MO5VirtualKeyCode {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case(egui::Key::A, MO5VirtualKeyCode::A)]
+    #[case(egui::Key::Z, MO5VirtualKeyCode::Z)]
+    #[case(egui::Key::Num0, MO5VirtualKeyCode::Key0)]
+    #[case(egui::Key::Num9, MO5VirtualKeyCode::Key9)]
+    #[case(egui::Key::Enter, MO5VirtualKeyCode::Return)]
+    #[case(egui::Key::ArrowUp, MO5VirtualKeyCode::Up)]
+    #[case(egui::Key::Space, MO5VirtualKeyCode::Space)]
+    #[case(egui::Key::Minus, MO5VirtualKeyCode::Minus)]
+    #[case(egui::Key::F11, MO5VirtualKeyCode::F11)]
+    fn maps_supported_keys(#[case] key: egui::Key, #[case] expected: MO5VirtualKeyCode) {
+        assert_eq!(MO5VirtualKeyCode::try_from(key), Ok(expected));
+    }
+
+    #[rstest]
+    #[case(egui::Key::F1)]
+    #[case(egui::Key::Tab)]
+    #[case(egui::Key::PageUp)]
+    fn rejects_unsupported_keys(#[case] key: egui::Key) {
+        assert_eq!(MO5VirtualKeyCode::try_from(key), Err(()));
+    }
+}
