@@ -3,9 +3,9 @@
 use crate::hardware::memory::Memory;
 use crate::hardware::screen::Screen;
 use crate::hardware::sound::Sound;
+use crate::hardware::sound_buffer::SoundBuffer;
 use crate::int;
 use log::warn;
-use crate::hardware::sound_buffer::SoundBuffer;
 
 #[derive(Debug, Default)]
 pub struct M6809 {
@@ -3991,17 +3991,12 @@ mod tests {
 
     #[rstest]
     #[case(0, 0)]
-    // Valeurs positives dans les limites de 16 bits signés
     #[case(1, 1)]
-    #[case(127, 127)]
-    #[case(32767, 32767)] // 2^15 - 1, valeur max positive
-    // Valeurs négatives représentées en 16 bits signés
-    #[case(0xFFFF, -1)] // Tous les bits à 1 = -1 en complément à 2
-    #[case(0xFFFE, -2)]
-    #[case(0xFF00, -256)]
-    #[case(0x8000, -32768)] // 2^15, valeur min négative
-    fn test_signed8bits(#[case] input: u16, #[case] expected: i16) {
-        // Le zéro devrait rester zéro après conversion
+    #[case(127, 127)] // valeur max positive
+    #[case(0xFF, -1)]
+    #[case(0xFE, -2)]
+    #[case(0x80, -128)] // valeur min négative
+    fn test_signed8bits(#[case] input: u8, #[case] expected: i8) {
         assert_eq!(signedChar(input as int), expected as int);
     }
 
