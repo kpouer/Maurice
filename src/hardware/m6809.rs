@@ -3225,22 +3225,12 @@ impl M6809 {
 
 // force sign extension in a portable but ugly maneer
 const fn signedChar(v: int) -> int {
-    if (v & 0x80) == 0 {
-        return v & 0xFF;
-    }
-    let mut delta = -1; // delta is 0xFFFF.... independently of 32/64bits
-    delta = (delta >> 8) << 8; // force last 8bits to 0
-    (v & 0xFF) | delta // result is now signed
+    (v as u8 as i8) as int
 }
 
 // force sign extension in a portable but ugly maneer
 const fn signed16bits(v: int) -> int {
-    if (v & 0x8000) == 0 {
-        return v & 0xFFFF;
-    }
-    let mut delta = -1; // delta is 0xFFFF.... independently of 32/64bits
-    delta = (delta >> 16) << 16; // force last 16bits to 0
-    (v & 0xFFFF) | delta // result is now signed
+    (v as u16 as i16) as int
 }
 
 const fn regx(m: int) -> &'static str {
