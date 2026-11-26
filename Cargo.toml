@@ -4,7 +4,6 @@ version = "1.3.1"
 edition = "2024"
 authors = ["Matthieu Casanova"]
 description = "Maurice, a Thomson MO5 emulator"
-homepage = "https://github.com/kpouer/maurice"
 repository = "https://github.com/kpouer/maurice"
 license = "MIT"
 readme = "README.md"
